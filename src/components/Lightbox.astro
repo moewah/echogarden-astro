@@ -80,7 +80,11 @@ const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
     font-family: var(--font-mono);
     font-size: 16px;
     line-height: 1;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, border-color 0.2s, opacity 0.35s;
+  }
+  /* 闲置态：按钮淡出（JS 控制，焦点/移动时恢复；reduced-motion 恒显示） */
+  .site-lightbox.is-idle .site-lightbox-btn {
+    opacity: 0;
   }
   .site-lightbox-btn:hover,
   .site-lightbox-btn:focus-visible {
@@ -123,6 +127,9 @@ const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
   @media (prefers-reduced-motion: reduce) {
     .site-lightbox-btn {
       transition: none;
+    }
+    .site-lightbox.is-idle .site-lightbox-btn {
+      opacity: 1;
     }
   }
 </style>

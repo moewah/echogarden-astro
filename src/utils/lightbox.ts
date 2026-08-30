@@ -61,7 +61,8 @@ export function setupLightbox(root: HTMLElement): void {
     const item = items[index];
     if (!item) return;
     image.classList.remove('is-broken');
-    image.src = item.src;
+    // 同 URL 不重设 src：避免重复加载（动态图重播/闪烁）
+    if (image.src !== item.src) image.src = item.src;
     image.alt = item.alt;
     number.textContent = `FIG.${String(index + 1).padStart(digits, '0')}`;
     title.textContent = item.title;
@@ -85,12 +86,15 @@ export function setupLightbox(root: HTMLElement): void {
     root.hidden = false;
     document.body.classList.add('lightbox-open');
     closeButton.focus({ preventScroll: true });
+    reveal();
   };
 
   const close = () => {
     root.hidden = true;
     document.body.classList.remove('lightbox-open');
-    image.removeAttribute('src');
+    root.classList.remove('is-idle');
+    window.clearTimeout(idleTimer);
+    // 不删 src：保留已加载图，再次打开同图不重载（动态图不重播、不闪）
     activeTrigger?.removeAttribute('aria-expanded');
     activeTrigger?.focus({ preventScroll: true });
     activeTrigger = null;
@@ -104,6 +108,23 @@ export function setupLightbox(root: HTMLElement): void {
 
   const focusableButtons = () => [closeButton, prevButton, nextButton].filter((button) => !button.hidden);
 
+  // ===== 闲置淡出：指针/触摸/焦点活动时显示，静止后淡出（reduced-motion 恒显示）=====
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const IDLE_MS = 1800;
+  let idleTimer = 0;
+
+  const reveal = () => {
+    root.classList.remove('is-idle');
+    window.clearTimeout(idleTimer);
+    if (reduceMotion) return;
+    idleTimer = window.setTimeout(() => {
+      // 键盘焦点停留在按钮上时不淡出（可访问性）；程序 focus（如打开时给关闭键的初始焦点）不算
+      const active = document.activeElement;
+      if (active instanceof Element && active.matches(':focus-visible')) return;
+      root.classList.add('is-idle');
+    }, IDLE_MS);
+  };
+
   enhanceTriggers();
   new MutationObserver(enhanceTriggers).observe(document.body, { childList: true, subtree: true });
 
@@ -113,6 +134,13 @@ export function setupLightbox(root: HTMLElement): void {
   root.addEventListener('click', (event) => {
     if (event.target === root) close();
   });
+  // 活动即显示：指针移动 / 触摸 / 键盘 / 焦点进出
+  root.addEventListener('pointermove', reveal);
+  root.addEventListener('pointerdown', reveal);
+  root.addEventListener('touchstart', reveal);
+  root.addEventListener('focusin', reveal);
+  root.addEventListener('focusout', reveal);
+  document.addEventListener('keydown', reveal);
   document.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-lightbox-trigger]') : null;
     if (target) open(target);
