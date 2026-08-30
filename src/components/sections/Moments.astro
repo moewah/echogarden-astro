@@ -1,0 +1,481 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import EmptyState from '@components/EmptyState.astro';
+import MomentCard from '@components/MomentCard.astro';
+import Lightbox from '@components/Lightbox.astro';
+import { getMemos, getMemosVersionStatus, memoStructuredText, formatMemoDate } from '@/utils/memos';
+import { memosConfig, siteConfig } from '@config/index';
+import { i18n } from '@i18n';
+
+interface Props {
+  limit?: number;
+  truncate?: number;
+  showHead?: boolean;
+  /** 动态页专用：渲染增量刷新 UI（刷新按钮/快照/同步状态）；首页板块不传 */
+  refreshable?: boolean;
+}
+const { limit = 4, truncate = memosConfig.display.truncate, showHead = true, refreshable = false } = Astro.props;
+// 版本未通过时不拉取内容，直接复用空态占位。
+const memosVersionStatus = await getMemosVersionStatus();
+const memos =
+  memosVersionStatus === 'ready'
+    ? await getMemos(limit, truncate)
+    : memosVersionStatus === 'unconfigured'
+      ? []
+      : null;
+// 页面首个实际图片优先加载，不把无图动态误判为首图。
+const priorityMemoUid = memos?.find((m) => m.images && m.images.length > 0)?.uid;
+// 增量刷新生效条件：动态页 + 开关开启 + 服务已配置且数据可用
+const refreshOn = refreshable && memosConfig.refresh.enabled && memosConfig.enabled && memos !== null;
+// 构建时展示集合快照 {uid: updateTime}（增量同步的 prev 基准，随构建刷新）
+const snapshot: Record<string, string> = {};
+for (const m of memos ?? []) snapshot[m.uid] = m.updateTime;
+// 展示集合最新变化时间（LAST SYNCED 展示；空列表回退构建日期）
+const latestTime =
+  memos && memos.length
+    ? memos.reduce((a, b) => (a.updateTime > b.updateTime ? a : b)).updateTime
+    : '';
+// 构建时数据快照日期（统计戳记的同步时间；本地时区，格式化复用 utils 的 formatMemoDate）
+const buildDate = formatMemoDate(new Date().toISOString());
+const syncedDate = latestTime ? formatMemoDate(latestTime) : buildDate;
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+const momentsUrl = new URL('/moments/', siteUrl).toString();
+const momentsJsonLd =
+  memos && memos.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        '@id': `${momentsUrl}#collection`,
+        name: i18n.sections.moments.title,
+        description: siteConfig.site.seo.pages.moments.description,
+        url: momentsUrl,
+        isPartOf: { '@id': `${siteUrl}#website` },
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: memos.length,
+          itemListElement: memos.map((memo, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+              '@type': 'SocialMediaPosting',
+              articleBody: memoStructuredText(memo.content),
+              datePublished: memo.createTime,
+              dateModified: memo.updateTime,
+              author: { '@id': `${siteUrl}#person` },
+              ...(memo.images?.length ? { image: memo.images } : {}),
+            },
+          })),
+        },
+      }
+    : null;
+const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(/</g, '\\u003c') : '';
+---
+
+<section id="moments" class={showHead ? 'pt-[clamp(70px,11vh,130px)]' : ''}>
+  <div class="wrap">
+    {
+      showHead && (
+        <SecHead no="LOG" title={i18n.sections.moments.title} en={i18n.sections.moments.en} />
+      )
+    }
+
+    <div class="max-w-[720px] mx-auto reveal">
+      {
+        !memosConfig.enabled ? (
+          <EmptyState text={i18n.moments.disabled}>
+            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+          </EmptyState>
+        ) : memosVersionStatus === 'mismatch' ? (
+          <EmptyState text={i18n.moments.versionMismatch}>
+            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+          </EmptyState>
+        ) : memosVersionStatus === 'unavailable' ? (
+          <EmptyState text={i18n.moments.versionCheckFailed}>
+            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+          </EmptyState>
+        ) : memos === null ? (
+          <EmptyState text={i18n.moments.loadFailed} />
+        ) : (
+          <>
+            <div class="flex justify-between items-center font-mono text-[10.5px] tracking-[0.24em] uppercase pb-3 border-b border-[var(--line)]">
+        <span class="text-[var(--faint)]"><span id="memo-count">{memos.length}</span> {i18n.moments.records}</span>
+        <span class="flex items-center gap-3">
+          {
+            refreshOn && (
+              <>
+                <button type="button" id="memo-sync-btn" class="memo-refresh-btn">{i18n.moments.refresh}</button>
+                <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
+              </>
+            )
+          }
+          <span class="text-[var(--accent)]">● {i18n.moments.synced}</span>
+        </span>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mt-5" id="memo-filter">
+        <button type="button" class="memo-filter-btn is-active" data-tag="">{i18n.moments.all}</button>
+        {
+          memosConfig.tags.map((t) => (
+            <button type="button" class="memo-filter-btn" data-tag={t}>{t}</button>
+          ))
+        }
+      </div>
+
+      <div class="border-l border-[var(--line)] pl-[clamp(20px,4vw,48px)] mt-5" id="memo-list">
+        {
+          memos.map((m, idx) => (
+            // 卡片结构单一事实源：MomentCard 组件（静态渲染与增量端点经 Container API 共用）
+            <MomentCard memo={m} idx={idx} priority={m.uid === priorityMemoUid} />
+          ))
+        }
+      </div>
+      {
+        memos !== null && (
+          <div class="mt-8 flex justify-end items-center gap-2 font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)]">
+            <span>{i18n.moments.lastSynced}</span>
+            <span id="memo-synced">{syncedDate}</span>
+          </div>
+        )
+      }
+          </>
+        )
+      }
+    </div>
+  </div>
+
+  <Lightbox figureDigits={2} />
+  <span id="memo-i18n" data-copy={i18n.moments.copy} data-copied={i18n.moments.copied} data-refresh={i18n.moments.refresh} data-refreshing={i18n.moments.refreshing} data-noupdates={i18n.moments.noUpdates} data-syncfailed={i18n.moments.syncFailed} hidden></span>
+  {
+    refreshOn && (
+      // 构建时快照：增量同步的 prev 基准（uid → updateTime，RFC3339）
+      <script is:inline type="application/json" id="memo-snapshot" set:html={JSON.stringify(snapshot)}></script>
+    )
+  }
+  {
+    momentsJsonLd && <script is:inline type="application/ld+json" set:html={momentsJsonLdText} />
+  }
+</section>
+
+<style>
+  .memo-filter-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 4px 12px;
+    border: 1px solid var(--hair);
+    color: var(--soft);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .memo-filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .memo-filter-btn.is-active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .memo-refresh-btn {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    padding: 3px 12px;
+    border: 1px solid var(--hair);
+    color: var(--soft);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .memo-refresh-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .memo-refresh-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    border-color: var(--hair);
+    color: var(--faint);
+  }
+  .memo-sync-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .memo-sync-status:not([hidden]) {
+    display: inline-block;
+  }
+</style>
+
+<style is:global>
+  .memo-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    padding: 3px 8px;
+    border: 1px solid var(--hair);
+    background: var(--panel);
+    color: var(--soft);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .memo-copy-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  /* hover 设备上默认隐藏，悬停代码块或聚焦按钮时显示 */
+  @media (hover: hover) {
+    .memo-content pre .memo-copy-btn {
+      opacity: 0;
+      transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .memo-content pre:hover .memo-copy-btn,
+    .memo-content pre .memo-copy-btn:focus-visible {
+      opacity: 1;
+    }
+  }
+  /* 内联 code 的样式不能污染 Shiki 生成的代码块内部 code。 */
+</style>
+
+<script>
+  // i18n 文案经 data 属性传入（bundled script 不支持 define:vars）
+  const memoI18n = document.getElementById('memo-i18n');
+  const copyLabel = memoI18n?.dataset.copy || 'COPY';
+  const copiedLabel = memoI18n?.dataset.copied || 'COPIED';
+  const refreshLabel = memoI18n?.dataset.refresh || '刷新';
+  const refreshingLabel = memoI18n?.dataset.refreshing || '同步中…';
+  const noUpdatesLabel = memoI18n?.dataset.noupdates || '已是最新';
+  const syncFailedLabel = memoI18n?.dataset.syncfailed || '同步失败，请稍后再试。';
+
+  const listEl = document.getElementById('memo-list');
+  const countEl = document.getElementById('memo-count');
+  const syncedEl = document.getElementById('memo-synced');
+
+  // ===== 工具 =====
+  const pad = (n: number) => String(n).padStart(3, '0');
+  const parseCard = (html: string): HTMLElement | null => {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    return tpl.content.firstElementChild instanceof HTMLElement ? tpl.content.firstElementChild : null;
+  };
+
+  // ===== 过滤（抽函数：filter 点击与增量同步共用）=====
+  let activeFilter = '';
+  const moments = (): HTMLElement[] => (listEl ? [...listEl.querySelectorAll<HTMLElement>('.moment')] : []);
+  // 卡片 data-tags 存 JSON 数组（一条 memo 可多分类）
+  const cardTags = (el: HTMLElement): string[] => {
+    try { return JSON.parse(el.dataset.tags || '[]') as string[]; } catch { return []; }
+  };
+  function applyFilter(tag: string) {
+    activeFilter = tag;
+    document.querySelectorAll<HTMLElement>('.memo-filter-btn').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.tag === tag);
+    });
+    let visible = 0;
+    moments().forEach((m) => {
+      const show = tag === '' || cardTags(m).includes(tag);
+      m.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (countEl) countEl.textContent = String(visible);
+  }
+  // 编号重排：增量变化后统一重算（编号 = 列表索引，随新增/删除顺延）
+  function renumber() {
+    moments().forEach((el, i) => {
+      const no = el.querySelector('.moment-no');
+      if (no) no.textContent = pad(i + 1);
+    });
+  }
+  // 全列表按创建时间倒序重排：删除/修改/新增任意组合后保证顺序一致。
+  // （added 不一定是新 memo——删除导致后位条目挤进前 limit 时它也相对快照算新增，
+  //   无脑 prepend 会把旧条目顶到最顶，所以统一交给时间排序修正。）
+  function reorderList() {
+    if (!listEl) return;
+    moments()
+      .sort((a, b) => (b.dataset.time || '').localeCompare(a.dataset.time || ''))
+      .forEach((el) => listEl.appendChild(el));
+  }
+  // ===== 复制按钮：ensure + MutationObserver（覆盖增量插入的代码块）=====
+  function ensureCopyBtn(pre: HTMLPreElement) {
+    if (!pre || pre.querySelector('.memo-copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'memo-copy-btn';
+    btn.textContent = copyLabel;
+    btn.addEventListener('click', async () => {
+      const code = pre.querySelector('code');
+      const text = (code ? code.textContent : pre.textContent) || '';
+      const done = () => {
+        btn.textContent = copiedLabel;
+        setTimeout(() => { btn.textContent = copyLabel; }, 1500);
+      };
+      try {
+        await navigator.clipboard.writeText(text);
+        done();
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        (document as any).execCommand('copy');
+        ta.remove();
+        done();
+      }
+    });
+    pre.appendChild(btn);
+  }
+  document.querySelectorAll<HTMLPreElement>('.memo-content pre').forEach(ensureCopyBtn);
+  if (listEl) {
+    const copyObserver = new MutationObserver((mutations) => {
+      for (const mut of mutations) {
+        for (const node of mut.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          if (node instanceof HTMLPreElement && node.matches('.memo-content pre')) ensureCopyBtn(node);
+          node.querySelectorAll<HTMLPreElement>('.memo-content pre').forEach(ensureCopyBtn);
+        }
+      }
+    });
+    copyObserver.observe(listEl, { childList: true, subtree: true });
+  }
+
+  // ===== 事件委托（覆盖加载时与增量插入的所有卡片）=====
+  document.addEventListener('click', (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (!target) return;
+
+    // 展开长 memo
+    const toggle = target.closest<HTMLElement>('.memo-toggle');
+    if (toggle) {
+      const content = toggle.closest('.moment')?.querySelector('.memo-content');
+      if (content) {
+        content.classList.remove('memo-collapsed');
+        content.classList.add('memo-expanded');
+      }
+      toggle.remove();
+      return;
+    }
+
+    // tag 过滤
+    const filterBtn = target.closest<HTMLElement>('.memo-filter-btn');
+    if (filterBtn) {
+      applyFilter(filterBtn.dataset.tag || '');
+      return;
+    }
+
+    // 轮播箭头
+    const nav = target.closest<HTMLElement>('.memo-nav');
+    if (nav) {
+      const carousel = nav.closest<HTMLElement>('[data-carousel]');
+      const track = carousel?.querySelector<HTMLElement>('[data-track]');
+      if (carousel && track) {
+        track.scrollBy({ left: Number(nav.dataset.dir || 0) * carousel.clientWidth, behavior: 'smooth' });
+      }
+      return;
+    }
+
+  });
+
+  // 轮播滚动态（scroll 不冒泡，capture 捕获）
+  document.addEventListener('scroll', (e) => {
+    const track = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-track]') : null;
+    if (!track) return;
+    const carousel = track.closest<HTMLElement>('[data-carousel]');
+    const prev = carousel?.querySelector<HTMLElement>('.memo-prev');
+    const next = carousel?.querySelector<HTMLElement>('.memo-next');
+    const max = track.scrollWidth - track.clientWidth;
+    if (prev) prev.style.opacity = track.scrollLeft <= 0 ? '0.35' : '';
+    if (next) next.style.opacity = track.scrollLeft >= max - 1 ? '0.35' : '';
+  }, { capture: true, passive: true });
+
+  // ===== 增量同步（仅动态页：存在刷新按钮与快照时启用；首页板块自动跳过）=====
+  interface SyncResponse {
+    added?: string[];
+    updated?: string[];
+    removed?: string[];
+    snapshot?: Record<string, string>;
+    latestDate?: string;
+  }
+  const syncBtn = document.getElementById('memo-sync-btn');
+  const snapshotEl = document.getElementById('memo-snapshot');
+  const statusEl = document.getElementById('memo-sync-status');
+  if (syncBtn instanceof HTMLButtonElement && snapshotEl && statusEl && listEl) {
+    let snapshot: Record<string, string> = {};
+    try {
+      snapshot = JSON.parse(snapshotEl.textContent || '{}') || {};
+    } catch {
+      snapshot = {};
+    }
+    let syncing = false;
+    let statusTimer = 0;
+
+    const showStatus = (text: string) => {
+      statusEl.textContent = text;
+      statusEl.hidden = false;
+      clearTimeout(statusTimer);
+      statusTimer = window.setTimeout(() => { statusEl.hidden = true; }, 2500);
+    };
+
+    const applySync = (data: SyncResponse) => {
+      // 删除：按 data-uid 移除（快照里有、当前展示集合没有的条目）
+      (data.removed || []).forEach((uid) => {
+        listEl.querySelector(`[data-uid="${CSS.escape(String(uid))}"]`)?.remove();
+      });
+      // 修改：原位替换（新 HTML 自带 data-uid；代码块复制按钮由 MutationObserver 补齐）
+      (data.updated || []).forEach((html) => {
+        const card = parseCard(html);
+        const uid = card?.dataset.uid;
+        if (!uid) return;
+        listEl.querySelector(`[data-uid="${CSS.escape(uid)}"]`)?.replaceWith(card);
+      });
+      // 新增：先追加到末尾，统一由 reorderList 按时间排序（added 可能是被挤出后进入的旧条目）
+      (data.added || []).forEach((html) => {
+        listEl.insertAdjacentHTML('beforeend', html);
+      });
+      reorderList();
+      renumber();
+      applyFilter(activeFilter); // 保持当前过滤并刷新计数
+      if (data.snapshot && typeof data.snapshot === 'object') snapshot = data.snapshot;
+      if (data.latestDate && syncedEl) {
+        syncedEl.textContent = data.latestDate;
+      }
+    };
+
+    syncBtn.addEventListener('click', async () => {
+      if (syncing) return;
+      syncing = true;
+      syncBtn.disabled = true;
+      syncBtn.textContent = refreshingLabel;
+      try {
+        const res = await fetch('/api/memos/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snapshot }),
+          signal: AbortSignal.timeout(15000), // 超时兑底：端点挂起时避免按钮永久卡在同步中
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = (await res.json()) as SyncResponse;
+        const changed =
+          (data.added?.length || 0) + (data.updated?.length || 0) + (data.removed?.length || 0);
+        applySync(data);
+        if (changed === 0) showStatus(noUpdatesLabel);
+      } catch {
+        showStatus(syncFailedLabel); // 失败保留旧数据
+      } finally {
+        syncing = false;
+        syncBtn.disabled = false;
+        syncBtn.textContent = refreshLabel;
+      }
+    });
+  }
+</script>

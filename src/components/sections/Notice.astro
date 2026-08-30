@@ -1,0 +1,15 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { siteConfig } from '@config/index';
+import { i18n } from '@i18n';
+---
+
+<div class="wrap pt-[clamp(70px,11vh,130px)]">
+  <div class="max-w-[80%] mx-auto border-t border-[var(--hair)] py-6 text-center font-mono text-[10.5px] tracking-[0.08em] text-[var(--faint)] leading-relaxed">
+    <strong class="block text-[var(--soft)] font-semibold">{i18n.noticeLabel}</strong>
+    <span class="block mt-2.5">{siteConfig.notice}</span>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import Layout from '@layouts/Layout.astro';
+import PageHeader from '@components/PageHeader.astro';
+import AlbumList from '@components/AlbumList.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+import { siteConfig, albumsConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { getSortedAlbums } from '@/utils/albums';
+import { paginate, pageUrl as buildPageUrl } from '@/utils/pagination';
+import { archiveCode } from '@/utils/archive';
+
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+
+// 影辑关闭时索引跳 404（专辑页由 getStaticPaths 空数组保证不生成）
+if (!albumsConfig.enabled) {
+  return Astro.redirect('/404.html');
+}
+
+const albums = await getSortedAlbums();
+const { items, totalPages } = paginate(albums, albumsConfig.perPage, 1);
+
+// 影辑列表首页结构化数据：只描述首页展示的条目，分页页不重复输出 ItemList。
+const pageUrlAbs = buildPageUrl(siteUrl, 'photos/', 1);
+const itemListId = `${pageUrlAbs}#itemlist`;
+const itemListLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  '@id': itemListId,
+  itemListElement: items.map((album, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: album.data.title,
+    url: new URL(`/photos/${album.id}/`, siteUrl).toString(),
+  })),
+};
+
+const title = siteConfig.site.seo.pages.photos.title;
+const pageCode = archiveCode('MW-ALB', albumsConfig.archiveNo);
+const description = siteConfig.site.seo.pages.photos.description;
+const nextPage = totalPages > 1 ? buildPageUrl(siteUrl, 'photos/', 2) : undefined;
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords={siteConfig.site.seo.pages.photos.keywords}
+  mainEntity={{ '@id': itemListId }}
+  canonical={pageUrlAbs}
+  next={nextPage}
+>
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(itemListLd)} />
+  <PageHeader title={title} tagline={i18n.page.photosTagline} no={pageCode}>
+    <div class="grid h-[clamp(32px,5vw,52px)] w-[clamp(32px,5vw,52px)] shrink-0 place-items-center rounded-full border border-[var(--hair)] text-[var(--faint)]" aria-hidden="true">
+      <svg class="h-[clamp(17px,2.7vw,28px)] w-[clamp(17px,2.7vw,28px)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18"></rect>
+        <circle cx="9" cy="9" r="2"></circle>
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+      </svg>
+    </div>
+  </PageHeader>
+
+  <AlbumList albums={items} startIndex={0} currentPage={1} totalPages={totalPages} />
+
+  <Notice />
+  <Footer no={pageCode} />
+</Layout>

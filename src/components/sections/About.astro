@@ -1,0 +1,107 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import Icon from '@components/Icon.astro';
+import { siteConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { sectionNo } from '@/utils/sections';
+
+const [locationCity, locationRegion] = siteConfig.profile.location.split(', ');
+// 卡片展示省略国家代码，JSON-LD 仍保留
+const locationDisplay = [locationCity, locationRegion]
+  .filter(Boolean)
+  .join(', ');
+---
+
+<section id="about" class="pt-[clamp(70px,11vh,130px)]">
+  <div class="wrap">
+    <SecHead no={sectionNo.about} title={i18n.sections.about.title} en={i18n.sections.about.en} />
+
+    <div class="bg-[var(--panel)] border border-[var(--line)] relative p-[clamp(24px,4vw,48px)] pl-[clamp(44px,7vw,84px)] reveal">
+      <span class="hole" style="top:20%"></span>
+      <span class="hole" style="top:47%"></span>
+      <span class="hole" style="top:74%"></span>
+      <div class="absolute left-[21px] top-[60px] bottom-[60px] w-px bg-[var(--hair)]"></div>
+
+      <div class="flex justify-between items-center border-b border-[var(--line)] pb-3.5 mb-2">
+        <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.about.record}</span>
+        <span class="border-[1.5px] border-[var(--accent)] text-[var(--accent)] font-mono text-[10px] tracking-[0.3em] pt-[4px] pr-[10px] pb-[4px] pl-[14px] -rotate-3">{i18n.about.verified}</span>
+      </div>
+
+      <dl>
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4 border-b border-[var(--hair)]">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.name}</dt>
+          <dd class="text-[13.5px] leading-[1.85]">
+            <strong>{siteConfig.profile.name}</strong>
+          </dd>
+        </div>
+
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4 border-b border-[var(--hair)]">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.role}</dt>
+          <dd class="text-[13.5px] leading-[1.85]">{siteConfig.profile.role}</dd>
+        </div>
+
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4 border-b border-[var(--hair)]">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.focus}</dt>
+          <dd class="text-[13.5px] leading-[1.85]">
+            {siteConfig.profile.focus.map((f) => (
+              <span class="inline-block border border-[var(--hair)] px-2.5 py-0.5 mr-1.5 mb-1.5 text-[12.5px] font-mono text-[var(--soft)]">{f}</span>
+            ))}
+          </dd>
+        </div>
+
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4 border-b border-[var(--hair)]">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.statement}</dt>
+          <dd class="text-[13.5px] leading-[1.85]">{siteConfig.profile.statement}</dd>
+        </div>
+
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4 border-b border-[var(--hair)]">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.location}</dt>
+          <dd class="text-[13.5px] leading-[1.85] inline-flex items-center gap-2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-[14px] h-[14px] text-[var(--faint)]"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span>{locationDisplay}</span>
+          </dd>
+        </div>
+
+        <div class="grid md:grid-cols-[150px_1fr] gap-4 md:gap-5 items-baseline py-4">
+          <dt class="font-mono text-[11px] tracking-[0.2em] text-[var(--faint)] uppercase">{i18n.about.contact}</dt>
+          <dd class="text-[13.5px] leading-[1.85]">
+            <a
+              href={`mailto:${siteConfig.profile.email}`}
+              class="group inline-flex items-center gap-2 border border-[var(--hair)] px-3 py-1.5 text-[12.5px] font-mono text-[var(--soft)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              <Icon name="mail" class="w-[14px] h-[14px]" />
+              <span>{siteConfig.profile.email}</span>
+            </a>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hole {
+    position: absolute;
+    left: 15px;
+    width: 13px;
+    height: 13px;
+    border-radius: 9999px;
+    border: 1px solid var(--hair);
+    background: var(--bg);
+  }
+</style>

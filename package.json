@@ -1,0 +1,40 @@
+{
+  "name": "echogarden-astro",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "以「档案卷宗」为设计语言的 Astro 个人主页开源模板（MoeHome 重构版）",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build --force",
+    "check": "astro check",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/markdown-satteri": "^0.3.5",
+    "@astrojs/node": "^11.0.3",
+    "astro": "7.2.0",
+    "hast-util-to-html": "^9.0.5",
+    "marked": "^18.0.9",
+    "shiki": "^4.4.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^26.2.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moewah/echogarden-astro.git"
+  },
+  "homepage": "https://github.com/moewah/echogarden-astro",
+  "bugs": {
+    "url": "https://github.com/moewah/echogarden-astro/issues"
+  }
+}

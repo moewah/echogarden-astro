@@ -1,0 +1,28 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import Layout from '@layouts/Layout.astro';
+import Footer from '@components/Footer.astro';
+import { i18n } from '@i18n';
+---
+
+<Layout title="404">
+  <section class="min-h-[70vh] flex items-center justify-center pt-20">
+    <div class="text-center">
+      <p class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] mb-4">{i18n.notFound.error}</p>
+      <h1 class="text-[clamp(48px,10vw,120px)] font-light tracking-[-0.02em] leading-none">
+        {i18n.notFound.not}<br />{i18n.notFound.found}
+      </h1>
+      <p class="mt-6 text-[var(--soft)]">{i18n.notFound.desc}</p>
+      <a
+        href="/"
+        class="inline-block mt-8 font-mono text-xs tracking-[0.16em] border border-[var(--line)] px-5 py-2.5 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+      >
+        {i18n.notFound.back}
+      </a>
+    </div>
+  </section>
+  <Footer />
+</Layout>

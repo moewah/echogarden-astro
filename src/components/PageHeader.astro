@@ -1,0 +1,30 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+interface Props {
+  title: string;
+  tagline: string;
+  no?: string;
+}
+const { title, tagline, no } = Astro.props;
+---
+
+<section class="pt-[70px]">
+  <div class="wrap pt-[clamp(20px,4vh,44px)]">
+    {
+      no && (
+        <p class="font-mono text-[11px] tracking-[0.14em] text-[var(--soft)]">{no}</p>
+      )
+    }
+    <div class="flex justify-between items-start gap-6 mt-[clamp(28px,6vh,72px)]">
+      <div>
+        <h1 class="text-[clamp(32px,5vw,52px)] font-light tracking-[0.04em] leading-none">{title}</h1>
+        <p class="mt-3 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{tagline}</p>
+      </div>
+      <slot />
+    </div>
+    <div class="mt-16 border-b border-[var(--line)]"></div>
+  </div>
+</section>

@@ -1,0 +1,82 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { i18n } from '@i18n';
+---
+
+<button
+  id="theme-toggle"
+  class="w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+  aria-label={i18n.themeToggle}
+  data-title-light={i18n.themeMode.light}
+  data-title-dark={i18n.themeMode.dark}
+  data-title-system={i18n.themeMode.system}
+>
+  <svg class="icon-sun w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <circle cx="12" cy="12" r="4.2"></circle>
+    <path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"></path>
+  </svg>
+  <svg class="icon-moon w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"></path>
+  </svg>
+  <svg class="icon-auto w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <path d="M12 2a10 10 0 0 0 0 20Z" fill="currentColor" stroke="none"></path>
+    <circle cx="12" cy="12" r="10"></circle>
+  </svg>
+</button>
+
+<style is:global>
+  .icon-moon,
+  .icon-auto {
+    display: none;
+  }
+  [data-theme-choice='dark'] .icon-sun {
+    display: none;
+  }
+  [data-theme-choice='dark'] .icon-moon {
+    display: block;
+  }
+  [data-theme-choice='system'] .icon-sun {
+    display: none;
+  }
+  [data-theme-choice='system'] .icon-auto {
+    display: block;
+  }
+</style>
+
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('theme-toggle');
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const order = ['light', 'dark', 'system'];
+
+  function resolve(choice: string) {
+    return choice === 'system' ? (mq.matches ? 'dark' : 'light') : choice;
+  }
+
+  function syncTitle() {
+    if (!btn) return;
+    const choice = root.getAttribute('data-theme-choice') || 'light';
+    btn.title = btn.getAttribute('data-title-' + choice) || '';
+  }
+
+  btn?.addEventListener('click', () => {
+    const current = root.getAttribute('data-theme-choice') || 'light';
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    root.setAttribute('data-theme-choice', next);
+    root.setAttribute('data-theme', resolve(next));
+    localStorage.setItem('mh-theme', next);
+    syncTitle();
+  });
+
+  // 处于跟随系统模式时，系统主题变化实时同步
+  mq.addEventListener('change', () => {
+    if (root.getAttribute('data-theme-choice') === 'system') {
+      root.setAttribute('data-theme', resolve('system'));
+    }
+  });
+
+  syncTitle();
+</script>

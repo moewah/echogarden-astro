@@ -1,0 +1,79 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import EmptyState from '@components/EmptyState.astro';
+import PhotoImg from '@components/PhotoImg.astro';
+import { albumsConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { sectionNo } from '@/utils/sections';
+import { formatDate } from '@/utils/date';
+import { getSortedAlbums, featuredPhotos } from '@/utils/albums';
+
+// 影辑关闭时不查 collection、不渲染板块；开启但零照片时渲染占位提示
+const albums = albumsConfig.enabled ? await getSortedAlbums() : [];
+const featured = featuredPhotos(albums);
+// 全部影辑入口的总量锚点：随开关联动（关闭时板块不渲染）
+const albumTotal = albums.length;
+---
+
+{
+  albumsConfig.enabled && (
+    <section id="photos" class="pt-[clamp(70px,11vh,130px)]">
+      <div class="wrap">
+        <SecHead no={sectionNo.photos} title={i18n.sections.photos.title} en={i18n.sections.photos.en} />
+
+        {
+          featured.length > 0 ? (
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-[clamp(16px,2.5vw,28px)] reveal">
+          {featured.map(({ album, photo, index }) => (
+            <article class="group flex flex-col bg-[var(--panel)] border border-[var(--line)] transition-all duration-250 hover:border-[var(--accent)] hover:-translate-y-1">
+              <a
+                href={`/photos/${album.id}/#fig-${index + 1}`}
+                class="block flex-1"
+              >
+                <figure class="contents">
+                  <div class="aspect-[4/3] overflow-hidden bg-[var(--bg)] border-b border-[var(--hair)] img-ph img-ph--photo">
+                    <PhotoImg src={photo.src} alt={photo.title} loading="lazy" width={600} class="w-full h-full object-cover" />
+                  </div>
+                  <figcaption class="px-[18px] pt-4 pb-[18px]">
+                    <div class="flex justify-between items-baseline gap-3">
+                      <h3 class="text-[15px] font-semibold leading-[1.65]">{photo.title}</h3>
+                      <span class="font-mono text-[10.5px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors">↗</span>
+                    </div>
+                    {photo.caption && (
+                      <p class="mt-1.5 text-[12.5px] leading-[1.8] text-[var(--soft)] line-clamp-2">{photo.caption}</p>
+                    )}
+                  </figcaption>
+                </figure>
+              </a>
+              <a
+                href={`/photos/${album.id}/`}
+                class="flex justify-between border-t border-dashed border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] text-[var(--faint)] hover:text-[var(--accent)] transition-colors mt-auto"
+              >
+                <span>{album.data.title}</span>
+                {photo.time && <span>{formatDate(photo.time)}</span>}
+              </a>
+            </article>
+          ))}
+        </div>
+          ) : (
+            <EmptyState text={i18n.photos.emptyPhotos} />
+          )
+        }
+
+        <div class="flex justify-end mt-6 reveal">
+          <a
+            href="/photos/"
+            class="font-mono text-[11.5px] tracking-[0.14em] text-[var(--accent)] border-b border-[var(--accent)] pb-1"
+          >
+            {i18n.photos.all.replace('{n}', String(albumTotal))}
+          </a>
+        </div>
+      </div>
+
+    </section>
+  )
+}

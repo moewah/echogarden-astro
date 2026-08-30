@@ -1,0 +1,291 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import Layout from '@layouts/Layout.astro';
+import PageHeader from '@components/PageHeader.astro';
+import PhotoImg from '@components/PhotoImg.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+import Lightbox from '@components/Lightbox.astro';
+import ReadingMode from '@components/ReadingMode.astro';
+import { siteConfig, albumsConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { render } from 'astro:content';
+import { formatDate } from '@/utils/date';
+import { getSortedAlbums, albumCode, albumAuthor, photoAuthor, albumCover, type Album } from '@/utils/albums';
+import { ogImage } from '@/utils/og';
+import { archiveCode } from '@/utils/archive';
+
+export async function getStaticPaths() {
+  // 影辑关闭时不生成任何专辑页
+  if (!albumsConfig.enabled) return [];
+  const albums = await getSortedAlbums();
+  return albums.map((album, i) => ({
+    params: { slug: album.id },
+    props: { album, code: albumCode(i) },
+  }));
+}
+
+interface Props {
+  album: Album;
+  code: string;
+}
+
+const { album, code } = Astro.props;
+const { Content } = await render(album);
+const { title, description, date, photos } = album.data;
+const pageCode = archiveCode('MW-ALB', albumsConfig.archiveNo);
+// og:image 用专辑封面（cover 标注 ?? 第一张；本地图走构建压缩，远程原样）
+const ogImg = await ogImage(albumCover(album)?.src);
+
+// 影辑页结构化数据：ImageObject
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+const imageUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const imageId = `${imageUrl}#image`;
+const personId = `${siteUrl}#person`;
+const websiteId = `${siteUrl}#website`;
+const imageJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ImageObject',
+  '@id': imageId,
+  url: imageUrl,
+  name: title,
+  description: description ?? siteConfig.site.description,
+  contentUrl: ogImg,
+  datePublished: date ? new Date(date).toISOString().split('T')[0] : undefined,
+  author: { '@id': personId },
+  publisher: { '@id': websiteId },
+};
+
+// 档案元数据行：档号 · 责任者 · 时间 · 数量（片段均来自 i18n / 编号生成器，非硬编码文案）
+const tagline = [
+  code,
+  albumAuthor(album),
+  date ? formatDate(date) : null,
+  i18n.photos.count.replace('{n}', String(photos.length)),
+]
+  .filter(Boolean)
+  .join(' · ');
+---
+
+<Layout title={title} description={description ?? siteConfig.site.description} image={ogImg} mainEntity={{ '@id': imageId }} keywords={album.data.tags}>
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(imageJsonLd)} />
+  {/* 阅读增强：影辑详情页作用区（原始态背景，开关见 readingConfig） */}
+  <ReadingMode />
+  <PageHeader title={title} tagline={tagline} no={pageCode} />
+
+  <section class="pt-[clamp(40px,6vh,80px)]">
+    <div class="wrap">
+      {
+        album.body?.trim() && (
+          <div class="album-body max-w-[720px] mx-auto mb-[clamp(44px,7vh,80px)] reveal text-[14px] leading-[1.9] text-[var(--soft)]">
+            <Content />
+          </div>
+        )
+      }
+
+      <div class="flex flex-col gap-[clamp(28px,5vh,56px)]">
+        {
+          photos.map((photo, i) => (
+            <article
+              id={`fig-${i + 1}`}
+              class="album-photo scroll-mt-[100px] border border-[var(--line)] bg-[var(--panel)] reveal"
+            >
+              <div class="border-b border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] tracking-[0.14em]">
+                <span class="text-[var(--accent)] font-semibold">FIG.{String(i + 1).padStart(3, '0')}</span>
+              </div>
+              <figure class="grid lg:grid-cols-[1fr_300px]">
+                <div class="bg-[var(--bg)] border-b lg:border-b-0 lg:border-r border-[var(--hair)] img-ph img-ph--photo">
+                  <PhotoImg
+                    src={photo.src}
+                    alt={photo.title}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : undefined}
+                    class="w-full h-auto block cursor-pointer"
+                    data-lightbox-trigger
+                    data-lightbox-group="album"
+                    data-lightbox-title={photo.title}
+                  />
+                </div>
+                <div class="px-[18px] py-5">
+                  <figcaption class="contents">
+                    <h2 class="text-[17px] font-semibold leading-[1.65] tracking-[0.02em]">{photo.title}</h2>
+                    {photo.caption && (
+                      <p class="mt-2.5 text-[13.5px] leading-[1.85] text-[var(--soft)]">{photo.caption}</p>
+                    )}
+                  </figcaption>
+                  <dl class="mt-4 font-mono text-[11.5px] tracking-[0.06em]">
+                    <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)]">
+                      <dt class="text-[var(--faint)]">{i18n.photos.author}</dt>
+                      <dd>{photoAuthor(photo, album)}</dd>
+                    </div>
+                    {
+                      photo.time && (
+                        <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)]">
+                          <dt class="text-[var(--faint)]">{i18n.photos.time}</dt>
+                          <dd>{formatDate(photo.time)}</dd>
+                        </div>
+                      )
+                    }
+                    {
+                      photo.location && (
+                        <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)]">
+                          <dt class="text-[var(--faint)]">{i18n.photos.location}</dt>
+                          <dd>{photo.location}</dd>
+                        </div>
+                      )
+                    }
+                    {
+                      photo.note && (
+                        <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)]">
+                          <dt class="text-[var(--faint)]">{i18n.photos.note}</dt>
+                          <dd class="font-sans text-[12.5px] leading-[1.8] text-[var(--soft)]">{photo.note}</dd>
+                        </div>
+                      )
+                    }
+                    {
+                      photo.tags && photo.tags.length > 0 && (
+                        <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2">
+                          <dt class="text-[var(--faint)]">{i18n.photos.tags}</dt>
+                          <dd class="flex flex-wrap gap-2">
+                            {photo.tags.map((tag) => (
+                              <span class="border border-[var(--accent)] rounded-full px-2.5 py-0.5 text-[var(--accent)]">{tag}</span>
+                            ))}
+                          </dd>
+                        </div>
+                      )
+                    }
+                  </dl>
+                </div>
+              </figure>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <Lightbox figureDigits={3} />
+
+  <Notice />
+  <Footer no={pageCode} />
+</Layout>
+
+<style>
+
+</style>
+
+<style is:global>
+  .album-body {
+    position: relative;
+    padding: clamp(26px, 4vw, 42px) clamp(28px, 5vw, 56px);
+    border-block: 1px solid var(--hair);
+  }
+  .album-body::before,
+  .album-body::after {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    padding-inline: 0.25rem;
+    background: var(--bg);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    font-weight: 500;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+  .album-body::before {
+    content: '“';
+    top: 0;
+    left: 0.7rem;
+    transform: translateY(-50%);
+  }
+  .album-body::after {
+    content: '”';
+    right: 0.7rem;
+    bottom: 0;
+    transform: translateY(50%);
+  }
+  .album-body h2,
+  .album-body h3,
+  .album-body h4 {
+    color: var(--ink);
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.4em;
+  }
+  .album-body h2 {
+    font-size: 1.35em;
+    margin-top: 2em;
+  }
+  .album-body h3 {
+    font-size: 1.1em;
+    margin-top: 1.6em;
+  }
+  .album-body h4 {
+    font-size: 1em;
+    margin-top: 1.3em;
+  }
+  .album-body p {
+    margin: 0.55em 0;
+  }
+  .album-body strong,
+  .album-body b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .album-body em {
+    color: var(--ink);
+  }
+  .album-body del,
+  .album-body s {
+    color: var(--faint);
+    text-decoration-thickness: 1px;
+  }
+  .album-body a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+  }
+  .album-body ul,
+  .album-body ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+  }
+  .album-body ul {
+    list-style: disc;
+  }
+  .album-body ol {
+    list-style: decimal;
+  }
+  .album-body li + li {
+    margin-top: 0.35em;
+  }
+  .album-body blockquote {
+    border-left: 2px solid var(--accent);
+    padding-left: 1.1em;
+    margin: 0.8em 0;
+    color: var(--soft);
+  }
+  .album-body hr {
+    border: none;
+    border-top: 1px solid var(--hair);
+    margin: 2.2em 0;
+  }
+  .album-body img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--hair);
+    background: var(--panel);
+    margin: 1.75em 0;
+  }
+</style>

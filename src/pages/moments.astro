@@ -1,0 +1,45 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import Layout from '@layouts/Layout.astro';
+import PageHeader from '@components/PageHeader.astro';
+import Moments from '@components/sections/Moments.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+import { siteConfig, memosConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { archiveCode } from '@/utils/archive';
+
+// 动态页关闭时跳转 404（静态路由无法条件跳过）
+if (!memosConfig.pageEnabled) {
+  return Astro.redirect('/404.html');
+}
+
+const pageCode = archiveCode('MW-MMT', memosConfig.archiveNo);
+---
+
+<Layout
+  title={siteConfig.site.seo.pages.moments.title}
+  description={siteConfig.site.seo.pages.moments.description}
+  keywords={siteConfig.site.seo.pages.moments.keywords}
+>
+  <PageHeader title={i18n.sections.moments.title} tagline={i18n.page.momentsTagline} no={pageCode}>
+    <div class="shrink-0 w-[clamp(32px,5vw,52px)] h-[clamp(32px,5vw,52px)] border border-[var(--hair)] rounded-full grid place-items-center text-[var(--faint)]" aria-hidden="true">
+      <svg class="w-[clamp(17px,2.7vw,28px)] h-[clamp(17px,2.7vw,28px)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 7h.01"></path>
+        <path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"></path>
+        <path d="m20 7 2 .5-2 .5"></path>
+        <path d="M10 18v3"></path>
+        <path d="M14 17.75V21"></path>
+        <path d="M7 18a6 6 0 0 0 3.84-10.61"></path>
+      </svg>
+    </div>
+  </PageHeader>
+  <div class="pt-[clamp(40px,6vh,80px)]">
+    <Moments limit={30} showHead={false} refreshable />
+  </div>
+  <Notice />
+  <Footer no={pageCode} />
+</Layout>

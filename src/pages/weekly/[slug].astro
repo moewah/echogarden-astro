@@ -1,0 +1,1234 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { render } from 'astro:content';
+import Layout from '@layouts/Layout.astro';
+import SecHead from '@components/SecHead.astro';
+import PhotoImg from '@components/PhotoImg.astro';
+import Comments from '@components/Comments.astro';
+import Sponsor from '@components/sections/Sponsor.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+import Icon from '@components/Icon.astro';
+import Lightbox from '@components/Lightbox.astro';
+import ReadingMode from '@components/ReadingMode.astro';
+import { weeklyConfig, artalkConfig, siteConfig, routesConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { ogImage } from '@/utils/og';
+import { formatDate } from '@/utils/date';
+import { getSortedWeekly, adjacentWeekly, weeklyIssueLabel, weeklyAuthor, type WeeklyPost } from '@/utils/weekly';
+import { archiveCode } from '@/utils/archive';
+import { getArtalkVersionStatus } from '@/utils/artalk';
+import { umamiEvent } from '@/utils/analytics';
+
+export async function getStaticPaths() {
+  if (!weeklyConfig.enabled) return [];
+  const posts = await getSortedWeekly();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: WeeklyPost;
+}
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const sorted = await getSortedWeekly();
+const history = sorted.filter((p) => p.id !== post.id);
+const { prev, next } = adjacentWeekly(sorted, post.id);
+const issue = post.data.issue;
+const pageCode = archiveCode('MW-WKL', weeklyConfig.archiveNo);
+// og:image 用本期封面（本地图走构建压缩，远程原样），type=article
+const ogImg = await ogImage(post.data.cover);
+
+// 文章页结构化数据：Article
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+const rssUrl = new URL(routesConfig.rss, siteUrl).toString();
+const articleUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const articleId = `${articleUrl}#article`;
+const personId = `${siteUrl}#person`;
+const websiteId = `${siteUrl}#website`;
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  '@id': articleId,
+  url: articleUrl,
+  headline: post.data.title,
+  description: post.data.description,
+  image: ogImg,
+  datePublished: new Date(post.data.date).toISOString().split('T')[0],
+  dateModified: new Date(post.data.updated ?? post.data.date).toISOString().split('T')[0],
+  author: { '@id': personId },
+  publisher: { '@id': websiteId },
+};
+const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus() : 'unconfigured';
+---
+
+<Layout title={post.data.title} description={post.data.description} image={ogImg} type="article" mainEntity={{ '@id': articleId }} keywords={post.data.tags}>
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} />
+  {/* 阅读增强：周刊详情页作用区（原始态背景，开关见 readingConfig） */}
+  <ReadingMode />
+  <section class="pt-[70px]">
+    <div class="wrap pt-[clamp(20px,4vh,44px)]">
+      <div class="weekly-reading-header border-t border-[var(--line)] pt-[clamp(18px,3vh,30px)]">
+        <div>
+          <div class="font-mono text-[10.5px] tracking-[0.12em]">
+            <span class="font-semibold text-[var(--accent)]">{weeklyIssueLabel(issue)}</span>
+          </div>
+          <h1 class="mt-3 text-[clamp(32px,5vw,52px)] font-light leading-[1.3] tracking-[0.04em]">{post.data.title}</h1>
+          <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10.5px] tracking-[0.1em] text-[var(--faint)]">
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="h-[13px] w-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              {weeklyAuthor(post)}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="h-[13px] w-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              {formatDate(post.data.date)}
+            </span>
+            {
+              post.data.updated && (
+                <span class="inline-flex items-center gap-1.5">
+                  <svg class="h-[13px] w-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                  {i18n.weekly.updated.replace('{date}', formatDate(post.data.updated))}
+                </span>
+              )
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="weekly-reading-layout">
+        <article class="weekly-article mx-auto min-w-0 max-w-[720px]">
+          <div class="img-ph img-ph--post mt-7 aspect-video overflow-hidden border border-[var(--hair)] bg-[var(--bg)] reveal">
+            <PhotoImg
+              src={post.data.cover}
+              alt={post.data.title}
+              loading="eager"
+              fetchpriority="high"
+              preset="card"
+              class="h-full w-full object-cover cursor-pointer"
+              data-lightbox-trigger
+              data-lightbox-title={post.data.title}
+            />
+          </div>
+
+          <p class="mx-auto mt-7 max-w-[680px] border-l-2 border-[var(--accent)] pl-5 text-[15.5px] leading-[1.9] text-[var(--soft)]">
+            {post.data.description}
+          </p>
+
+          <div class="markdown-body post-body weekly-reading-body mx-auto mt-8 max-w-[680px]">
+            <Content />
+          </div>
+
+          <!-- 移动端阅读归档单（仅 <768px，PC 轨道不受影响）；置于标签行之上 -->
+          <div class="weekly-filing">
+            <div class="weekly-filing-row">
+              <button
+                type="button"
+                class="weekly-filing-btn"
+                aria-label={i18n.weekly.aiReading}
+                data-ai-reading
+                data-button-label={i18n.weekly.aiReading}
+                data-url={articleUrl}
+                data-prompt={i18n.weekly.aiReadingPrompt}
+                data-default-label={i18n.weekly.aiReadingHint}
+                data-copied-label={i18n.weekly.aiReadingCopied}
+                data-failed-label={i18n.weekly.aiReadingCopyFailed}
+                {...umamiEvent('weekly-ai-reading', { id: post.id, issue, surface: 'detail-filing' })}
+              >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3" /><path d="M8 9h8a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h-8a3 3 0 0 1 -3 -3v-5a3 3 0 0 1 3 -3" /><path d="M9 13h.01" /><path d="M15 13h.01" /><path d="M9 17h6" /><path d="M3 13v2" /><path d="M21 13v2" /></svg>
+                    <span class="weekly-filing-label">{i18n.weekly.aiReadingHint}</span>
+              </button>
+              <button
+                type="button"
+                class="weekly-filing-btn"
+                aria-label={i18n.weekly.share}
+                data-share-url={articleUrl}
+                data-share-title={post.data.title}
+                data-share-text={post.data.description}
+                data-button-label={i18n.weekly.share}
+                data-copied-label={i18n.weekly.shareCopied}
+                data-failed-label={i18n.weekly.shareFailed}
+                {...umamiEvent('weekly-share', { id: post.id, issue, surface: 'detail-filing' })}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5l7 -4" /><path d="M8.5 9.5l7 4" /><path d="M6 12a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 9a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 20a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /></svg>
+                <span class="weekly-filing-label">{i18n.weekly.share}</span>
+              </button>
+              <button type="button" class="weekly-filing-btn" data-toc-toggle>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16" /><path d="M4 12h10" /><path d="M4 17h16" /></svg>
+                <span>{i18n.weekly.toc}</span>
+              </button>
+            </div>
+          </div>
+
+          {
+            post.data.tags && post.data.tags.length > 0 && (
+              <div class="mx-auto mt-9 flex max-w-[680px] flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] tracking-[0.1em] text-[var(--faint)]">
+                {post.data.tags.map((t) => (
+                  <span># {t}</span>
+                ))}
+              </div>
+            )
+          }
+
+          <!-- 上一期 / 下一期 -->
+          <nav class="mx-auto mt-10 grid max-w-[680px] grid-cols-2 items-center gap-3 border-t border-[var(--line)] pt-5 font-mono text-[11px] tracking-[0.12em]">
+            {
+              prev ? (
+                <a
+                  href={`/weekly/${prev.id}/`}
+                  class="justify-self-start text-[var(--soft)] transition-colors hover:text-[var(--accent)]"
+                  {...umamiEvent('weekly-prev-next', { id: post.id, issue, dir: 'prev' })}
+                >
+                  ← {i18n.weekly.prev}
+                  <span class="text-[var(--faint)]"> · {prev.data.issue}</span>
+                </a>
+              ) : (
+                <span />
+              )
+            }
+            {
+              next ? (
+                <a
+                  href={`/weekly/${next.id}/`}
+                  class="justify-self-end text-[var(--soft)] transition-colors hover:text-[var(--accent)]"
+                  {...umamiEvent('weekly-prev-next', { id: post.id, issue, dir: 'next' })}
+                >
+                  {i18n.weekly.next}
+                  <span class="text-[var(--faint)]"> · {next.data.issue}</span> →
+                </a>
+              ) : (
+                <span />
+              )
+            }
+          </nav>
+        </article>
+
+        <nav class="weekly-toc" aria-label={i18n.weekly.toc} data-state="scroll" data-id={post.id} data-issue={issue} hidden>
+          <div class="weekly-toc-inner">
+            <ol class="weekly-toc-list" />
+            <div class="weekly-reading-actions" role="group" aria-label={i18n.weekly.readingTools}>
+              <button
+                type="button"
+                class="weekly-reading-action"
+                aria-label={i18n.weekly.aiReading}
+                data-ai-reading
+                data-button-label={i18n.weekly.aiReading}
+                data-url={articleUrl}
+                data-prompt={i18n.weekly.aiReadingPrompt}
+                data-default-label={i18n.weekly.aiReadingHint}
+                data-copied-label={i18n.weekly.aiReadingCopied}
+                data-failed-label={i18n.weekly.aiReadingCopyFailed}
+                {...umamiEvent('weekly-ai-reading', { id: post.id, issue, surface: 'detail-rail' })}
+              >
+                <Icon name="bot" class="h-[15px] w-[15px]" />
+                <span class="weekly-reading-label" aria-hidden="true">{i18n.weekly.aiReadingHint}</span>
+              </button>
+              <button
+                type="button"
+                class="weekly-reading-action"
+                aria-label={i18n.weekly.share}
+                data-share-url={articleUrl}
+                data-share-title={post.data.title}
+                data-share-text={post.data.description}
+                data-button-label={i18n.weekly.share}
+                data-copied-label={i18n.weekly.shareCopied}
+                data-failed-label={i18n.weekly.shareFailed}
+                {...umamiEvent('weekly-share', { id: post.id, issue, surface: 'detail-rail' })}
+              >
+                <Icon name="share" class="h-[15px] w-[15px]" />
+                <span class="weekly-reading-label" aria-hidden="true">{i18n.weekly.share}</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <Lightbox />
+
+      <!-- 移动端目录面板（归档单 / 工具条共用，仅移动端使用） -->
+      <div class="weekly-dir-panel" id="weekly-dir-panel" hidden>
+        <div class="weekly-dir-head">
+          <span>DIRECTORY</span>
+          <button type="button" class="weekly-dir-close" data-dir-close>{i18n.weekly.tocClose}</button>
+        </div>
+        <ol class="weekly-dir-list" id="weekly-dir-list"></ol>
+      </div>
+
+      <aside class="weekly-history mx-auto mt-12 max-w-[680px]">
+        <div class="flex items-baseline justify-between border-b border-[var(--line)] pb-3 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">
+          <div class="flex items-baseline gap-3">
+            <h2 class="font-semibold text-[var(--soft)]">{i18n.weekly.history}</h2>
+            <span>{String(history.length).padStart(2, '0')}</span>
+          </div>
+          <a href="/weekly/" class="text-[var(--faint)] transition-colors hover:text-[var(--accent)]">{i18n.weekly.home} →</a>
+        </div>
+        <ol class="mt-1 grid md:grid-cols-2 md:gap-x-8">
+          {
+            history.slice(0, weeklyConfig.historyLimit).map((p) => {
+              return (
+                <li>
+                  <a
+                    href={`/weekly/${p.id}/`}
+                    class="group flex min-w-0 items-baseline gap-3 border-b border-[var(--hair)] py-2.5"
+                  >
+                    <span
+                      class="shrink-0 font-mono text-[10.5px] tracking-[0.08em] text-[var(--faint)] transition-colors group-hover:text-[var(--accent)]"
+                    >
+                      {weeklyIssueLabel(p.data.issue)}
+                    </span>
+                    <span
+                      class="min-w-0 truncate text-[12.5px] leading-[1.5] text-[var(--soft)] transition-colors group-hover:text-[var(--accent)]"
+                    >
+                      {p.data.title}
+                    </span>
+                  </a>
+                </li>
+              );
+            })
+          }
+        </ol>
+      </aside>
+
+      <div class="weekly-rss mx-auto mt-12 max-w-[680px] border-y border-[var(--hair)] py-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            <svg class="weekly-rss-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 11a9 9 0 0 1 9 9" />
+              <path d="M4 4a16 16 0 0 1 16 16" />
+              <circle cx="5" cy="19" r="1" />
+            </svg>
+            <div>
+              <p class="font-mono text-[10.5px] tracking-[0.18em] text-[var(--soft)]">{i18n.weekly.rssLabel}</p>
+              <p class="mt-1 text-[12px] leading-[1.6] text-[var(--faint)]">{i18n.weekly.rssHint}</p>
+            </div>
+          </div>
+          <div class="flex w-full gap-2 sm:w-auto" role="group" aria-label={i18n.weekly.rssLabel}>
+            <a
+              href={rssUrl}
+              target="_blank"
+              rel="noopener"
+              class="weekly-rss-action weekly-rss-open flex-1 sm:flex-none"
+              {...umamiEvent('weekly-rss-open', { id: post.id, issue, surface: 'detail' })}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 5h5M5 5v5M5 5l6 6" />
+                <path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7" />
+                <path d="M13 5h6v6M19 5l-7 7" />
+              </svg>
+              {i18n.weekly.rssOpen}
+            </a>
+            <button
+              type="button"
+              class="weekly-rss-action weekly-rss-copy flex-1 sm:flex-none"
+              data-copy-url={rssUrl}
+              data-copy-label={i18n.weekly.rssCopy}
+              data-copied-label={i18n.weekly.rssCopied}
+              data-failed-label={i18n.weekly.rssCopyFailed}
+              {...umamiEvent('weekly-rss-copy', { id: post.id, issue, surface: 'detail' })}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="8" y="8" width="11" height="12" />
+                <path d="M16 8V5a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2" />
+              </svg>
+              <span class="weekly-rss-copy-label">{i18n.weekly.rssCopy}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {
+        weeklyConfig.comments && (
+
+          <div class="weekly-comments detail-appendix mx-auto mt-[clamp(56px,8vh,90px)] max-w-[680px]">
+            <SecHead no="CORR" title={i18n.weekly.comments} en={i18n.weekly.commentsEn} />
+            <div class="border border-[var(--line)] bg-[var(--panel)]">
+              <div class="p-4 md:p-6">
+                {artalkVersionStatus === 'ready' ? (
+                  <Comments />
+                ) : (
+                  <p class="border border-dashed border-[var(--hair)] px-5 py-8 text-center font-mono text-[13px] text-[var(--faint)]">
+                    {artalkVersionStatus === 'mismatch'
+                      ? i18n.guestbook.versionMismatch
+                      : artalkVersionStatus === 'unavailable'
+                        ? i18n.guestbook.versionCheckFailed
+                        : i18n.weekly.commentsOff}
+                    <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.guestbook.disabledVer.replace('{n}', artalkConfig.version)}</span>
+                  </p>
+                )}
+              </div>
+              <div class="border-t border-[var(--line)] px-6 py-3 font-mono text-[10px] tracking-[0.16em] text-[var(--faint)]">
+                {i18n.guestbook.artalk}
+              </div>
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- 复用赞助板块(编号位用档案术语 APPX = 附录) -->
+  <Sponsor no="APPX" compact />
+
+  <Notice />
+  <Footer no={pageCode} />
+</Layout>
+
+<style is:global>
+  .weekly-reading-layout {
+    position: relative;
+  }
+  .weekly-filing {
+    max-width: 680px;
+    margin-top: 40px;
+    margin-inline: auto;
+  }
+  .weekly-filing-row {
+    display: flex;
+    gap: 6px;
+  }
+  .weekly-filing-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    padding: 13px 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  .weekly-filing-btn:hover,
+  .weekly-filing-btn:focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .weekly-filing-btn svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .weekly-filing-btn:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .weekly-dir-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .weekly-dir-panel[hidden] {
+    display: none;
+  }
+  .weekly-dir-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+  .weekly-dir-close {
+    border: 0;
+    background: none;
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .weekly-dir-close:hover {
+    color: var(--accent);
+  }
+  .weekly-dir-list {
+    max-height: 55vh;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+  .weekly-dir-item a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--hair);
+    padding: 12px 16px;
+    color: var(--soft);
+    font-size: 13px;
+    line-height: 1.6;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .weekly-dir-item a:hover {
+    color: var(--accent);
+  }
+  .weekly-dir-item.is-current a {
+    color: var(--accent);
+  }
+  .weekly-dir-item.is-current a::before {
+    content: '';
+    flex: none;
+    width: 10px;
+    height: 1px;
+    background: var(--accent);
+  }
+  /* 断点与右侧轨道同步（1024）：空间不足时轨道让位给文末归档单 */
+  @media (min-width: 1024px) {
+    .weekly-filing {
+      display: none;
+    }
+    .weekly-dir-panel {
+      display: none;
+    }
+  }
+  .weekly-reading-actions {
+    display: flex;
+    width: var(--toc-bar-width);
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: clamp(24px, 4vh, 36px);
+    margin-left: auto;
+  }
+  .weekly-reading-action {
+    position: relative;
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    padding: 0;
+    color: var(--soft);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+  .weekly-reading-action:hover,
+  .weekly-reading-action[data-state='copied'],
+  .weekly-reading-action[data-state='failed'] {
+    color: var(--accent);
+  }
+  .weekly-reading-action:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .weekly-reading-action:active {
+    transform: translateY(1px);
+  }
+  .weekly-reading-action svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+  }
+  .weekly-reading-label {
+    position: absolute;
+    right: calc(100% + 10px);
+    width: max-content;
+    visibility: hidden;
+    opacity: 0;
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    text-align: right;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(2px);
+    transition: opacity 0.18s ease, transform 0.2s ease, color 0.18s ease;
+  }
+  .weekly-reading-action:hover .weekly-reading-label,
+  .weekly-reading-action:focus-visible .weekly-reading-label,
+  .weekly-reading-action[data-state='copied'] .weekly-reading-label,
+  .weekly-reading-action[data-state='failed'] .weekly-reading-label {
+    visibility: visible;
+    opacity: 1;
+    color: var(--accent);
+    transform: translateX(0);
+  }
+  .weekly-reading-body :is(h2, h3, h4) {
+    scroll-margin-top: 100px;
+  }
+  .weekly-rss-mark {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+    color: var(--faint);
+  }
+  .weekly-rss-action {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--hair);
+    padding: 4px 11px;
+    color: var(--soft);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .weekly-rss-action svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .weekly-rss-open {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .weekly-rss-copy {
+    min-width: 96px;
+    white-space: nowrap;
+  }
+  .weekly-rss-action:hover,
+  .weekly-rss-action:focus-visible,
+  .weekly-rss-copy.is-copied,
+  .weekly-rss-copy.is-failed {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ai-reading-trigger {
+    position: relative;
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hair);
+    color: var(--soft);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .ai-reading-trigger:hover,
+  .ai-reading-trigger:focus-visible,
+  .ai-reading-trigger[data-state='copied'],
+  .ai-reading-trigger[data-state='failed'] {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ai-reading-trigger:active {
+    transform: translateY(1px);
+  }
+  .ai-reading-label {
+    position: absolute;
+    right: calc(100% + 10px);
+    width: max-content;
+    max-width: min(240px, 38vw);
+    visibility: hidden;
+    opacity: 0;
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    text-align: right;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(2px);
+    transition: opacity 0.18s ease, transform 0.2s ease, color 0.18s ease;
+  }
+  .ai-reading-trigger:hover .ai-reading-label,
+  .ai-reading-trigger:focus-visible .ai-reading-label,
+  .ai-reading-trigger[data-state='copied'] .ai-reading-label,
+  .ai-reading-trigger[data-state='failed'] .ai-reading-label {
+    visibility: visible;
+    opacity: 1;
+    color: var(--accent);
+    transform: translateX(0);
+  }
+  .ai-reading-copy-buffer,
+  .weekly-share-copy-buffer {
+    position: fixed;
+    top: -1000px;
+    left: -1000px;
+    opacity: 0;
+  }
+  .weekly-toc {
+    display: none;
+  }
+  .weekly-toc[hidden] {
+    display: none;
+  }
+  .weekly-toc-inner {
+    --toc-bar-width: 24px;
+    --toc-hit-width: 48px;
+    position: sticky;
+    top: 50%;
+    width: clamp(180px, 18vw, 220px);
+    margin-left: auto;
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+  .weekly-toc-list {
+    display: flex;
+    width: var(--toc-hit-width);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin: 0 0 0 auto;
+    padding: 0;
+    list-style: none;
+    pointer-events: auto;
+  }
+  .weekly-reading-actions {
+    pointer-events: auto;
+  }
+  .weekly-toc-link {
+    --toc-wave: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 6px;
+    width: var(--toc-hit-width);
+    color: var(--faint);
+  }
+  .weekly-toc-bar {
+    display: block;
+    flex: none;
+    width: var(--toc-bar-width);
+    height: 2px;
+    background: var(--hair);
+    border-radius: 1px;
+    transform-origin: right center;
+    transform: scaleX(calc(1 + var(--toc-wave) * 0.44));
+    transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.24s ease, opacity 0.24s ease;
+  }
+  .weekly-toc-link[data-level='h3'] .weekly-toc-bar {
+    opacity: 0.72;
+  }
+  .weekly-toc-link[data-level='h4'] .weekly-toc-bar {
+    opacity: 0.55;
+  }
+  .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h3'] .weekly-toc-bar {
+    opacity: 0.82;
+  }
+  .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h4'] .weekly-toc-bar {
+    opacity: 0.7;
+  }
+  .weekly-toc-link[data-hovered='true'] .weekly-toc-bar {
+    background: var(--accent);
+    transform: scaleX(2);
+  }
+  .weekly-toc-label {
+    position: absolute;
+    right: calc(var(--toc-hit-width) + 16px);
+    width: max-content;
+    max-width: none;
+    visibility: hidden;
+    opacity: 0;
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    text-align: right;
+    white-space: nowrap;
+    overflow: visible;
+    z-index: 1;
+    padding: 3px 0 3px 10px;
+    transform: translateX(8px);
+    transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), color 0.18s ease;
+  }
+  .weekly-toc-link[data-hovered='true'] .weekly-toc-label {
+    visibility: visible;
+    opacity: 1;
+    color: var(--accent);
+    font-weight: 600;
+    transform: translateX(0);
+  }
+  .weekly-toc-link[aria-current='location'] .weekly-toc-bar {
+    background: var(--accent);
+  }
+  .weekly-toc-link[aria-current='location'] .weekly-toc-label {
+    color: var(--accent);
+  }
+  .weekly-toc-link[data-hovered='true'][data-level='h2'] .weekly-toc-label {
+    font-weight: 600;
+  }
+  .weekly-toc-link[data-hovered='true'][data-level='h3'] .weekly-toc-label {
+    font-weight: 500;
+  }
+  .weekly-toc-link[data-hovered='true'][data-level='h4'] .weekly-toc-label {
+    font-weight: 400;
+  }
+  @media (max-width: 767px) {
+    .ai-reading-trigger {
+      width: auto;
+      min-height: 32px;
+      gap: 6px;
+      padding: 4px 10px;
+    }
+    .ai-reading-label {
+      position: static;
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (min-width: 1024px) {
+    .weekly-toc:not([hidden]) {
+      position: absolute;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+    }
+    .weekly-toc-inner {
+      pointer-events: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .weekly-toc-bar,
+    .weekly-toc-label,
+    .weekly-reading-action,
+    .weekly-reading-label,
+    .ai-reading-trigger,
+    .ai-reading-label {
+      transition: none;
+    }
+  }
+</style>
+
+<!-- 代码块复制按钮(文案经 data 属性从 i18n 注入) -->
+<div id="code-copy-i18n" data-copy={i18n.weekly.copy} data-copied={i18n.weekly.copied} hidden></div>
+<script>
+  const weeklyBody = document.querySelector<HTMLElement>('.weekly-reading-body');
+  const weeklyToc = document.querySelector<HTMLElement>('.weekly-toc');
+  const weeklyTocInner = weeklyToc?.querySelector<HTMLElement>('.weekly-toc-inner');
+  const weeklyTocList = weeklyToc?.querySelector<HTMLOListElement>('.weekly-toc-list');
+  const weeklyHeadings = weeklyBody ? [...weeklyBody.querySelectorAll<HTMLElement>('h2, h3, h4')] : [];
+
+  if (weeklyToc && weeklyTocList && weeklyHeadings.length > 0) {
+    const tocItems = weeklyHeadings.map((heading, index) => {
+      if (!heading.id) heading.id = `weekly-section-${index + 1}`;
+      const text = heading.textContent?.trim() ?? '';
+      const level = heading.tagName.toLowerCase();
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      const label = document.createElement('span');
+      const bar = document.createElement('span');
+
+      link.href = `#${heading.id}`;
+      link.className = 'weekly-toc-link';
+      link.dataset.level = level;
+      item.dataset.level = level;
+      link.setAttribute('aria-label', text);
+      label.className = 'weekly-toc-label';
+      label.textContent = text;
+      bar.className = 'weekly-toc-bar';
+      link.append(label, bar);
+      item.append(link);
+      weeklyTocList.append(item);
+      return { heading, link };
+    });
+
+    weeklyToc.hidden = false;
+
+    const clearHover = () => {
+      tocItems.forEach(({ link }) => delete link.dataset.hovered);
+    };
+    const setRailState = (state: 'scroll' | 'hover') => {
+      weeklyToc.dataset.state = state;
+    };
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let waveFrame = 0;
+    let pendingWaveY = 0;
+    const clearWave = () => {
+      if (waveFrame) cancelAnimationFrame(waveFrame);
+      waveFrame = 0;
+      tocItems.forEach(({ link }) => link.style.setProperty('--toc-wave', '0'));
+    };
+    const applyWave = (clientY: number) => {
+      if (reduceMotion) return;
+      const radius = 72;
+      tocItems.forEach(({ link }) => {
+        const rect = link.getBoundingClientRect();
+        const distance = Math.abs(clientY - (rect.top + rect.height / 2));
+        const wave = Math.max(0, 1 - distance / radius);
+        link.style.setProperty('--toc-wave', wave.toFixed(3));
+      });
+    };
+    const setWave = (clientY: number) => {
+      if (reduceMotion) return;
+      pendingWaveY = clientY;
+      if (waveFrame) return;
+      waveFrame = requestAnimationFrame(() => {
+        waveFrame = 0;
+        applyWave(pendingWaveY);
+      });
+    };
+    const setWaveAtIndex = (index: number) => {
+      if (reduceMotion) return;
+      const rect = tocItems[index]?.link.getBoundingClientRect();
+      if (rect) applyWave(rect.top + rect.height / 2);
+    };
+
+    weeklyTocList.addEventListener('pointerenter', () => setRailState('hover'));
+    weeklyTocList.addEventListener('pointermove', (event) => {
+      if (event.pointerType !== 'touch') setWave(event.clientY);
+    });
+    weeklyTocList.addEventListener('pointerleave', () => {
+      clearHover();
+      clearWave();
+      setRailState('scroll');
+    });
+    tocItems.forEach(({ link }, index) => {
+      link.addEventListener('pointerenter', () => {
+        link.dataset.hovered = 'true';
+      });
+      link.addEventListener('pointerleave', () => {
+        delete link.dataset.hovered;
+      });
+      link.addEventListener('focus', () => {
+        setRailState('hover');
+        link.dataset.hovered = 'true';
+        setWaveAtIndex(index);
+      });
+      link.addEventListener('blur', () => {
+        delete link.dataset.hovered;
+        if (!weeklyTocInner?.matches(':focus-within')) {
+          clearWave();
+          setRailState('scroll');
+        }
+      });
+      link.addEventListener('click', () => {
+        const track = (window as any).trackEvent;
+        if (typeof track === 'function') {
+          track('weekly-toc-click', {
+            id: weeklyToc?.dataset.id ?? '',
+            issue: weeklyToc?.dataset.issue ?? '',
+            level: link.dataset.level || '',
+          });
+        }
+      });
+    });
+
+    const setActive = (heading: HTMLElement) => {
+      tocItems.forEach(({ heading: itemHeading, link }) => {
+        if (itemHeading === heading) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    };
+
+    const currentHeading = weeklyHeadings.reduce(
+      (active, heading) => (heading.getBoundingClientRect().top <= 160 ? heading : active),
+      weeklyHeadings[0],
+    );
+    setActive(currentHeading);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target as HTMLElement);
+      },
+      { rootMargin: '-18% 0px -68% 0px', threshold: 0 },
+    );
+    weeklyHeadings.forEach((heading) => observer.observe(heading));
+
+    // 移动端目录面板：从 tocItems 渲染，点击跳锚点后关闭
+    const dirToggle = document.querySelector<HTMLButtonElement>('[data-toc-toggle]');
+    const dirPanel = document.querySelector<HTMLElement>('#weekly-dir-panel');
+    const dirList = document.querySelector<HTMLOListElement>('#weekly-dir-list');
+    const trackTocClick = (level: string) => {
+      const track = (window as any).trackEvent;
+      if (typeof track === 'function') {
+        track('weekly-toc-click', {
+          id: weeklyToc?.dataset.id ?? '',
+          issue: weeklyToc?.dataset.issue ?? '',
+          level,
+        });
+      }
+    };
+    if (dirToggle && dirPanel && dirList) {
+      dirToggle.addEventListener('click', () => {
+        trackTocClick('panel-open');
+        dirList.innerHTML = '';
+        tocItems.forEach(({ link, heading }, index) => {
+          const li = document.createElement('li');
+          li.className = 'weekly-dir-item';
+          if (link.hasAttribute('aria-current')) li.classList.add('is-current');
+          const a = document.createElement('a');
+          a.href = link.getAttribute('href') || `#${heading.id}`;
+          a.textContent = `${String(index + 1).padStart(2, '0')} · ${link.getAttribute('aria-label') || ''}`;
+          a.dataset.level = link.dataset.level || '';
+          li.append(a);
+          dirList.append(li);
+        });
+        dirPanel.hidden = false;
+      });
+      dirList.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        const item = target.closest<HTMLElement>('.weekly-dir-item a');
+        if (item) trackTocClick(item.dataset.level || 'panel-item');
+        dirPanel.hidden = true;
+      });
+      document.querySelector('[data-dir-close]')?.addEventListener('click', () => {
+        dirPanel.hidden = true;
+      });
+    }
+  }
+
+  if (weeklyToc && weeklyHeadings.length === 0) {
+    weeklyToc.hidden = false;
+  }
+
+  const aiReadingButtons = document.querySelectorAll<HTMLButtonElement>('[data-ai-reading]');
+  aiReadingButtons.forEach((aiReadingButton) => {
+    const label = aiReadingButton.querySelector<HTMLElement>('.weekly-reading-label, .weekly-filing-label');
+    const promptTemplate = aiReadingButton.dataset.prompt || '';
+    const articleUrl = aiReadingButton.dataset.url || '';
+    const buttonLabel = aiReadingButton.dataset.buttonLabel || '';
+    const defaultLabel = aiReadingButton.dataset.defaultLabel || '';
+    const copiedLabel = aiReadingButton.dataset.copiedLabel || '';
+    const failedLabel = aiReadingButton.dataset.failedLabel || '';
+    let resetTimer = 0;
+
+    const setAiReadingState = (state: 'copied' | 'failed' | '') => {
+      window.clearTimeout(resetTimer);
+      aiReadingButton.dataset.state = state;
+      if (label) label.textContent = state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : defaultLabel;
+      aiReadingButton.setAttribute('aria-label', state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel);
+      if (state) {
+        resetTimer = window.setTimeout(() => setAiReadingState(''), 2200);
+      }
+    };
+
+    const copyPrompt = async (text: string) => {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+      } catch {
+        // 非安全上下文或剪贴板权限失败时，继续尝试 textarea 兼容方案。
+      }
+      const buffer = document.createElement('textarea');
+      buffer.className = 'ai-reading-copy-buffer';
+      buffer.value = text;
+      buffer.setAttribute('readonly', '');
+      document.body.append(buffer);
+      buffer.select();
+      const copied = (document as any).execCommand('copy');
+      buffer.remove();
+      if (!copied) throw new Error('Clipboard unavailable');
+    };
+
+    aiReadingButton.addEventListener('click', async () => {
+      const prompt = promptTemplate.replace('{canonical URL}', articleUrl);
+      try {
+        await copyPrompt(prompt);
+        setAiReadingState('copied');
+      } catch {
+        setAiReadingState('failed');
+      }
+    });
+  });
+
+  const shareButtons = document.querySelectorAll<HTMLButtonElement>('[data-share-url]');
+  shareButtons.forEach((shareButton) => {
+    const label = shareButton.querySelector<HTMLElement>('.weekly-reading-label, .weekly-filing-label');
+    const url = shareButton.dataset.shareUrl || '';
+    const title = shareButton.dataset.shareTitle || '';
+    const text = shareButton.dataset.shareText || '';
+    const buttonLabel = shareButton.dataset.buttonLabel || '';
+    const copiedLabel = shareButton.dataset.copiedLabel || '';
+    const failedLabel = shareButton.dataset.failedLabel || '';
+    let resetTimer = 0;
+
+    const setShareState = (state: 'copied' | 'failed' | '') => {
+      window.clearTimeout(resetTimer);
+      shareButton.dataset.state = state;
+      if (label) label.textContent = state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel;
+      shareButton.setAttribute('aria-label', state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel);
+      if (state) resetTimer = window.setTimeout(() => setShareState(''), 2200);
+    };
+
+    const copyUrl = async () => {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          return;
+        }
+      } catch {
+        // 非安全上下文或剪贴板权限失败时，继续尝试 textarea 兼容方案。
+      }
+      const buffer = document.createElement('textarea');
+      buffer.className = 'weekly-share-copy-buffer';
+      buffer.value = url;
+      buffer.setAttribute('readonly', '');
+      document.body.append(buffer);
+      buffer.select();
+      const copied = (document as any).execCommand('copy');
+      buffer.remove();
+      if (!copied) throw new Error('Clipboard unavailable');
+    };
+
+    shareButton.addEventListener('click', async () => {
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ title, text, url });
+          return;
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') return;
+          setShareState('failed');
+          return;
+        }
+      }
+
+      try {
+        await copyUrl();
+        setShareState('copied');
+      } catch {
+        setShareState('failed');
+      }
+    });
+  });
+
+  const rssCopyButton = document.querySelector<HTMLButtonElement>('[data-copy-url]');
+  rssCopyButton?.addEventListener('click', async () => {
+    const url = rssCopyButton.dataset.copyUrl || '';
+    const copyLabel = rssCopyButton.dataset.copyLabel || '';
+    const copiedLabel = rssCopyButton.dataset.copiedLabel || '';
+    const failedLabel = rssCopyButton.dataset.failedLabel || '';
+    const statusLabel = rssCopyButton.querySelector<HTMLElement>('.weekly-rss-copy-label');
+    let copied = false;
+
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        copied = (document as any).execCommand('copy');
+        textarea.remove();
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (statusLabel) statusLabel.textContent = copied ? copiedLabel : failedLabel;
+    rssCopyButton.classList.toggle('is-copied', copied);
+    rssCopyButton.classList.toggle('is-failed', !copied);
+    window.setTimeout(() => {
+      if (statusLabel) statusLabel.textContent = copyLabel;
+      rssCopyButton.classList.remove('is-copied', 'is-failed');
+    }, 1500);
+  });
+
+  const i18nEl = document.getElementById('code-copy-i18n');
+  const labelCopy = i18nEl?.dataset.copy || 'COPY';
+  const labelCopied = i18nEl?.dataset.copied || 'COPIED';
+  document.querySelectorAll<HTMLElement>('.post-body pre.astro-code').forEach((pre) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'code-copy';
+    btn.textContent = labelCopy;
+    btn.addEventListener('click', async () => {
+      const code = pre.querySelector('code')?.innerText ?? '';
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch {
+        // 非安全上下文(localhost 除外) clipboard 不可用,走 textarea 兼容
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        (document as any).execCommand('copy');
+        ta.remove();
+      }
+      btn.textContent = labelCopied;
+      btn.classList.add('is-copied');
+      setTimeout(() => {
+        btn.textContent = labelCopy;
+        btn.classList.remove('is-copied');
+      }, 1500);
+    });
+    pre.appendChild(btn);
+  });
+</script>
+
+<script is:inline>
+  // ===== 阅读深度：25% / 50% / 75% / 100%，每阈值只上报一次 =====
+  (function () {
+    var toc = document.querySelector('.weekly-toc');
+    if (!toc) return;
+    var id = toc.getAttribute('data-id') || '';
+    var issue = toc.getAttribute('data-issue') || '';
+    var tracked = {};
+    var ticking = false;
+
+    function report() {
+      ticking = false;
+      var doc = document.documentElement;
+      var max = doc.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      var ratio = Math.min(1, window.scrollY / max);
+      [25, 50, 75, 100].forEach(function (depth) {
+        if (ratio * 100 >= depth && !tracked[depth]) {
+          tracked[depth] = true;
+          var track = window['trackEvent'];
+          if (typeof track === 'function') {
+            track('weekly-scroll-depth', { depth: depth, id: id, issue: issue });
+          }
+        }
+      });
+    }
+
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(report);
+    }, { passive: true });
+    report();
+  })();
+</script>

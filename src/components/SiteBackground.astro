@@ -1,0 +1,156 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import { siteConfig, albumsConfig } from '@config/index';
+import { getSortedAlbums, featuredPhotos } from '@/utils/albums';
+
+// 图片地址统一出口:远程 URL 字符串原样;本地图(ImageMetadata)按 siteConfig.images 压缩,开关关闭用原图
+const toUrl = async (s: string | ImageMetadata) =>
+  typeof s === 'string'
+    ? s
+    : siteConfig.images.enabled
+      ? (await getImage({ src: s, format: siteConfig.images.format, quality: siteConfig.images.quality })).src
+      : s.src;
+
+// 播放池 = 默认图（首位，优先加载 + 兜底）+ 高光影像（去重；无 highlight 标注时回退最新 6 张）。
+// 背景或高光开关关闭时不读取影辑，池退化为仅默认图，JS 侧 pool.length < 2 不启动轮播。
+const highlightSrcs =
+  siteConfig.background.enabled && siteConfig.background.highlightsEnabled && albumsConfig.enabled
+    ? await Promise.all(featuredPhotos(await getSortedAlbums()).map(({ photo }) => toUrl(photo.src)))
+    : [];
+const defaultSrc = await toUrl(siteConfig.background.defaultSrc);
+const pool = [...new Set([defaultSrc, ...highlightSrcs])];
+const hasHighlights =
+  siteConfig.background.enabled && siteConfig.background.highlightsEnabled && pool.length > 1;
+---
+
+{
+  siteConfig.background.enabled && (
+    <>
+      <div class="site-bg" aria-hidden="true">
+        <div class="site-bg-layer is-active">
+          <img src={pool[0]} alt="" fetchpriority="low" />
+        </div>
+        {
+          hasHighlights && (
+            <div class="site-bg-layer">
+              <img alt="" />
+            </div>
+          )
+        }
+      </div>
+      <script is:inline define:vars={{ pool, interval: siteConfig.background.interval }}>
+        (function () {
+          var bg = document.querySelector('.site-bg');
+          var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (!bg || pool.length < 2 || reduced) return;
+
+          var layers = bg.querySelectorAll('.site-bg-layer');
+          var current = 0;
+          var poolIndex = 0;
+          var failed = [];
+          var timer = null;
+
+          var tick = function () {
+            var candidates = [];
+            for (var i = 0; i < pool.length; i++) {
+              if (i !== poolIndex && failed.indexOf(pool[i]) === -1) candidates.push(i);
+            }
+            if (!candidates.length) return;
+            var nextIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            // 预载成功才切换；失败进黑名单，当前图继续兜底
+            var probe = new Image();
+            probe.onload = function () {
+              var nextLayer = layers[1 - current];
+              nextLayer.querySelector('img').src = pool[nextIndex];
+              nextLayer.classList.add('is-active');
+              layers[current].classList.remove('is-active');
+              current = 1 - current;
+              poolIndex = nextIndex;
+            };
+            probe.onerror = function () {
+              failed.push(pool[nextIndex]);
+            };
+            probe.src = pool[nextIndex];
+          };
+
+          var start = function () {
+            if (timer === null) timer = window.setInterval(tick, interval);
+          };
+          var stop = function () {
+            window.clearInterval(timer);
+            timer = null;
+          };
+          document.addEventListener('visibilitychange', function () {
+            if (document.hidden) stop();
+            else start();
+          });
+          start();
+        })();
+      </script>
+    </>
+  )
+}
+
+<style is:global>
+  /* 全局背景层：内容之下、body 底色之上，不响应交互 */
+  .site-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  /* 外层管轮播淡入淡出，内层 img 管呼吸漂移——两层 opacity 互不干扰 */
+  .site-bg-layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  .site-bg-layer.is-active {
+    opacity: 1;
+  }
+  .site-bg-layer img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: site-bg-breathe 18s ease-in-out infinite alternate;
+  }
+  @keyframes site-bg-breathe {
+    0% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.1;
+    }
+    100% {
+      transform: scale(1.08) translate(1.6%, 1%);
+      opacity: 0.2;
+    }
+  }
+  /* 暗色主题压低吸朔度区间，避免亮图在暗底上喧宾夺主 */
+  [data-theme='dark'] .site-bg-layer img {
+    animation-name: site-bg-breathe-dark;
+  }
+  @keyframes site-bg-breathe-dark {
+    0% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.06;
+    }
+    100% {
+      transform: scale(1.08) translate(1.6%, 1%);
+      opacity: 0.13;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .site-bg-layer {
+      transition: none;
+    }
+    .site-bg-layer img {
+      animation: none;
+      opacity: 0.13;
+    }
+  }
+</style>

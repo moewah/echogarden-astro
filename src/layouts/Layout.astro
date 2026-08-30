@@ -1,0 +1,438 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import '@styles/global.css';
+import { siteConfig, albumsConfig, weeklyConfig, memosConfig, elsewhereConfig, llmsConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { getBreadcrumbs } from '@/utils/breadcrumbs';
+import { umamiEvent } from '@/utils/analytics';
+import PageFrame from '@components/PageFrame.astro';
+import SiteBackground from '@components/SiteBackground.astro';
+import ThemeToggle from '@components/ThemeToggle.astro';
+import BackToTop from '@components/BackToTop.astro';
+import ExternalLinks from '@components/ExternalLinks.astro';
+import Analytics from '@components/Analytics.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** og:image 绝对 URL：页面传入则用页面图（用 utils/og 计算），缺省回退 siteConfig.site.ogImage */
+  image?: string;
+  /** og:type：文章页 'article'，其余缺省 'website' */
+  type?: string;
+  /** 当前页面 WebPage 的 mainEntity；缺省指向 Person */
+  mainEntity?: { '@id': string };
+  /** 页面关键词，用于 <meta name="keywords"> */
+  keywords?: string[];
+  /** 页面 canonical；缺省使用当前页面 URL。 */
+  canonical?: string;
+  /** 分页页的 rel=prev / rel=next。 */
+  prev?: string;
+  next?: string;
+  /** 分页页等场景的 robots 指令。 */
+  robots?: string;
+}
+
+const {
+  title,
+  description = siteConfig.site.description,
+  image,
+  type = 'website',
+  mainEntity: mainEntityProp,
+  keywords,
+  canonical,
+  prev,
+  next,
+  robots,
+} = Astro.props;
+const isHome = Astro.url.pathname === '/';
+const homeTitle = siteConfig.site.titleSuffix
+  ? `${siteConfig.site.name} - ${siteConfig.site.titleSuffix}`
+  : siteConfig.site.name;
+const pageTitle = title ? `${title} - ${siteConfig.site.name}` : homeTitle;
+const pageKeywords = keywords ?? (isHome ? siteConfig.site.keywords : undefined);
+const ogImg = image ?? new URL(siteConfig.site.ogImage, siteConfig.site.url).toString();
+
+// favicon 与头像共用 public/images/ 稳定 URL。
+const faviconSrc = siteConfig.profile.avatar;
+const faviconType = `image/${siteConfig.profile.avatar.split('.').pop() ?? 'webp'}`;
+
+// 字体配置：三种模式可选。
+// - 'default': Google Fonts 官方源 + 默认字体
+// - 'mirror':  自定义镜像源 + 默认字体
+// - 'off':     不加载 Google Fonts，使用系统字体栈
+const { fonts } = siteConfig;
+const FONT_FAMILIES = [
+  'Archivo:wght@300;400;600;900',
+  'Noto+Sans+SC:wght@300;400;500;700',
+  'IBM+Plex+Mono:wght@400;500;600',
+];
+const googleFontsOrigin = fonts.mode === 'mirror' ? fonts.mirror : 'https://fonts.googleapis.com';
+const gstaticOrigin =
+  fonts.mode === 'default'
+    ? 'https://fonts.gstatic.com'
+    : fonts.mirror.replace('googleapis', 'gstatic').replace(/\/$/, '');
+const googleFontsUrl =
+  fonts.mode === 'off'
+    ? null
+    : `${googleFontsOrigin.replace(/\/$/, '')}/css2?family=${FONT_FAMILIES.join('&family=')}&display=swap`;
+const fontSansStack =
+  fonts.mode === 'off'
+    ? `-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif`
+    : `'Archivo', 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif`;
+const fontMonoStack =
+  fonts.mode === 'off'
+    ? `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`
+    : `'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
+
+// 站点级结构化数据：WebSite + Person + WebPage
+// URL 统一带尾斜杠，避免 WebSite.url / WebPage.url 不一致
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+const pageUrl = Astro.url.href.replace(/\/?$/, '/');
+const websiteId = `${siteUrl}#website`;
+const personId = `${siteUrl}#person`;
+const webpageId = `${siteUrl}#webpage`;
+const mainEntity = mainEntityProp ?? { '@id': personId };
+const sameAs = elsewhereConfig
+  .filter((p) => p.enabled !== false && !p.url.startsWith('mailto:'))
+  .map((p) => p.url);
+const [locationCity, locationRegion] = siteConfig.profile.location.split(', ');
+const locationDisplay = [locationCity, locationRegion, siteConfig.profile.locationCountry]
+  .filter(Boolean)
+  .join(', ');
+const navItems = [
+  { name: i18n.nav.home, url: siteUrl },
+  ...(weeklyConfig.enabled ? [{ name: i18n.sections.weeklyPage.title, url: `${siteUrl}weekly/` }] : []),
+  ...(albumsConfig.enabled ? [{ name: i18n.sections.albums.title, url: `${siteUrl}photos/` }] : []),
+  ...(memosConfig.pageEnabled ? [{ name: i18n.sections.moments.title, url: `${siteUrl}moments/` }] : []),
+  { name: i18n.sections.guestbook.title, url: `${siteUrl}guestbook/` },
+];
+const siteNavigation = {
+  '@type': 'SiteNavigationElement',
+  name: '主导航',
+  hasPart: navItems.map((item) => ({
+    '@type': 'SiteNavigationElement',
+    name: item.name,
+    url: item.url,
+  })),
+};
+const breadcrumbs = Astro.url.pathname === '/' ? null : getBreadcrumbs(siteUrl, Astro.url.pathname, title);
+const breadcrumbLd = breadcrumbs
+  ? {
+      '@type': 'BreadcrumbList',
+      '@id': `${pageUrl}#breadcrumb`,
+      itemListElement: breadcrumbs.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        item: item.url,
+      })),
+    }
+  : null;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': websiteId,
+      name: siteConfig.site.name,
+      url: siteUrl,
+      description: siteConfig.site.description,
+      inLanguage: 'zh-CN',
+      datePublished: `${siteConfig.site.since}-01-01`,
+      author: { '@id': personId },
+      publisher: { '@id': personId },
+    },
+    {
+      '@type': 'Person',
+      '@id': personId,
+      name: siteConfig.profile.name,
+      jobTitle: siteConfig.profile.role,
+      description: siteConfig.profile.statement,
+      url: siteUrl,
+      image: new URL(siteConfig.site.ogImage, siteUrl).toString(),
+      email: siteConfig.profile.email,
+      sameAs,
+      knowsAbout: siteConfig.profile.focus,
+      homeLocation: {
+        '@type': 'Place',
+        name: locationDisplay,
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: locationCity || siteConfig.profile.location,
+          addressRegion: locationRegion || '',
+          addressCountry: siteConfig.profile.locationCountry,
+        },
+      },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': webpageId,
+      url: pageUrl,
+      name: pageTitle,
+      description,
+      isPartOf: { '@id': websiteId },
+      mainEntity,
+      dateModified: new Date().toISOString().split('T')[0],
+    },
+    siteNavigation,
+    ...(breadcrumbLd ? [breadcrumbLd] : []),
+  ],
+};
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {pageKeywords && pageKeywords.length > 0 && <meta name="keywords" content={pageKeywords.join(', ')} />}
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImg} />
+    <meta property="og:url" content={pageUrl} />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={siteConfig.site.name} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    {siteConfig.site.twitter && <meta name="twitter:site" content={siteConfig.site.twitter} />}
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImg} />
+    <meta name="twitter:url" content={pageUrl} />
+    {robots && <meta name="robots" content={robots} />}
+    <link rel="icon" type={faviconType} href={faviconSrc} />
+    <link rel="canonical" href={canonical ?? pageUrl} />
+    {prev && <link rel="prev" href={prev} />}
+    {next && <link rel="next" href={next} />}
+    {llmsConfig.enabled && <link rel="describedby" type="text/markdown" href="/llms.txt" />}
+    {
+      weeklyConfig.enabled && (
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={siteConfig.site.seo.pages.weekly.title}
+          href={new URL('/rss.xml', siteConfig.site.url).toString()}
+        />
+      )
+    }
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    {
+      googleFontsUrl && (
+        <>
+          <link rel="preconnect" href={googleFontsOrigin} />
+          <link rel="preconnect" href={gstaticOrigin} crossorigin />
+          <link href={googleFontsUrl} rel="stylesheet" />
+        </>
+      )
+    }
+    <style is:inline set:html={`\n      :root {\n        --site-font-sans: ${fontSansStack};\n        --site-font-mono: ${fontMonoStack};\n      }\n    `} />
+    <script is:inline>
+      (function () {
+        var saved = localStorage.getItem('mh-theme');
+        var choice =
+          saved === 'light' || saved === 'dark' || saved === 'system'
+            ? saved
+            : 'system';
+        var resolved =
+          choice === 'system'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : choice;
+        var root = document.documentElement;
+        root.setAttribute('data-theme', resolved);
+        root.setAttribute('data-theme-choice', choice);
+      })();
+    </script>
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+
+  <body class="relative">
+    <SiteBackground />
+    <PageFrame />
+
+    <header class="fixed top-3 left-3 right-3 z-50 bg-[var(--bg)]/86 backdrop-blur-[10px] border-b border-[var(--hair)]">
+      <div class="wrap py-4 flex items-center gap-4">
+        <a href="/" class="h-[34px] inline-flex items-center font-semibold text-[13px] tracking-[0.28em] text-[var(--ink)] whitespace-nowrap">
+          {siteConfig.site.name.toUpperCase()}
+          <span class="font-mono text-[11px] tracking-[0.1em] text-[var(--faint)] ml-3 font-normal">/ ARCHIVE</span>
+        </a>
+        <nav class="topnav hidden md:flex flex-1 justify-center items-center gap-3 sm:gap-4 font-mono text-[10.5px] sm:text-[11px] tracking-[0.12em]">
+          <a
+            href="/"
+            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+            {...umamiEvent('nav-click', { surface: 'topnav', to: '/' })}
+          >
+            {i18n.nav.home}
+          </a>
+          <span class="text-[var(--faint)]" aria-hidden="true">/</span>
+          {
+            weeklyConfig.enabled && (
+              <>
+                <a
+                  href="/weekly/"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  {...umamiEvent('nav-click', { surface: 'topnav', to: '/weekly/' })}
+                >
+                  {i18n.sections.weeklyPage.title}
+                </a>
+                <span class="text-[var(--faint)]" aria-hidden="true">/</span>
+              </>
+            )
+          }
+          {
+            albumsConfig.enabled && (
+              <>
+                <a
+                  href="/photos/"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  {...umamiEvent('nav-click', { surface: 'topnav', to: '/photos/' })}
+                >
+                  {i18n.sections.albums.title}
+                </a>
+                <span class="text-[var(--faint)]" aria-hidden="true">/</span>
+              </>
+            )
+          }
+          {
+            memosConfig.pageEnabled && (
+              <>
+                <a
+                  href="/moments/"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  {...umamiEvent('nav-click', { surface: 'topnav', to: '/moments/' })}
+                >
+                  {i18n.sections.moments.title}
+                </a>
+                <span class="text-[var(--faint)]" aria-hidden="true">/</span>
+              </>
+            )
+          }
+          <a
+            href="/guestbook/"
+            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+            {...umamiEvent('nav-click', { surface: 'topnav', to: '/guestbook/' })}
+          >
+            {i18n.sections.guestbook.title}
+          </a>
+        </nav>
+        <div class="flex items-center gap-2.5 ml-auto">
+          <slot name="topbar-extra" />
+          <ThemeToggle />
+          <button id="menu-toggle" type="button" aria-label={i18n.menu} aria-expanded="false" class="md:hidden w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="w-[15px] h-[15px]">
+              <path d="M4 7h16"></path>
+              <path d="M4 12h16"></path>
+              <path d="M4 17h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <nav id="mobile-menu" class="hidden border-t border-[var(--hair)] bg-[var(--bg)]">
+        <a
+          href="/"
+          class="block px-6 py-3.5 font-mono text-[12px] tracking-[0.12em] text-[var(--ink)] border-b border-[var(--hair)] hover:text-[var(--accent)] transition-colors"
+          {...umamiEvent('nav-click', { surface: 'mobile-menu', to: '/' })}
+        >
+          {i18n.nav.home}
+        </a>
+        {
+          weeklyConfig.enabled && (
+            <a
+              href="/weekly/"
+              class="block px-6 py-3.5 font-mono text-[12px] tracking-[0.12em] text-[var(--ink)] border-b border-[var(--hair)] hover:text-[var(--accent)] transition-colors"
+              {...umamiEvent('nav-click', { surface: 'mobile-menu', to: '/weekly/' })}
+            >
+              {i18n.sections.weeklyPage.title}
+            </a>
+          )
+        }
+        {
+          albumsConfig.enabled && (
+            <a
+              href="/photos/"
+              class="block px-6 py-3.5 font-mono text-[12px] tracking-[0.12em] text-[var(--ink)] border-b border-[var(--hair)] hover:text-[var(--accent)] transition-colors"
+              {...umamiEvent('nav-click', { surface: 'mobile-menu', to: '/photos/' })}
+            >
+              {i18n.sections.albums.title}
+            </a>
+          )
+        }
+        {
+          memosConfig.pageEnabled && (
+            <a
+              href="/moments/"
+              class="block px-6 py-3.5 font-mono text-[12px] tracking-[0.12em] text-[var(--ink)] border-b border-[var(--hair)] hover:text-[var(--accent)] transition-colors"
+              {...umamiEvent('nav-click', { surface: 'mobile-menu', to: '/moments/' })}
+            >
+              {i18n.sections.moments.title}
+            </a>
+          )
+        }
+        <a
+          href="/guestbook/"
+          class="block px-6 py-3.5 font-mono text-[12px] tracking-[0.12em] text-[var(--ink)] hover:text-[var(--accent)] transition-colors"
+          {...umamiEvent('nav-click', { surface: 'mobile-menu', to: '/guestbook/' })}
+        >
+          {i18n.sections.guestbook.title}
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <BackToTop />
+    <ExternalLinks />
+    <Analytics />
+
+    <script>
+      const mt = document.getElementById('menu-toggle');
+      const mm = document.getElementById('mobile-menu');
+      if (mt && mm) {
+        mt.addEventListener('click', function () {
+          var isHidden = mm.classList.toggle('hidden');
+          mt.setAttribute('aria-expanded', String(!isHidden));
+        });
+      }
+    </script>
+
+    <script is:inline>
+      (function () {
+        var io = new IntersectionObserver(
+          function (es) {
+            es.forEach(function (e) {
+              if (e.isIntersecting) {
+                e.target.classList.add('in');
+                io.unobserve(e.target);
+              }
+            });
+          },
+          { threshold: 0 }
+        );
+        document.querySelectorAll('.reveal').forEach(function (el) {
+          io.observe(el);
+        });
+
+        // 图片加载失败统一兜底:打 is-broken 隐藏破图,容器占位层(.img-ph)露出
+        document.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            if (t && t.tagName === 'IMG') t.classList.add('is-broken');
+          },
+          true
+        );
+      })();
+    </script>
+
+  </body>
+</html>

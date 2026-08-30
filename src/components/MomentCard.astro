@@ -1,0 +1,188 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { i18n } from '@i18n';
+import type { Memo } from '@/utils/memos';
+
+// 动态卡片组件 —— 卡片结构与样式的单一事实源。
+// 静态渲染（Moments.astro）与增量端点（/api/memos/sync 经 Container API 渲染）共用本组件：
+//  - 组件 scoped 样式作用于组件 JSX 元素（带 data-astro-cid），
+//    静态页 head 已有本组件 scoped CSS，增量 HTML 同作用域属性自动匹配；
+//  - set:html 注入的内容（marked 渲染）无作用域属性，相关样式必须放 is:global 块。
+// 编号（.moment-no）由渲染方决定：静态传 idx；增量由前端插入后统一重排（不传 idx）。
+interface Props {
+  memo: Memo;
+  idx?: number;
+  /** 页面首个实际图片使用 eager/high；增量同步卡片不传，保持 lazy。 */
+  priority?: boolean;
+}
+const { memo: m, idx, priority = false } = Astro.props;
+const images = m.images ?? [];
+const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
+---
+
+<div
+  class="moment relative py-[26px] border-b border-[var(--hair)]"
+  data-uid={m.uid}
+  data-tags={JSON.stringify(m.tags ?? [])}
+  data-time={m.createTime}
+>
+  <div class="flex flex-wrap gap-3 items-baseline font-mono text-[11px] tracking-[0.1em] text-[var(--faint)] mb-2.5">
+    <span class="text-[var(--accent)] moment-no">{no}</span>
+    <span>{m.date}</span>
+    {
+      (m.tags ?? []).map((t) => (
+        <span class="border border-[var(--accent)] rounded-full px-2.5 py-0.5 text-[var(--accent)]">{t}</span>
+      ))
+    }
+  </div>
+
+  <div
+    class={`markdown-body memo-content text-[13.5px] leading-[1.85] text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
+    set:html={m.content}
+  ></div>
+
+  {
+    images.length > 0 && (
+      images.length > 3 ? (
+        <div class="memo-images mt-3 relative" data-carousel>
+          <button type="button" class="memo-nav memo-prev" data-dir="-1" aria-label={i18n.lightbox.prev}>‹</button>
+          <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
+          <div class="memo-track flex gap-3 overflow-x-hidden" data-track>
+            {images.map((src, i) => (
+              <figure class="memo-slide shrink-0 w-[calc((100%-24px)/3)] border border-[var(--hair)]" data-slide>
+                <div class="aspect-square overflow-hidden bg-[var(--panel)] img-ph img-ph--memo">
+                  <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
+                </div>
+                <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[9px] tracking-[0.06em] text-[var(--faint)]">
+                  <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div
+          class={`memo-images mt-3 grid gap-3 ${
+            images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+          }`}
+        >
+          {images.map((src, i) => (
+            <figure class="border border-[var(--hair)]">
+              <div
+                class={`overflow-hidden bg-[var(--panel)] img-ph img-ph--memo ${
+                  images.length === 1 ? '' : 'aspect-square'
+                }`}
+              >
+                <img
+                  src={src}
+                  loading={priority && i === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={priority && i === 0 ? 'high' : undefined}
+                  decoding="async"
+                  alt={src.split('/').pop()}
+                  data-lightbox-trigger
+                  data-lightbox-group={m.uid}
+                  class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
+                />
+              </div>
+              <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[9px] tracking-[0.06em] text-[var(--faint)]">
+                <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )
+    )
+  }
+
+  {
+    m.media && m.media.length > 0 && (
+      <div class="memo-media mt-3 grid gap-2">
+        {m.media.map((f) => (
+          f.type === 'video' ? (
+            <video src={f.url} controls preload="metadata" class="w-full max-h-[420px] border border-[var(--hair)] bg-[var(--panel)]"></video>
+          ) : f.type === 'audio' ? (
+            <div class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2">
+              <span class="shrink-0 font-mono text-[9px] tracking-[0.06em] text-[var(--accent)]">AUDIO</span>
+              <audio src={f.url} controls preload="metadata" class="w-full min-w-0"></audio>
+            </div>
+          ) : (
+            <a href={f.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2 font-mono text-[11px] tracking-[0.06em] text-[var(--accent)] transition-colors hover:border-[var(--accent)]">
+              <span class="shrink-0 text-[var(--faint)]">FILE</span>
+              <span class="truncate">{f.filename}</span>
+            </a>
+          )
+        ))}
+      </div>
+    )
+  }
+
+  {
+    m.isLong && (
+      <button type="button" class="memo-toggle font-mono text-[11px] tracking-[0.12em] text-[var(--accent)] mt-2.5" data-toggle>
+        {i18n.moments.expand}
+      </button>
+    )
+  }
+</div>
+
+<style>
+  /* ===== 组件 scoped：作用于组件 JSX 元素（静态页 head 已含本组件 CSS，增量 HTML 自动匹配） ===== */
+  .moment::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * clamp(20px, 4vw, 48px) - 5px);
+    top: 36px;
+    width: 9px;
+    height: 9px;
+    background: var(--accent);
+  }
+  /* 图片可点开灯箱的光标提示 */
+  .memo-images img {
+    cursor: pointer;
+  }
+  .memo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--hair);
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1;
+    z-index: 1;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .memo-nav:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .memo-nav.memo-prev {
+    left: 10px;
+  }
+  .memo-nav.memo-next {
+    right: 10px;
+  }
+</style>
+
+<style is:global>
+  .memo-content.memo-collapsed {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 13;
+    overflow: hidden;
+  }
+  .memo-content.memo-expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+</style>

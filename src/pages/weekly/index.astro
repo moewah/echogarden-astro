@@ -1,0 +1,76 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+
+import Layout from '@layouts/Layout.astro';
+import PageHeader from '@components/PageHeader.astro';
+import WeeklyList from '@components/WeeklyList.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+import { weeklyConfig, siteConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { getSortedWeekly } from '@/utils/weekly';
+import { paginate, pageUrl as buildPageUrl } from '@/utils/pagination';
+import { archiveCode } from '@/utils/archive';
+
+// 周刊索引页:weeklyConfig.enabled=false 时跳转 404(静态路由无法条件跳过)
+if (!weeklyConfig.enabled) {
+  return Astro.redirect('/404.html');
+}
+
+const posts = await getSortedWeekly();
+const { items, totalPages } = paginate(posts, weeklyConfig.perPage, 1);
+
+// 周刊列表首页结构化数据：只描述首页展示的条目，分页页不重复输出 ItemList。
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+const pageUrlAbs = buildPageUrl(siteUrl, 'weekly/', 1);
+const itemListId = `${pageUrlAbs}#itemlist`;
+const itemListLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  '@id': itemListId,
+  itemListElement: items.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: p.data.title,
+    url: new URL(`/weekly/${p.id}/`, siteUrl).toString(),
+  })),
+};
+
+const title = siteConfig.site.seo.pages.weekly.title;
+const pageCode = archiveCode('MW-WKL', weeklyConfig.archiveNo);
+const description = siteConfig.site.seo.pages.weekly.description;
+const nextPage = totalPages > 1 ? buildPageUrl(siteUrl, 'weekly/', 2) : undefined;
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords={siteConfig.site.seo.pages.weekly.keywords}
+  mainEntity={{ '@id': itemListId }}
+  canonical={pageUrlAbs}
+  next={nextPage}
+>
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(itemListLd)} />
+  <PageHeader
+    no={pageCode}
+    title={title}
+    tagline={i18n.page.weeklyTagline}
+  >
+    <div class="grid h-[clamp(32px,5vw,52px)] w-[clamp(32px,5vw,52px)] shrink-0 place-items-center rounded-full border border-[var(--hair)] text-[var(--faint)]" aria-hidden="true">
+      <svg class="h-[clamp(17px,2.7vw,28px)] w-[clamp(17px,2.7vw,28px)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+        <path d="M18 14h-8" />
+        <path d="M15 18h-5" />
+        <path d="M10 6h8v4h-8V6Z" />
+      </svg>
+    </div>
+  </PageHeader>
+
+  <WeeklyList posts={items} currentPage={1} totalPages={totalPages} />
+
+  <Notice />
+  <Footer no={pageCode} />
+</Layout>

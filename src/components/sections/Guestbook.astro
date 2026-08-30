@@ -1,0 +1,127 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import Comments from '@components/Comments.astro';
+import { artalkConfig, guestbookConfig } from '@config/index';
+import { getArtalkVersionStatus } from '@/utils/artalk';
+import { i18n } from '@i18n';
+
+interface Props {
+  showHead?: boolean;
+}
+const { showHead = true } = Astro.props;
+const artalkVersionStatus = await getArtalkVersionStatus();
+---
+
+<section id="guestbook" class={showHead ? 'pt-[clamp(70px,11vh,130px)]' : ''}>
+  <div class="wrap">
+    {
+      showHead && (
+        <SecHead no={i18n.sections.guestbook.no} title={i18n.sections.guestbook.title} en={i18n.sections.guestbook.en} />
+      )
+    }
+
+    <div id="gb-grid" class="grid md:grid-cols-[3fr_5fr] gap-6 md:gap-8 items-start">
+      <div id="gb-side" class="flex flex-col gap-6 md:gap-8">
+        <div class="border border-[var(--line)] bg-[var(--panel)] reveal">
+          <div class="border-b border-[var(--line)] px-5 py-3">
+            <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.rules}</span>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-[13.5px] leading-[1.85] text-[var(--soft)]">{guestbookConfig.notice}</p>
+          </div>
+        </div>
+
+        <div class="border border-[var(--accent)] bg-[var(--panel)] reveal" style="animation-delay: 80ms">
+          <div class="flex justify-between items-center border-b border-[var(--accent)] px-5 py-3">
+            <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--accent)] uppercase">{i18n.guestbook.echo}</span>
+            <span class="font-mono text-[9px] tracking-[0.2em] text-[var(--accent)] opacity-70">◈</span>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-[13.5px] leading-[1.85] text-[var(--soft)]">{guestbookConfig.echo}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="md:col-start-2 border border-[var(--line)] outline outline-1 outline-[var(--hair)] outline-offset-[5px] bg-[var(--panel)]">
+        <div class="flex justify-between items-center px-6 py-3.5 border-b border-[var(--line)]">
+          <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.filing}</span>
+          <span class="font-mono text-[11px] text-[var(--accent)]">{i18n.guestbook.form}</span>
+        </div>
+
+        <div class="p-6">
+          {
+            artalkVersionStatus === 'ready' ? (
+              <Comments />
+            ) : (
+              <p class="font-mono text-[13px] text-[var(--faint)] border border-dashed border-[var(--hair)] px-5 py-8 text-center">
+                {artalkVersionStatus === 'mismatch'
+                  ? i18n.guestbook.versionMismatch
+                  : artalkVersionStatus === 'unavailable'
+                    ? i18n.guestbook.versionCheckFailed
+                    : i18n.guestbook.disabled}
+                <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.guestbook.disabledVer.replace('{n}', artalkConfig.version)}</span>
+              </p>
+            )
+          }
+        </div>
+
+        <div class="px-6 py-3 border-t border-[var(--line)] font-mono text-[10px] tracking-[0.16em] text-[var(--faint)]">
+          {i18n.guestbook.artalk}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+  (function () {
+    const sideElement = document.getElementById('gb-side');
+    const gridElement = document.getElementById('gb-grid');
+    if (!(sideElement instanceof HTMLElement) || !(gridElement instanceof HTMLElement)) return;
+    const side: HTMLElement = sideElement;
+    const grid: HTMLElement = gridElement;
+    var TOP = 110;
+    var fixed = false;
+    var width = 0;
+    var left = 0;
+    function reset() {
+      if (!fixed) return;
+      side.style.position = '';
+      side.style.top = '';
+      side.style.left = '';
+      side.style.width = '';
+      side.style.zIndex = '';
+      fixed = false;
+    }
+    function update() {
+      if (window.innerWidth < 768) {
+        reset();
+        return;
+      }
+      var r = grid.getBoundingClientRect();
+      if (r.top < TOP) {
+        if (!fixed) {
+          var sr = side.getBoundingClientRect();
+          width = sr.width;
+          left = sr.left;
+          fixed = true;
+          side.style.position = 'fixed';
+          side.style.top = TOP + 'px';
+          side.style.left = left + 'px';
+          side.style.width = width + 'px';
+          side.style.zIndex = '40';
+        }
+      } else {
+        reset();
+      }
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+</script>

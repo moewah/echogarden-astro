@@ -1,0 +1,31 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+// 影辑照片统一渲染（双态分流）：
+// 本地图(ImageMetadata)→ OptImage 懒加载压缩;远程 URL(字符串)→ 原样懒加载。
+// 列表/网格/主图默认走浏览器原生 loading="lazy";灯箱直接取 src。
+// loading='eager' 时直接输出 src，用于首屏关键图。
+import OptImage from '@components/OptImage.astro';
+
+interface Props {
+  src: ImageMetadata | string;
+  alt: string;
+  class?: string;
+  loading?: 'eager' | 'lazy';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  width?: number;
+  height?: number;
+  [key: string]: unknown; // data-* 等附加属性透传(灯箱 data-zoom/data-title 等)
+}
+const { src, alt, class: className, loading = 'lazy', fetchpriority, width, height, ...rest } = Astro.props;
+---
+
+{
+  typeof src === 'string' ? (
+    <img src={src} alt={alt} class={className} width={width} height={height} loading={loading} fetchpriority={fetchpriority} decoding="async" {...rest} />
+  ) : (
+    <OptImage src={src} alt={alt} class={className} lazy={loading !== 'eager'} loading={loading} fetchpriority={fetchpriority} width={width} height={height} {...rest} />
+  )
+}

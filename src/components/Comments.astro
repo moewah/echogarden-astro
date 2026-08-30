@@ -1,0 +1,279 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+// Artalk 评论容器：默认懒加载（IntersectionObserver 触发）。
+// 调用方需自行判断 artalkConfig.server/site 已配置；未配置时的降级 UI 由调用方渲染。
+// pageKey = 当前路径（每篇文章/页面独立评论区）。
+import { artalkConfig } from '@config/index';
+import { i18n } from '@i18n';
+---
+
+<div
+  class="artalk-comments-area min-h-[120px]"
+  data-server={artalkConfig.server}
+  data-site={artalkConfig.site}
+  data-loading-text={i18n.comments.loading}
+  data-failed-text={i18n.comments.loadFailed}
+>
+  <p class="comments-placeholder grid min-h-[160px] place-items-center border border-dashed border-[var(--hair)] px-5 text-center font-mono text-[13px] text-[var(--faint)]" role="status">
+    {i18n.comments.loading}
+  </p>
+  <div id="comments"></div>
+</div>
+
+<script is:inline>
+  (function () {
+    var container = document.querySelector('.artalk-comments-area');
+    var mount = document.getElementById('comments');
+    var placeholder = container?.querySelector('.comments-placeholder');
+    if (!container || !mount || !placeholder) return;
+    if (container.dataset.loaded === 'true') return;
+
+    var server = container.dataset.server;
+    var site = container.dataset.site;
+    var loadingText = container.dataset.loadingText || '';
+    var failedText = container.dataset.failedText || '';
+
+    function renderStatus(text) {
+      placeholder.hidden = false;
+      placeholder.textContent = text;
+    }
+
+    function hideStatus() {
+      placeholder.hidden = true;
+    }
+
+    function setFailed() {
+      renderStatus(failedText);
+      container.dataset.loaded = 'true';
+    }
+
+    function setLoading() {
+      renderStatus(loadingText);
+    }
+
+    function initArtalk() {
+      if (container.dataset.loaded === 'true') return;
+      container.dataset.loaded = 'true';
+
+      if (!server || !site) {
+        setFailed();
+        return;
+      }
+
+      setLoading();
+
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = '/vendor/artalk/Artalk.css';
+
+      var script = document.createElement('script');
+      script.src = '/vendor/artalk/Artalk.js';
+
+      var cssLoaded = false;
+      var scriptLoaded = false;
+
+      function tryInit() {
+        if (!cssLoaded || !scriptLoaded) return;
+        if (typeof window.Artalk === 'undefined') {
+          setFailed();
+          return;
+        }
+        var artalk;
+        try {
+          artalk = window.Artalk.init({
+            el: '#comments',
+            server: server,
+            site: site,
+            pageKey: location.pathname,
+            darkMode: document.documentElement.getAttribute('data-theme') === 'dark',
+          });
+        } catch {
+          setFailed();
+          return;
+        }
+
+        const mountObserver = new MutationObserver(() => {
+          if (mount.childElementCount > 0 || mount.textContent?.trim()) {
+            hideStatus();
+            mountObserver.disconnect();
+          }
+        });
+        mountObserver.observe(mount, { childList: true, subtree: true });
+        if (mount.childElementCount > 0 || mount.textContent?.trim()) {
+          hideStatus();
+          mountObserver.disconnect();
+        }
+
+        function syncArtalkTheme() {
+          var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+          if (artalk && typeof artalk.setDarkMode === 'function') {
+            artalk.setDarkMode(dark);
+          }
+        }
+
+        new MutationObserver(syncArtalkTheme).observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme'],
+        });
+      }
+
+      css.onload = function () {
+        cssLoaded = true;
+        tryInit();
+      };
+      css.onerror = setFailed;
+
+      script.onload = function () {
+        scriptLoaded = true;
+        tryInit();
+      };
+      script.onerror = setFailed;
+
+      document.head.appendChild(css);
+      document.body.appendChild(script);
+    }
+
+    if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(
+        function (entries) {
+          if (entries[0].isIntersecting) {
+            observer.disconnect();
+            initArtalk();
+          }
+        },
+        { rootMargin: '200px 0px', threshold: 0 }
+      );
+      observer.observe(container);
+    } else {
+      // 退化：不支持 IO 的浏览器直接加载
+      initArtalk();
+    }
+  })();
+</script>
+
+<style is:global>
+  /* Artalk 容器与覆盖变量（懒加载前后都生效） */
+  #comments.artalk,
+  #comments.artalk.atk-dark-mode {
+    font-family: inherit;
+    font-size: 13.5px;
+    --at-color-bg: var(--panel) !important;
+    --at-color-bg-transl: var(--panel) !important;
+    --at-color-bg-grey: var(--bg) !important;
+    --at-color-bg-grey-transl: var(--bg) !important;
+    --at-color-bg-light: var(--bg) !important;
+    --at-color-font: var(--soft) !important;
+    --at-color-grey: var(--soft) !important;
+    --at-color-meta: var(--faint) !important;
+    --at-color-border: var(--line) !important;
+    --at-color-main: var(--accent) !important;
+    --at-color-deep: var(--ink) !important;
+    --at-color-sub: var(--soft) !important;
+    --at-color-light: var(--hair) !important;
+    --at-color-red: var(--accent) !important;
+    --at-color-pink: var(--accent) !important;
+    --at-color-yellow: var(--accent) !important;
+    --at-color-green: var(--accent) !important;
+    --at-color-gradient: transparent !important;
+  }
+  /* 评论头像：档案照片样式（方形 + hair 边框 + 相框留白） */
+  .artalk .atk-comment .atk-avatar img {
+    border-radius: 0 !important;
+    border: 1px solid var(--hair) !important;
+    background: var(--panel) !important;
+    padding: 2px !important;
+    box-sizing: border-box !important;
+  }
+  .artalk .atk-comment .atk-header {
+    font-size: 12px !important;
+  }
+  .artalk .atk-nick,
+  .artalk .atk-nick a {
+    font-size: 13.5px !important;
+  }
+  .artalk .atk-main-editor .atk-textarea {
+    font-size: 13.5px !important;
+  }
+  .artalk .atk-comment-count {
+    font-size: 13.5px !important;
+  }
+  .artalk .atk-comment-count-num {
+    font-size: 14px !important;
+  }
+  .artalk .atk-send-btn,
+  .artalk .atk-common-action-btn {
+    font-size: 13px !important;
+  }
+  .artalk pre,
+  .artalk pre code {
+    font-family: var(--font-mono) !important;
+  }
+  /* 强调色 / 按钮对齐站内 accent（亮暗都对比好） */
+  .artalk .atk-send-btn,
+  .artalk .atk-layer-dialog-actions button:active {
+    color: var(--bg) !important;
+  }
+  .artalk .atk-comment .atk-pinned-badge,
+  .artalk .atk-unread-badge {
+    background: var(--accent) !important;
+    color: var(--bg) !important;
+  }
+  .artalk .atk-comment .atk-badge {
+    background: transparent !important;
+    color: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+  }
+  .artalk .atk-comment .atk-pending {
+    border-left-color: var(--accent) !important;
+  }
+  .artalk .atk-layer-dialog-actions button.error {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--bg) !important;
+  }
+  .artalk .atk-loading-icon {
+    border-color: var(--accent) transparent transparent var(--accent) !important;
+  }
+  /* 编辑器外层：去掉实体边框 */
+  .artalk .atk-main-editor {
+    border: none !important;
+  }
+  /* 评论输入框边线 + 内边距 */
+  .artalk .atk-main-editor .atk-header input {
+    border: 1px solid var(--hair) !important;
+    padding: 8px 12px !important;
+  }
+  .artalk .atk-main-editor .atk-header input:not(:last-child) {
+    margin-right: 8px !important;
+  }
+  .artalk .atk-main-editor .atk-textarea-wrap {
+    padding: 8px 12px 0 !important;
+  }
+  .artalk .atk-main-editor .atk-bottom {
+    padding: 5px 12px !important;
+  }
+  .artalk .atk-main-editor .atk-textarea {
+    border: 1px solid var(--hair) !important;
+    border-radius: 3px !important;
+    padding: 14px 14px !important;
+    margin-top: 0 !important;
+  }
+  .artalk .atk-plug-panel-wrap {
+    margin-top: 12px !important;
+    border-top: none !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp-switcher {
+    border-top: none !important;
+    border-bottom: none !important;
+  }
+  .artalk .atk-main-editor .atk-header input:focus,
+  .artalk .atk-main-editor .atk-textarea:focus {
+    border-color: var(--accent) !important;
+  }
+  .atk-copyright {
+    display: none !important;
+  }
+</style>

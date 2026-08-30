@@ -1,0 +1,135 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { i18n } from '@i18n';
+
+interface Props {
+  id?: string;
+  figureDigits?: number;
+}
+
+const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
+---
+
+<div
+  class="site-lightbox"
+  id={id}
+  data-lightbox
+  data-figure-digits={figureDigits}
+  role="dialog"
+  aria-modal="true"
+  aria-label={i18n.lightbox.view}
+  hidden
+>
+  <button type="button" class="site-lightbox-btn site-lightbox-close" data-lightbox-close aria-label={i18n.lightbox.close}>✕</button>
+  <button type="button" class="site-lightbox-btn site-lightbox-prev" data-lightbox-prev aria-label={i18n.lightbox.prev}>‹</button>
+  <figure class="site-lightbox-figure">
+    <img class="site-lightbox-img" data-lightbox-image alt="" />
+  </figure>
+  <button type="button" class="site-lightbox-btn site-lightbox-next" data-lightbox-next aria-label={i18n.lightbox.next}>›</button>
+  <div class="site-lightbox-caption">
+    <span class="site-lightbox-no" data-lightbox-no>FIG.001</span>
+    <span class="site-lightbox-title" data-lightbox-title></span>
+    <span class="site-lightbox-count" data-lightbox-count>1 / 1</span>
+  </div>
+</div>
+
+<style is:global>
+  [data-lightbox-trigger] {
+    cursor: pointer;
+  }
+  .site-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px clamp(16px, 4vw, 56px);
+    background: var(--bg);
+  }
+  .site-lightbox[hidden] {
+    display: none;
+  }
+  .site-lightbox-figure {
+    display: grid;
+    max-width: 100%;
+    max-height: 80vh;
+    place-items: center;
+    margin: 0;
+  }
+  .site-lightbox-img {
+    max-width: 100%;
+    max-height: 78vh;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    object-fit: contain;
+  }
+  .site-lightbox-btn {
+    position: absolute;
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--hair);
+    color: var(--ink);
+    background: var(--panel);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    line-height: 1;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .site-lightbox-btn:hover,
+  .site-lightbox-btn:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .site-lightbox-close {
+    top: 20px;
+    right: 24px;
+  }
+  .site-lightbox-prev {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+  .site-lightbox-next {
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+  }
+  .site-lightbox-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    display: flex;
+    gap: 14px;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .site-lightbox-no {
+    color: var(--accent);
+  }
+  .lightbox-open {
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .site-lightbox-btn {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { setupLightbox } from '@/utils/lightbox';
+
+  const lightbox = document.querySelector<HTMLElement>('[data-lightbox]');
+  if (lightbox) setupLightbox(lightbox);
+</script>

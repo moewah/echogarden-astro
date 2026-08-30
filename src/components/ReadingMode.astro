@@ -1,0 +1,29 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { readingConfig } from '@config/index';
+// 阅读增强（消费层开关见 @config/readingConfig）：作用页面 = 周刊详情页 + 影辑详情页。
+// 开关关闭时不渲染任何内容，零影响；开启后进入页面即原始态背景
+// （隐藏全局背景层：无默认图/无透明度呼吸/无高光轮播）。
+const on = readingConfig.enabled;
+---
+
+{
+  on && (
+    <>
+      {/* 阅读态标记：隐藏 SiteBackground 的 .site-bg 层（纯背景色 = 原始态） */}
+      <style is:global>
+        .reading-enhance .site-bg {
+          display: none;
+        }
+      </style>
+
+      <script is:inline>
+        // ===== 阅读增强：背景抑制（同步脚本在 paint 前执行，无闪烁）=====
+        document.documentElement.classList.add('reading-enhance');
+      </script>
+    </>
+  )
+}

@@ -1,0 +1,69 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import PhotoImg from '@components/PhotoImg.astro';
+import { weeklyConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { sectionNo } from '@/utils/sections';
+import { formatDate } from '@/utils/date';
+import { getSortedWeekly, weeklyIssueLabel } from '@/utils/weekly';
+import { umamiEvent } from '@/utils/analytics';
+
+// 近期周刊:行列表形态(高信息密度,别于影辑网格),展示最新 N 期,N 由 weeklyConfig.homeLimit 控制。
+const allPosts = weeklyConfig.enabled ? await getSortedWeekly() : [];
+const posts = allPosts.slice(0, weeklyConfig.homeLimit);
+// 全部期刊入口的总量锚点：随开关联动（关闭时列表为空，按钮不渲染）
+const weeklyTotal = allPosts.length;
+---
+
+{
+  posts.length > 0 && (
+    <section id="weekly" class="pt-[clamp(70px,11vh,130px)]">
+      <div class="wrap">
+        <SecHead no={sectionNo.weekly} title={i18n.sections.weekly.title} en={i18n.sections.weekly.en} />
+
+        <div class="reveal border-t border-[var(--line)]">
+          {posts.map((p) => (
+            <a
+              href={`/weekly/${p.id}/`}
+              class="group grid grid-cols-[86px_1fr] md:grid-cols-[150px_1fr_210px] gap-x-5 items-center border-b border-[var(--hair)] py-4 transition-colors hover:border-b-[var(--accent)]"
+              {...umamiEvent('weekly-click', { id: p.id, surface: 'home' })}
+            >
+              <div>
+                <span class="block font-mono text-[13px] font-semibold tracking-[0.1em] text-[var(--accent)]">
+                  {weeklyIssueLabel(p.data.issue)}
+                </span>
+                <span class="mt-1 block font-mono text-[10px] tracking-[0.08em] text-[var(--faint)]">{formatDate(p.data.date)}</span>
+              </div>
+              <div class="min-w-0">
+                <h3 class="truncate text-[15.5px] font-semibold leading-[1.5] transition-colors group-hover:text-[var(--accent)]">
+                  {p.data.title}
+                </h3>
+                <p class="mt-1 text-[12.5px] leading-[1.7] text-[var(--soft)] line-clamp-3">{p.data.description}</p>
+              </div>
+              <div class="img-ph img-ph--post aspect-video overflow-hidden bg-[var(--bg)] max-md:hidden">
+                <PhotoImg
+                  src={p.data.cover}
+                  alt={p.data.title}
+                  loading="lazy"
+                  width={420}
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <a
+          href="/weekly/"
+          class="mt-5 inline-block border-b border-[var(--accent)] pb-1 font-mono text-[11.5px] tracking-[0.14em] text-[var(--accent)]"
+        >
+          {i18n.weekly.all.replace('{n}', String(weeklyTotal))}
+        </a>
+      </div>
+    </section>
+  )
+}

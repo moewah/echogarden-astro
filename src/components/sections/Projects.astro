@@ -1,0 +1,80 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import Icon from '@components/Icon.astro';
+import EmptyState from '@components/EmptyState.astro';
+import { projectsConfig } from '@config/index';
+import { getProjects } from '@/utils/github';
+import { i18n } from '@i18n';
+import { sectionNo } from '@/utils/sections';
+
+const owner = projectsConfig.github.replace(/^https?:\/\/github\.com\//, '');
+// 板块开关：关闭时不拉取、不渲染（首页板块 / SEC 编号 / hero 导航由 sections.ts 联动）。
+// 拉取失败返回 null → 板块降级空态（方案 B，无兜底数据）
+const projects = projectsConfig.enabled ? await getProjects() : [];
+---
+
+{
+  (projects === null || projects.length > 0) && (
+    <section id="projects" class="pt-[clamp(70px,11vh,130px)]">
+      <div class="wrap">
+    <SecHead no={sectionNo.projects} title={i18n.sections.projects.title} en={i18n.sections.projects.en} />
+
+    <div class="border-t border-[var(--hair)] border-x border-b border-[var(--line)] px-3 md:px-4 reveal [&>a:last-of-type]:border-b-0">
+      <div class="hidden md:grid md:grid-cols-[90px_1.2fr_1.6fr_40px] lg:grid-cols-[90px_1.2fr_130px_1.6fr_40px] gap-[clamp(10px,2.5vw,30px)] items-center py-5 border-b border-[var(--hair)] font-mono text-[10px] tracking-[0.26em] text-[var(--faint)] font-semibold uppercase">
+        <span>{i18n.projects.no}</span>
+        <span>{i18n.projects.project}</span>
+        <span class="max-lg:hidden">{i18n.projects.lang}</span>
+        <span>{i18n.projects.desc}</span>
+        <span></span>
+      </div>
+
+      {
+        projects === null ? (
+          <EmptyState text={i18n.projects.loadFailed} compact />
+        ) : (
+        projects.map((p) => (
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener"
+            class="group grid grid-cols-[64px_1fr_40px] md:grid-cols-[90px_1.2fr_1.6fr_40px] lg:grid-cols-[90px_1.2fr_130px_1.6fr_40px] gap-[clamp(10px,2.5vw,30px)] items-center py-5 border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px]"
+          >
+            <span class="font-mono text-[11.5px] text-[var(--accent)]">{p.id}</span>
+            <span class="flex items-baseline gap-2 min-w-0">
+              <Icon name="book" class="w-[14px] h-[14px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors self-center shrink-0" />
+              <span class="font-mono text-[14.5px] whitespace-nowrap text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors truncate min-w-0">
+                {owner}/{p.name}
+              </span>
+            </span>
+            <span class="flex items-baseline gap-1.5 font-mono text-[11px] text-[var(--faint)] max-lg:hidden">
+              <span class="w-[6px] h-[6px] rounded-full bg-[var(--accent)] inline-block"></span>
+              <span>{p.lang}</span>
+            </span>
+            <span class="text-[13px] leading-[1.7] text-[var(--soft)] max-md:hidden">{p.description}</span>
+            <span class="font-mono text-[var(--faint)] transition-all group-hover:text-[var(--accent)] group-hover:translate-x-[3px] group-hover:-translate-y-[3px]">↗</span>
+          </a>
+        ))
+        )
+      }
+
+    </div>
+
+    <div class="flex justify-between items-center mt-4 font-mono text-[11px] tracking-[0.12em] text-[var(--soft)] reveal">
+      <span>{i18n.projects.total.replace('{n}', String(projects?.length ?? 0))}</span>
+      <a
+        href={projectsConfig.github}
+        target="_blank"
+        rel="noopener"
+        class="text-[var(--accent)] border-b border-[var(--accent)] pb-0.5"
+      >
+        {i18n.projects.more} {projectsConfig.github.replace(/^https?:\/\//, '').toUpperCase()}
+      </a>
+    </div>
+  </div>
+    </section>
+  )
+}

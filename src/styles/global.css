@@ -1,0 +1,401 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--site-font-sans);
+  --font-mono: var(--site-font-mono);
+}
+
+:root {
+  --bg: #efefeb;
+  --panel: #f9f9f6;
+  --ink: #1d1f21;
+  --soft: #5c6165;
+  --faint: #979da2;
+  --accent: #2e4fa3;
+  --line: rgba(29, 31, 33, 0.8);
+  --hair: rgba(29, 31, 33, 0.14);
+}
+
+[data-theme='dark'] {
+  --bg: #15171a;
+  --panel: #1c1f23;
+  --ink: #e7e8e5;
+  --soft: #a3a9ad;
+  --faint: #666c71;
+  --accent: #8fa8e8;
+  --line: rgba(231, 232, 229, 0.75);
+  --hair: rgba(231, 232, 229, 0.14);
+}
+
+/* 全局内容容器：唯一允许的页面宽度 / 边距模式，新页面与板块禁止另写 */
+@utility wrap {
+  max-width: 1160px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 60px);
+}
+
+/* 纸面颗粒噪点覆盖层 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.45;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.22 0 0 0 0 0.25 0 0 0 0.04 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    font-family: var(--font-sans);
+    transition: background-color 0.4s, color 0.4s;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: #fff;
+  }
+}
+
+/* 默认可见，保证禁用 JavaScript 时静态内容仍可读；JS 开启后再启用入场动画。 */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+
+html.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+html.js .reveal.in {
+  animation: reveal-in 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  html.js .reveal.in {
+    animation: none;
+  }
+}
+
+/* ---- 图片加载占位:容器声明类型(.img-ph--asset/photo/memo),图标层垫于图片之下 ---- */
+/* 加载中(懒加载未赋 src)/ 加载失败(img.is-broken)时露出;图片加载完成后自然覆盖。
+   零额外请求:图标是 mask 剪影,颜色取 --faint,无颜色字面量 */
+.img-ph {
+  position: relative;
+}
+.img-ph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--faint);
+  opacity: 0.38;
+  -webkit-mask: var(--ph-icon) center / 40px no-repeat;
+  mask: var(--ph-icon) center / 40px no-repeat;
+  pointer-events: none;
+}
+.img-ph > img {
+  position: relative;
+}
+/* 懒加载未赋 src 时整图隐藏(防 alt 文本裸压在占位上),尺寸由既有 class 保持 */
+.img-ph > img:not([src]) {
+  visibility: hidden;
+}
+/* 懒加载未赋 src 时容器保底高度,防 0 高塌陷(赋 src 后自动撤销) */
+.img-ph:has(> img:not([src])) {
+  min-height: 10rem;
+}
+/* 加载失败:隐藏破图,露出占位层(Layout 全局 error 委托打 is-broken) */
+img.is-broken {
+  opacity: 0;
+}
+/* 站内素材:登记照框 */
+.img-ph--asset {
+  --ph-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='3' width='16' height='18'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3Cpath d='M8 16.5c.8-2.1 2.5-3 4-3s3.2.9 4 3'/%3E%3C/svg%3E");
+}
+/* 影辑内容图:影像档案 */
+.img-ph--photo {
+  --ph-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16'/%3E%3Ccircle cx='9' cy='10' r='1.5'/%3E%3Cpath d='M4.5 19l4.5-5.5 3.5 3.5 3-3.5 4 5.5'/%3E%3C/svg%3E");
+}
+/* 动态内容图:便签 */
+.img-ph--memo {
+  --ph-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 4h14v13l-4 3H5z'/%3E%3Cpath d='M15 20v-3h4'/%3E%3Cpath d='M8.5 9.5h7M8.5 12.5h5'/%3E%3C/svg%3E");
+}
+/* 文章内容图:文稿(折角文档 + 文本行) */
+.img-ph--post {
+  --ph-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3Cpath d='M8 13h8M8 17h8'/%3E%3C/svg%3E");
+}
+
+/* ── Markdown 正文：动态 memo 与周刊共用结构化样式 ───────── */
+.markdown-body {
+  color: var(--soft);
+  line-height: 2.05;
+}
+.markdown-body > * + * {
+  margin-top: 1.1em;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.4em;
+}
+.markdown-body h1 {
+  font-size: 1.6em;
+  margin-top: 1.8em;
+}
+.markdown-body h2 {
+  font-size: 1.33em;
+  margin-top: 2.2em;
+}
+.markdown-body h3 {
+  font-size: 1.1em;
+  margin-top: 1.8em;
+}
+.markdown-body h4 {
+  font-size: 1em;
+  margin-top: 1.45em;
+}
+.markdown-body p {
+  margin: 0.55em 0;
+}
+.markdown-body strong,
+.markdown-body b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.markdown-body em {
+  color: var(--ink);
+}
+.markdown-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.55em 0;
+  padding-left: 1.5em;
+}
+.markdown-body ul {
+  list-style: disc;
+}
+.markdown-body ol {
+  list-style: decimal;
+}
+.markdown-body li + li {
+  margin-top: 0.35em;
+}
+.markdown-body ul.contains-task-list,
+.markdown-body ul:has(> li > input[type='checkbox']) {
+  list-style: none;
+  padding-left: 0;
+}
+.markdown-body li > input[type='checkbox'] {
+  margin: 0 0.5em 0 0;
+  accent-color: var(--accent);
+}
+.markdown-body blockquote {
+  border-left: 2px solid var(--accent);
+  padding-left: 1.1em;
+  margin: 0.6em 0;
+  color: var(--soft);
+}
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--hair);
+  margin: 2.2em 0;
+}
+.markdown-body code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--panel);
+  border: 1px solid var(--hair);
+  padding: 0.1em 0.4em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.markdown-body pre.astro-code code {
+  display: block;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+  white-space: inherit;
+}
+.markdown-body del,
+.markdown-body s {
+  color: var(--faint);
+  text-decoration-thickness: 1px;
+}
+.markdown-body mark {
+  color: var(--ink);
+  background: var(--panel);
+  border-bottom: 1px solid var(--accent);
+}
+.markdown-body kbd {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--hair);
+  padding: 0.1em 0.4em;
+}
+.markdown-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.markdown-body table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  margin: 0.9em 0;
+  font-size: 0.92em;
+  line-height: 1.7;
+}
+.markdown-body th {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: left;
+  color: var(--faint);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.markdown-body td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hair);
+  color: var(--soft);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.markdown-body tr:last-child td {
+  border-bottom: 1px solid var(--line);
+}
+/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位。 */
+.memo-content-img {
+  display: block;
+  margin: 1.75em 0;
+  border: 1px solid var(--hair);
+  background: var(--panel);
+}
+.memo-content-img img {
+  width: 100%;
+}
+/* Markdown 正文图（周刊 / 影辑正文共用）：rehypeContentImages 构建期包装容器，正文只统一图片尺寸。 */
+.post-content-img {
+  display: block;
+  margin: 1.75em 0;
+  border: 1px solid var(--hair);
+  background: var(--panel);
+}
+.post-content-img img {
+  width: 100%;
+}
+
+/* ── shiki 代码高亮:css-variables 主题,变量映射既有设计 token ── */
+:root {
+  --astro-code-foreground: var(--ink);
+  --astro-code-background: var(--panel);
+  --astro-code-token-constant: var(--accent);
+  --astro-code-token-string: var(--accent);
+  --astro-code-token-comment: var(--faint);
+  --astro-code-token-keyword: var(--ink);
+  --astro-code-token-parameter: var(--soft);
+  --astro-code-token-function: var(--soft);
+  --astro-code-token-string-expression: var(--accent);
+  --astro-code-token-punctuation: var(--faint);
+  --astro-code-token-link: var(--accent);
+}
+pre.astro-code {
+  position: relative;
+  border: 1px solid var(--hair);
+  padding: 16px 18px 16px 48px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.85;
+  margin: 1.75em 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  counter-reset: line;
+}
+pre.astro-code .line {
+  position: relative;
+}
+pre.astro-code .line::before {
+  content: counter(line);
+  counter-increment: line;
+  position: absolute;
+  left: -36px;
+  width: 24px;
+  text-align: right;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: inherit;
+  user-select: none;
+}
+/* 代码块复制按钮(由页面脚本注入) */
+.code-copy {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  background: var(--panel);
+  border: 1px solid var(--hair);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.code-copy:hover,
+.code-copy.is-copied {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 代码块复制按钮：hover 设备上默认隐藏，悬停代码块时显示 */
+@media (hover: hover) {
+  pre.astro-code .code-copy {
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+  }
+  pre.astro-code:hover .code-copy,
+  pre.astro-code .code-copy:focus-visible {
+    opacity: 1;
+  }
+}

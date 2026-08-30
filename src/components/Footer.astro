@@ -1,0 +1,150 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+
+import { siteConfig, weeklyConfig, llmsConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { archiveCode } from '@/utils/archive';
+import { umamiEvent } from '@/utils/analytics';
+
+interface Props {
+  no?: string;
+}
+const { no = archiveCode('MW-2018', siteConfig.site.archiveNo) } = Astro.props;
+const hasFooterLinks = weeklyConfig.enabled || llmsConfig.enabled;
+---
+
+<div class="wrap">
+  <div class="eof">{i18n.footer.eof}</div>
+</div>
+
+<footer class="pb-[46px]">
+  <div class="wrap">
+    <div class="border-t border-[var(--line)] pt-[26px]">
+      <div class="footer-grid">
+        {
+          hasFooterLinks && (
+            <nav class="footer-links min-w-0 flex flex-wrap items-center font-mono text-[10.5px] tracking-[0.12em] text-[var(--soft)]" aria-label={i18n.footer.resources}>
+              {
+                weeklyConfig.enabled && (
+                  <a
+                    href={new URL('/rss.xml', siteConfig.site.url).toString()}
+                    class="inline-flex items-center py-1 text-[var(--soft)] transition-colors hover:text-[var(--accent)] md:py-0"
+                    {...umamiEvent('weekly-rss-subscribe', { surface: 'footer' })}
+                  >
+                    <span>{i18n.footer.weeklyRss}</span>
+                  </a>
+                )
+              }
+              <a
+                href={new URL('/sitemap.xml', siteConfig.site.url).toString()}
+                class="inline-flex items-center py-1 text-[var(--soft)] transition-colors hover:text-[var(--accent)] md:py-0"
+                {...umamiEvent('nav-click', { surface: 'footer', to: '/sitemap.xml' })}
+              >
+                <span>{i18n.footer.sitemap}</span>
+              </a>
+              {
+                llmsConfig.enabled && (
+                  <a
+                    href={new URL('/llms.txt', siteConfig.site.url).toString()}
+                    class="inline-flex items-center py-1 text-[var(--soft)] transition-colors hover:text-[var(--accent)] md:py-0"
+                    {...umamiEvent('nav-click', { surface: 'footer', to: '/llms.txt' })}
+                  >
+                    <span>{i18n.footer.llmsTxt}</span>
+                  </a>
+                )
+              }
+            </nav>
+          )
+        }
+
+        <div class="footer-identity flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">
+          <span>{siteConfig.site.copyright}</span>
+          {/* ──────────────────────────────────────────────────────
+             POWERED BY MOEWAH · 版权署名 · 强制保留
+             ──────────────────────────────────────────────────────
+             本署名（含链接）为原作者版权标识，任何形式的使用者——
+             包括但不限于 fork、clone、二次分发、商业/非商业部署、
+             修改后发布——均必须原样保留本署名与链接。
+             禁止修改、移除、覆盖、遮挡或以任何方式规避本署名。
+             违反即构成对 LICENSE（MIT）版权条款的违约。
+             ────────────────────────────────────────────────────── */}
+          <span class="inline-flex items-center gap-1">POWERED BY <a href="https://github.com/moewah/echogarden-astro" class="text-[var(--accent)] hover:underline">ECHOGARDEN</a> & <a href="https://www.moewah.com/" class="text-[var(--accent)] hover:underline">MOEWAH</a></span>
+        </div>
+
+        <div class="barcode flex flex-col items-end text-right">
+          <svg
+            class="h-9 w-[150px] text-[var(--ink)]"
+            viewBox="0 0 150 36"
+            preserveAspectRatio="none"
+            fill="currentColor"
+          >
+            <rect x="0" width="2" height="36"></rect><rect x="4" width="1" height="36"></rect><rect x="7" width="3" height="36"></rect><rect x="12" width="1" height="36"></rect><rect x="15" width="2" height="36"></rect><rect x="19" width="4" height="36"></rect><rect x="25" width="1" height="36"></rect><rect x="28" width="2" height="36"></rect><rect x="32" width="1" height="36"></rect><rect x="35" width="3" height="36"></rect><rect x="40" width="2" height="36"></rect><rect x="44" width="1" height="36"></rect><rect x="47" width="1" height="36"></rect><rect x="50" width="3" height="36"></rect><rect x="55" width="2" height="36"></rect><rect x="59" width="4" height="36"></rect><rect x="65" width="1" height="36"></rect><rect x="68" width="2" height="36"></rect><rect x="72" width="3" height="36"></rect><rect x="77" width="1" height="36"></rect><rect x="80" width="2" height="36"></rect><rect x="84" width="1" height="36"></rect><rect x="87" width="4" height="36"></rect><rect x="93" width="2" height="36"></rect><rect x="97" width="1" height="36"></rect><rect x="100" width="3" height="36"></rect><rect x="105" width="1" height="36"></rect><rect x="108" width="2" height="36"></rect><rect x="112" width="4" height="36"></rect><rect x="118" width="1" height="36"></rect><rect x="121" width="2" height="36"></rect><rect x="125" width="1" height="36"></rect><rect x="128" width="3" height="36"></rect><rect x="133" width="2" height="36"></rect><rect x="137" width="1" height="36"></rect><rect x="140" width="4" height="36"></rect><rect x="146" width="2" height="36"></rect>
+          </svg>
+          <span class="font-mono text-[9.5px] tracking-[0.3em] text-[var(--faint)]">{no}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .eof {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-top: 10px;
+    padding-bottom: 24px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
+    color: var(--faint);
+  }
+  .eof::before,
+  .eof::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hair);
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: clamp(24px, 6vw, 72px);
+    row-gap: 10px;
+  }
+  .footer-identity {
+    grid-column: 1;
+  }
+  .footer-links {
+    grid-column: 1;
+  }
+  .barcode {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .footer-links a:not(:last-child)::after {
+    content: '/';
+    margin-inline: 0.75rem;
+    color: var(--soft);
+  }
+
+  @media (max-width: 767px) {
+    .footer-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .barcode {
+      align-self: flex-end;
+    }
+
+
+    .footer-links a:not(:last-child)::after {
+      margin-inline: 0.5rem;
+    }
+  }
+</style>

@@ -1,0 +1,118 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import { siteConfig } from '@config/index';
+import { i18n } from '@i18n';
+import { heroNav } from '@/utils/sections';
+import { archiveCode } from '@/utils/archive';
+
+const nav = heroNav;
+const pageCode = archiveCode('MW-2018', siteConfig.site.archiveNo);
+const siteUrl = siteConfig.site.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+// SPEC 卡头域名横幅：去 www、大写（对齐设计稿 proposal-c-archive 的 ECHOGARDEN.EXAMPLE.COM 样式）
+const siteBanner = siteUrl.replace(/^www\./, '').toUpperCase();
+// 品牌大字：按驼峰拆词、第二段加粗（MoeWah → Moe+Wah；EchoGarden → Echo+Garden）；
+// 非驼峰名字（如中文）拆不出第二段，则整词显示、不加粗。
+const brandParts = siteConfig.site.name.split(/(?=[A-Z])/);
+const updatedAt = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+})();
+---
+
+<section id="top" class="min-h-svh flex flex-col pt-[70px]">
+  <div class="flex-1 w-full wrap grid grid-cols-[auto_1fr] max-sm:grid-cols-1">
+    <div class="flex max-sm:hidden items-center justify-center writing-vertical border-l border-r border-[var(--hair)] text-[var(--faint)] font-mono text-[11px] tracking-[0.42em] py-5 min-w-[52px]">
+      {i18n.hero.tab}
+    </div>
+
+    <div class="flex flex-col justify-between pl-[clamp(22px,3.5vw,52px)] max-sm:pl-0 pt-[clamp(20px,4vh,44px)]">
+      <div class="reveal">
+        <div class="flex justify-between gap-3 flex-wrap font-mono text-[11px] tracking-[0.14em] text-[var(--soft)]">
+          <span>{i18n.hero.fileNo} {pageCode}</span>
+          <span class="border-[1.5px] border-[var(--accent)] text-[var(--accent)] px-3 py-1 tracking-[0.3em] font-semibold">{i18n.hero.online}</span>
+        </div>
+
+        <div class="grid grid-cols-1 min-[900px]:grid-cols-[7fr_5fr] gap-[clamp(28px,5vw,72px)] items-center py-[clamp(28px,6vh,72px)]">
+          <div class="min-w-0">
+            <p class="font-mono text-xs tracking-[0.2em] text-[var(--faint)]">{i18n.hero.file}</p>
+            <h1 class="mt-4 text-[clamp(44px,7.5vw,96px)] font-light leading-none tracking-[-0.01em]">
+              {brandParts[0]}<span class="font-semibold">{brandParts.slice(1).join('')}</span>
+            </h1>
+            <p class="mt-5 text-[clamp(15px,1.9vw,19px)] font-light tracking-[0.5em] text-[var(--soft)]">
+              {siteConfig.site.tagline}
+            </p>
+            <p class="mt-6 inline-block font-mono text-xs tracking-[0.12em] border border-[var(--line)] bg-[var(--panel)] px-4 py-2">
+              <span class="text-[var(--accent)]">§ </span>{siteConfig.site.slogan}
+            </p>
+          </div>
+
+          <div class="bg-[var(--panel)] border border-[var(--line)] relative p-[22px_24px]">
+            <div class="flex justify-between gap-3 border-b border-[var(--line)] pb-3.5 mb-1.5">
+              <span class="font-mono text-[10.5px] tracking-[0.26em] text-[var(--faint)] uppercase leading-[1.9]">
+                {i18n.hero.spec}<br />{siteBanner}
+              </span>
+              <div class="border border-[var(--line)] p-1 bg-[var(--bg)] w-[66px] shrink-0 img-ph img-ph--asset relative">
+                <span class="absolute -top-[36px] left-1/2 -translate-x-1/2 border-[1.5px] border-[var(--accent)] text-[var(--accent)] font-mono text-[9.5px] tracking-[0.3em] pt-[3px] pr-[9px] pb-[3px] pl-[12px] bg-[var(--panel)] font-semibold whitespace-nowrap">{i18n.hero.abstract}</span>
+                <img src={siteConfig.profile.avatar} alt={siteConfig.profile.name} loading="eager" class="w-full aspect-square object-cover block" />
+                <span class="block text-center font-mono text-[8px] tracking-[0.18em] text-[var(--faint)] pt-0.5">{i18n.hero.photo}</span>
+              </div>
+            </div>
+            <dl>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)] font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.status}</dt>
+                <dd class="text-[var(--accent)] font-medium">{i18n.hero.statusValue}</dd>
+              </div>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)] font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.site}</dt>
+                <dd class="font-medium">{siteUrl}</dd>
+              </div>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)] font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.type}</dt>
+                <dd class="font-medium">{siteConfig.site.type}</dd>
+              </div>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)] font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.owner}</dt>
+                <dd class="font-medium">{siteConfig.profile.name}</dd>
+              </div>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 border-b border-dashed border-[var(--hair)] font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.since}</dt>
+                <dd class="font-medium">{siteConfig.site.since}</dd>
+              </div>
+              <div class="grid grid-cols-[110px_1fr] gap-3 items-baseline py-2 font-mono text-[11.5px] tracking-[0.06em]">
+                <dt class="text-[var(--faint)]">{i18n.hero.updated}</dt>
+                <dd class="font-medium">{updatedAt}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-baseline gap-5 border-b border-[var(--line)] pb-4 mb-[clamp(20px,4vh,36px)]">
+        <h2 class="text-[clamp(26px,3.8vw,42px)] font-light tracking-[0.04em] text-[var(--ink)]">{i18n.hero.indexTitle}</h2>
+      </div>
+      <nav>
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              class="group grid grid-cols-[64px_1fr_auto] max-sm:grid-cols-[48px_1fr_auto] gap-4 items-baseline py-[12.5px] border-b border-[var(--hair)] font-mono text-xs tracking-[0.08em] text-[var(--soft)] transition-all hover:pl-2.5"
+            >
+              <span class="text-[var(--accent)] font-semibold transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">{item.no}</span>
+              <span class="text-[var(--ink)] font-medium">{item.title}</span>
+              <span>{item.en}</span>
+            </a>
+          ))
+        }
+      </nav>
+    </div>
+  </div>
+</section>
+
+<style>
+  .writing-vertical {
+    writing-mode: vertical-rl;
+  }
+</style>

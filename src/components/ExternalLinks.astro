@@ -1,0 +1,149 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+// 外部链接客户端兜底：只处理动态 UGC 内容（当前为 Artalk 评论区）。
+// 静态 Markdown / Memos / 赞助链接在构建期生成 rel / target，不走这里。
+import { externalLinksConfig, siteConfig } from '@config/index';
+
+const { enabled, openInNewTab, defaultRel, sponsored, internalDomains, ugcSelectors } = externalLinksConfig;
+const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
+---
+
+{
+  enabled && (
+    <script
+      is:inline
+      define:vars={{
+        siteUrl,
+        openInNewTab,
+        defaultRel,
+        sponsored,
+        internalDomains,
+        ugcSelectors,
+      }}
+    >
+      // @ts-nocheck 纯 JS 内联脚本，define:vars 注入的变量不在 TS 类型范围
+      (function () {
+        function getApex(hostname) {
+          var parts = hostname.replace(/^www\./, '').split('.');
+          if (parts.length <= 2) return parts.join('.');
+          return parts.slice(-2).join('.');
+        }
+
+        function isExternal(href) {
+          if (!href) return false;
+          var h = href.trim();
+          if (
+            h.indexOf('#') === 0 ||
+            h.indexOf('mailto:') === 0 ||
+            h.indexOf('tel:') === 0 ||
+            h.indexOf('javascript:') === 0
+          )
+            return false;
+          if (h.indexOf('/') === 0 && h.indexOf('//') !== 0) return false;
+
+          try {
+            var baseApex = getApex(new URL(siteUrl).hostname);
+            var resolved = new URL(h, siteUrl);
+            var resolvedApex = getApex(resolved.hostname);
+            if (resolvedApex === baseApex) return false;
+            for (var i = 0; i < internalDomains.length; i++) {
+              if (getApex(internalDomains[i]) === resolvedApex) return false;
+            }
+            return true;
+          } catch (e) {
+            return /^https?:\/\//i.test(h) || h.indexOf('//') === 0;
+          }
+        }
+
+        function isSponsored(href) {
+          for (var i = 0; i < sponsored.length; i++) {
+            var s = sponsored[i].url;
+            if (href === s) return true;
+            var base = s.replace(/\/$/, '');
+            if (href === base) return true;
+            if (href.indexOf(base + '/') === 0) return true;
+            if (href.indexOf(base + '?') === 0) return true;
+          }
+          return false;
+        }
+
+        function patchAnchor(a, forceUgc) {
+          var href = a.getAttribute('href');
+          if (!isExternal(href)) return;
+
+          var tokens = {};
+          var existing = (a.getAttribute('rel') || '').split(/\s+/);
+          for (var j = 0; j < existing.length; j++) {
+            if (existing[j]) tokens[existing[j]] = true;
+          }
+
+          if (forceUgc) tokens.ugc = true;
+          if (isSponsored(href)) tokens.sponsored = true;
+          tokens.nofollow = true;
+
+          var defaults = defaultRel.split(/\s+/);
+          for (var k = 0; k < defaults.length; k++) {
+            if (defaults[k]) tokens[defaults[k]] = true;
+          }
+
+          var rel = Object.keys(tokens).join(' ');
+          a.setAttribute('rel', rel);
+
+          if (openInNewTab && !a.getAttribute('target')) {
+            a.setAttribute('target', '_blank');
+          }
+        }
+
+        function patchContainer(selector, forceUgc) {
+          var containers = document.querySelectorAll(selector);
+          for (var i = 0; i < containers.length; i++) {
+            var links = containers[i].querySelectorAll('a[href]');
+            for (var j = 0; j < links.length; j++) {
+              patchAnchor(links[j], forceUgc);
+            }
+          }
+        }
+
+        function patchAll() {
+          for (var i = 0; i < ugcSelectors.length; i++) {
+            patchContainer(ugcSelectors[i], true);
+          }
+        }
+
+        // 初始 patch + DOM 变化后 patch（用于 Artalk 等异步渲染的评论）
+        var observer = new MutationObserver(function (mutations) {
+          // 只有出现新的 #comments 子树时才重新 patch，降低开销
+          var shouldPatch = false;
+          for (var m = 0; m < mutations.length; m++) {
+            var nodes = mutations[m].addedNodes;
+            for (var n = 0; n < nodes.length; n++) {
+              if (nodes[n].nodeType === 1) {
+                shouldPatch = true;
+                break;
+              }
+            }
+            if (shouldPatch) break;
+          }
+          if (shouldPatch) patchAll();
+        });
+
+        function start() {
+          patchAll();
+          // 只监听动态评论区，静态页面链接已经在构建期处理。
+          if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+          }
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', start, { once: true });
+        } else {
+          start();
+        }
+      })();
+    </script>
+  )
+}

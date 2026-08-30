@@ -1,0 +1,49 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+// 优化图片包装：构建时按 siteConfig.images 压缩（格式/质量）；开关关闭时回退原图引用。
+// 仅接受 ImageMetadata（src/assets 或 content 相对路径 import）；远程 URL 不要用此组件。
+// lazy: 输出 src + loading="lazy"，走浏览器原生懒加载（列表/网格场景）；
+// 非 lazy: 直接 src 立即加载（首屏头像等）。
+import { Image, getImage } from 'astro:assets';
+import { siteConfig } from '@config/index';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  class?: string;
+  lazy?: boolean;
+  loading?: 'eager' | 'lazy';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  width?: number;
+  height?: number;
+  [key: string]: unknown; // data-* 等附加属性透传
+}
+const { src, alt, class: className, lazy = false, loading, fetchpriority, width, height, ...rest } = Astro.props;
+
+const resolvedLoading = loading ?? (lazy ? 'lazy' : undefined);
+
+const imageOptions = {
+  src,
+  format: siteConfig.images.format,
+  quality: siteConfig.images.quality,
+  ...(width ? { width } : {}),
+  ...(height ? { height } : {}),
+};
+
+const lazySrc = lazy
+  ? siteConfig.images.enabled
+    ? (await getImage(imageOptions)).src
+    : src.src
+  : null;
+---
+
+{
+  siteConfig.images.enabled ? (
+    <Image src={src} alt={alt} class={className} format={siteConfig.images.format} quality={siteConfig.images.quality} width={width} height={height} loading={resolvedLoading} fetchpriority={fetchpriority} {...rest} />
+  ) : (
+    <img src={lazy ? lazySrc : src.src} alt={alt} class={className} width={src.width} height={src.height} loading={resolvedLoading} fetchpriority={fetchpriority} decoding="async" {...rest} />
+  )
+}

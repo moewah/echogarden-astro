@@ -1,0 +1,102 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import SecHead from '@components/SecHead.astro';
+import EmptyState from '@components/EmptyState.astro';
+import { remoteBlogConfig, type RemotePost } from '@config/index';
+import { i18n } from '@i18n';
+import { sectionNo } from '@/utils/sections';
+import { fetchRemotePosts } from '@/utils/remoteBlog';
+
+// 外部博客 RSS 板块：独立开关(remoteBlogConfig.enabled)，与本地周刊并存互不干扰。
+// 拉取失败返回 null → 板块降级空态（方案 B，无兜底数据）。
+const posts: RemotePost[] | null = remoteBlogConfig.enabled
+  ? await fetchRemotePosts()
+  : [];
+
+// 服务端随机一次:初始展示的 4 篇(避免客户端闪烁)
+const initialIdx = new Set(
+  (posts ?? []).map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, 4)
+);
+---
+
+{
+  (posts === null || posts.length > 0) && (
+    <section id="remote-blog" class="pt-[clamp(70px,11vh,130px)]">
+      <div class="wrap">
+        <SecHead no={sectionNo.remoteBlog} title={i18n.sections.remoteBlog.title} en={i18n.sections.remoteBlog.en} />
+
+        <div id="remote-blog-grid" class="grid md:grid-cols-2 gap-[clamp(16px,2.5vw,28px)] reveal">
+          {posts === null ? (
+            <div class="md:col-span-2">
+              <EmptyState text={i18n.remoteBlog.loadFailed} />
+            </div>
+          ) : (
+          posts.map((post, idx) => (
+            <a
+              href={post.url}
+              target="_blank"
+              rel="noopener"
+              class="post-card group flex flex-col bg-[var(--panel)] border border-[var(--line)] transition-all duration-250 hover:border-[var(--accent)] hover:-translate-y-1"
+              data-post
+              style={initialIdx.has(idx) ? undefined : 'display:none'}
+            >
+              <div class="flex justify-between items-center border-b border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)]">
+                <span>{post.code}</span>
+                <span class="text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors">↗</span>
+              </div>
+              <div class="px-[18px] pt-5 pb-[22px] flex-1">
+                <h3 class="text-[16.5px] font-semibold leading-[1.65] line-clamp-2 min-h-[2lh]">{post.title}</h3>
+                <p class="mt-2.5 text-[13px] leading-[1.85] text-[var(--soft)] line-clamp-3 min-h-[3lh]">{post.description}</p>
+              </div>
+              <div class="flex justify-between border-t border-dashed border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors">
+                <span>{post.date}</span>
+                <span>{i18n.remoteBlog.read}</span>
+              </div>
+            </a>
+          ))
+          )}
+        </div>
+
+        <div class="flex items-center mt-6 reveal">
+          {
+            posts !== null && (
+              <button
+                type="button"
+                id="remote-blog-shuffle"
+                class="font-mono text-[11px] tracking-[0.14em] text-[var(--accent)] border border-[var(--accent)] px-4 py-2 transition-colors hover:bg-[var(--accent)] hover:text-[var(--bg)]"
+              >
+                {i18n.remoteBlog.shuffle}
+              </button>
+            )
+          }
+          <a
+            href={remoteBlogConfig.url}
+            target="_blank"
+            rel="noopener"
+            class="ml-auto font-mono text-[11.5px] tracking-[0.14em] text-[var(--accent)] border-b border-[var(--accent)] pb-1"
+          >
+            {i18n.remoteBlog.all} {remoteBlogConfig.url.replace(/^https?:\/\//, '').toUpperCase()}
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script>
+  const postCards = [...document.querySelectorAll<HTMLElement>('#remote-blog-grid .post-card')];
+  const shuffleBtn = document.getElementById('remote-blog-shuffle');
+  if (postCards.length > 4 && shuffleBtn) {
+    shuffleBtn.addEventListener('click', () => {
+      const picked = [...postCards].sort(() => Math.random() - 0.5).slice(0, 4);
+      postCards.forEach((c) => {
+        c.style.display = picked.includes(c) ? '' : 'none';
+      });
+    });
+  } else if (shuffleBtn) {
+    shuffleBtn.style.display = 'none';
+  }
+</script>

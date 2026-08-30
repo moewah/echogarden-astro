@@ -1,0 +1,85 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import EmptyState from '@components/EmptyState.astro';
+import Pagination from '@components/Pagination.astro';
+import PhotoImg from '@components/PhotoImg.astro';
+import { i18n } from '@i18n';
+import { formatDate } from '@/utils/date';
+import { albumCode, albumAuthor, albumCover } from '@/utils/albums';
+import { umamiEvent } from '@/utils/analytics';
+import type { Album } from '@/utils/albums';
+
+interface Props {
+  albums: Album[];
+  startIndex: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+const { albums, startIndex, currentPage, totalPages } = Astro.props;
+---
+
+<section class="pt-[clamp(40px,6vh,80px)]">
+  <div class="wrap">
+    {
+      albums.length > 0 ? (
+        <>
+          <div class="grid gap-[clamp(16px,2.5vw,28px)] reveal md:grid-cols-2 lg:grid-cols-3">
+            {albums.map((album, i) => {
+              const cover = albumCover(album);
+              return (
+                <a
+                  href={`/photos/${album.id}/`}
+                  class="group flex flex-col border border-[var(--line)] bg-[var(--panel)] transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent)]"
+                  {...umamiEvent('album-click', { id: album.id })}
+                >
+                  <div class="flex items-center justify-between border-b border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)]">
+                    <span>{albumCode(startIndex + i)}</span>
+                    <span class="transition-colors group-hover:text-[var(--accent)]">↗</span>
+                  </div>
+                  {
+                    cover && (
+                      <figure class="contents">
+                        <div class="img-ph img-ph--photo aspect-[4/3] overflow-hidden border-b border-[var(--hair)] bg-[var(--bg)]">
+                          <PhotoImg
+                            src={cover.src}
+                            alt={cover.title}
+                            loading={i === 0 ? 'eager' : 'lazy'}
+                            fetchpriority={i === 0 ? 'high' : undefined}
+                            width={600}
+                            class="h-full w-full object-cover"
+                          />
+                        </div>
+                        <figcaption class="flex-1 px-[18px] pb-[22px] pt-5">
+                          <h2 class="text-[16.5px] font-semibold leading-[1.65]">{album.data.title}</h2>
+                          {album.data.description && (
+                            <p class="mt-2.5 line-clamp-3 text-[13px] leading-[1.85] text-[var(--soft)]">{album.data.description}</p>
+                          )}
+                        </figcaption>
+                      </figure>
+                    )
+                  }
+                  <div class="flex justify-between border-t border-dashed border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] text-[var(--faint)] transition-colors group-hover:text-[var(--accent)]">
+                    <span>{albumAuthor(album)}</span>
+                    <span>
+                      {[
+                        album.data.date ? formatDate(album.data.date) : null,
+                        i18n.photos.count.replace('{n}', String(album.data.photos.length)),
+                      ].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+          <Pagination base="/photos/" current={currentPage} total={totalPages} />
+        </>
+      ) : (
+        <EmptyState text={i18n.photos.empty} />
+      )
+    }
+  </div>
+</section>

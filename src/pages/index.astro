@@ -1,0 +1,34 @@
+---
+// 秩序与回响 | EchoGarden | NEW
+// Repository: https://github.com/moewah/echogarden-astro.git
+// Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
+// Licensed under MIT
+import Layout from '@layouts/Layout.astro';
+import Hero from '@components/sections/Hero.astro';
+import { siteConfig } from '@config/index';
+import About from '@components/sections/About.astro';
+import Highlights from '@components/sections/Highlights.astro';
+import Weekly from '@components/sections/Weekly.astro';
+import RemoteBlog from '@components/sections/RemoteBlog.astro';
+import Projects from '@components/sections/Projects.astro';
+import Elsewhere from '@components/sections/Elsewhere.astro';
+import Sponsor from '@components/sections/Sponsor.astro';
+import Notice from '@components/sections/Notice.astro';
+import Footer from '@components/Footer.astro';
+---
+
+<Layout
+  description={siteConfig.site.description}
+  keywords={siteConfig.site.keywords}
+>
+  <Hero />
+  <About />
+  <Weekly />
+  <Highlights />
+  <RemoteBlog />
+  <Projects />
+  <Elsewhere />
+  <Sponsor />
+  <Notice />
+  <Footer />
+</Layout>
