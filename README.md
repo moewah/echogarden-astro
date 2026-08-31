@@ -1,5 +1,7 @@
 # EchoGarden（回响花园）
 
+> **回响花园（EchoGarden）** —— 搭建一座有序的数字花园，用来存放思考，等待文字生出跨越时间的回响。
+
 以「档案卷宗」为设计语言的个人主页开源模板（MoeHome 重构版），基于 Astro 构建。
 
 > **仓库地址**：https://github.com/moewah/echogarden-astro.git
