@@ -40,6 +40,8 @@ const history = sorted.filter((p) => p.id !== post.id);
 const { prev, next } = adjacentWeekly(sorted, post.id);
 const issue = post.data.issue;
 const pageCode = archiveCode('MW-WKL', weeklyConfig.archiveNo);
+// 预估阅读时长（分钟）：正文去 Markdown 符号后按 400 字/分钟估算，用于完读判定（weekly-read-complete）
+const readMin = Math.max(1, Math.round(((post.body ?? '').replace(/[#>*\`\[\]()!\-\d\s]/g, '').length) / 400));
 // og:image 用本期封面（本地图走构建压缩，远程原样），type=article
 const ogImg = await ogImage(post.data.cover);
 
@@ -217,7 +219,7 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
           </nav>
         </article>
 
-        <nav class="weekly-toc" aria-label={i18n.weekly.toc} data-state="scroll" data-id={post.id} data-issue={issue} hidden>
+        <nav class="weekly-toc" aria-label={i18n.weekly.toc} data-state="scroll" data-id={post.id} data-issue={issue} data-read-min={readMin} hidden>
           <div class="weekly-toc-inner">
             <ol class="weekly-toc-list" />
             <div class="weekly-reading-actions" role="group" aria-label={i18n.weekly.readingTools}>
@@ -1204,21 +1206,38 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     if (!toc) return;
     var id = toc.getAttribute('data-id') || '';
     var issue = toc.getAttribute('data-issue') || '';
+    var readMin = parseInt(toc.getAttribute('data-read-min') || '0', 10);
+    var loadAt = Date.now(); // 页面加载时刻，用于完读判定的停留时长
     var tracked = {};
+    var readCompleteSent = false;
     var ticking = false;
 
     function report() {
       ticking = false;
-      var doc = document.documentElement;
-      var max = doc.scrollHeight - window.innerHeight;
+      var el = document.querySelector('.weekly-reading-body');
+      if (!el) return;
+      var rect = el.getBoundingClientRect();
+      var docTop = rect.top + window.scrollY; // 正文容器顶在文档中的位置
+      var max = rect.top + el.offsetHeight - window.innerHeight - docTop; // 正文底部完全露出需要的滚动量
       if (max <= 0) return;
-      var ratio = Math.min(1, window.scrollY / max);
+      var scrolled = window.scrollY - docTop;
+      var ratio = Math.min(1, Math.max(0, scrolled / max));
       [25, 50, 75, 100].forEach(function (depth) {
         if (ratio * 100 >= depth && !tracked[depth]) {
           tracked[depth] = true;
           var track = window['trackEvent'];
           if (typeof track === 'function') {
             track('weekly-scroll-depth', { depth: depth, id: id, issue: issue });
+          }
+          // 完读判定：滚到 100% 且停留 ≥ 预估阅读时长的一半，才计为「读完正文」（Reader）
+          if (depth === 100 && !readCompleteSent && readMin > 0) {
+            var elapsed = (Date.now() - loadAt) / 1000;
+            if (elapsed >= readMin * 60 * 0.5) {
+              readCompleteSent = true;
+              if (typeof track === 'function') {
+                track('weekly-read-complete', { id: id, issue: issue });
+              }
+            }
           }
         }
       });
