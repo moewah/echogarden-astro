@@ -1250,4 +1250,24 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     }, { passive: true });
     report();
   })();
+
+  // ===== 互文链接点击：正文内 /weekly/ callback 链接 → weekly-callback-click =====
+  (function () {
+    var body = document.querySelector('.weekly-reading-body');
+    if (!body) return;
+    var id = (document.querySelector('.weekly-toc')?.getAttribute('data-id') || '');
+    var issue = (document.querySelector('.weekly-toc')?.getAttribute('data-issue') || '');
+    body.addEventListener('click', function (ev) {
+      var t = ev.target;
+      var a = t && t.closest ? t.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      var m = /^\/?weekly\/([a-z0-9-]+)\/?/.exec(href);
+      if (!m) return; // 只统计站内周刊链接
+      var track = window['trackEvent'];
+      if (typeof track === 'function') {
+        track('weekly-callback-click', { id: id, target: m[1], issue: issue });
+      }
+    });
+  })();
 </script>
