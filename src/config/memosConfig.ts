@@ -28,15 +28,13 @@ export const memosConfig: MemosConfig = {
   // 动态页 /moments/ 与导航入口的显示开关；关闭时页面跳 404、sitemap 排除。
   pageEnabled: true,
   // 增量刷新开关：开启后动态页渲染刷新按钮，点击后经 /api/memos/sync 同步新增/删除/修改。
-  // 该端点由 node adapter 提供动态运行时（astro.config.mjs）；纯静态部署（无 SSR 运行时）时
-  // 保持 false，按钮不渲染、页面行为与旧版完全一致。开启需同时满足：部署支持 SSR 端点。
+  // 该开关只控制前端能力，不切换构建模式；端点由 server 模式（build:server）的 node adapter 提供运行时。
+  // 静态部署（build:static / npm run build）时请保持 false——构建会在 astro.config.mjs 抛错拦截（静态模式不支持增量刷新）。
   refresh: {
-    // 增量刷新开关：开启后动态页渲染刷新按钮，点击后经 /api/memos/sync 同步新增/删除/修改。
-    // 该端点由 node adapter 提供动态运行时（astro.config.mjs）；
-    // —— 部署模式切换 ——
-    //   纯静态（默认，本值为 false）：构建产物仅静态文件，动态页无刷新按钮。
-    //   memos 增量刷新（需同时两处）：本值改 true + astro.config.mjs 中启用 node adapter，
-    //   产物含 dist/server，用 node 运行 dist/server/entry.mjs 并提供 /api/memos 反代。
+    // 增量刷新开关：true 时动态页渲染刷新按钮并经 /api/memos/sync 同步；
+    // false 时隐藏按钮并保留构建时快照。
+    // 与构建模式的关系：server（build:server）可配 true/false（true 才有刷新能力）；
+    // static（build:static）必须 false，否则构建失败提示。
     enabled: false,
   },
   // 动态正文展示参数：只控制内容截断与长文折叠，不影响拉取条数与图片附件。
