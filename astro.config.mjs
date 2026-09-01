@@ -26,16 +26,25 @@ function llmsTxtCleanup() {
   };
 }
 
+// 部署模式由构建期环境变量 BUILD_MODE 驱动（不用业务配置表达式控制路由/adapter）：
+//   server → node adapter 常驻（Hybrid：页面静态输出，/api/memos/sync 由 Node 动态提供，支持增量刷新）
+//   static → 无 adapter，纯静态产物（任意静态托管可部署）；sync 端点由 build-static 脚本在构建前临时移出
+// 未设置时默认 static（向后兼容 npm run build 的纯静态行为）。
+const buildMode = process.env.BUILD_MODE || 'static';
+if (buildMode === 'static' && memosConfig.refresh.enabled) {
+  throw new Error(
+    '静态模式不支持增量刷新：请将 memosConfig.refresh.enabled 设为 false，或改用 server 模式（npm run build:server / ECHOGARDEN_RUNTIME=server）'
+  );
+}
+
 export default defineConfig({
   // 站点部署地址：canonical / og:url 等绝对 URL 的基础（RSS 与 sitemap 走 siteConfig.site.url）。
   // 默认留空（不声明 site，构建产物不含示例域名）；部署前取消注释并填入你的真实地址，例如：
   //   site: 'https://your-domain.com/',
-  // —— 部署模式切换（与 memosConfig.refresh.enabled 联动）——
-  //   纯静态（默认，refresh.enabled = false）：无 adapter，构建产物仅静态文件（dist/client），
-  //   任意静态托管可部署（Cloudflare Pages / Vercel / Netlify / Nginx）。
-  //   memos 增量刷新（refresh.enabled = true）：启用下方 node adapter，构建产物含 dist/server，
-  //   用 node 运行 dist/server/entry.mjs，Nginx 将 /api/memos 反代到该端口。
-  adapter: memosConfig.refresh.enabled ? node({ mode: 'standalone' }) : undefined,
+  // —— 双构建 profile（见 package.json scripts）——
+  //   npm run build / build:static：纯静态（BUILD_MODE=static，无 adapter，产物无 /api/memos/sync）
+  //   npm run build:server：Hybrid（BUILD_MODE=server，node adapter，/api/memos/sync 由 Node 动态提供，支持 memos 增量刷新）
+  adapter: buildMode === 'server' ? node({ mode: 'standalone' }) : undefined,
   markdown: {
     processor: satteri({
       hastPlugins: [externalLinksHastPlugin({ siteUrl: siteConfig.site.url, config: externalLinksConfig }), contentImagesHastPlugin()],

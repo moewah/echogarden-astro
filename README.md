@@ -18,7 +18,7 @@
 - **内容与展示**：周刊（分页 / 归档 / AI 辅助阅读 / 代码高亮）、影辑（灯箱 / 高光轮播）、Memos 动态、Artalk 评论，外部接口未配置自动降级空态
 - **配置化架构**：三层 config 分层，板块 `enabled` 开关联动导航 / SEO / sitemap / SEC 编号；凭据 .env 注入 + 版本锚点校验；i18n 翻译就绪
 - **SEO 与运营**：JSON-LD、llms.txt / RSS / sitemap、分页治理、外链 rel 分级、统计开关（关闭时产物零统计代码）
-- **双部署模式**：单一开关切换纯静态或 Node 增量刷新，三种 frontmatter 示例形态照抄即可发布
+- **双部署模式**：`npm run build`（纯静态，任意托管）与 `npm run build:server`（Hybrid，Node 增量刷新）两个构建 profile，三种 frontmatter 示例形态照抄即可发布
 
 ## 技术栈
 
@@ -67,17 +67,21 @@ npm run dev
 ### 4. 生产构建
 
 ```bash
-npm run build
+# 纯静态（默认）：任意静态托管可部署，产物无 server 端
+npm run build          # 等价于 npm run build:static
+
+# Hybrid：静态页面 + /api/memos/sync 动态端点（需 Node 运行时，支持 memos 增量刷新）
+npm run build:server
 ```
 
-产物在 `dist/`（纯静态模式下静态文件直接在根目录，无 `dist/server/`）。
+- 静态构建产物在 `dist/`（无 `dist/server/`、无 `/api/memos/sync`）
+- server 构建产物含 `dist/server/entry.mjs`；可跑 `npm run verify:memos-route` 校验 sync 端点为 server-rendered（无静态 404 产物）
 
-### 5. 部署上线（纯静态）
+### 5. 部署上线
 
-> 当前步骤为**纯静态部署**（默认模式，`memosConfig.refresh.enabled = false`，无需 Node 运行时）。
-> memos 动态增量刷新（server 模式）属进阶配置，后续补充独立的手册。
+**模式 A：纯静态（默认，`npm run build`）**
 
-把 `dist/` 发布到任意静态托管，并确认站点从 `https://your-domain.com/` 可访问。
+把 `dist/` 发布到任意静态托管，确认站点从 `https://your-domain.com/` 可访问。无需 Node 运行时。动态页不渲染 memos 刷新按钮（`memosConfig.refresh.enabled` 保持 `false`；若误开，构建会直接失败并提示）。
 
 **托管平台（任选其一）**：
 
@@ -87,7 +91,7 @@ npm run build
 | Vercel | `npm run build` | `dist/` |
 | Netlify | `npm run build` | `dist/` |
 
-**自有服务器（Nginx）**：
+**自有服务器（Nginx 静态托管）**：
 
 ```nginx
 server {
@@ -100,7 +104,11 @@ server {
 }
 ```
 
-> 动态页增量刷新、Node 运行时等进阶部署：将 `memosConfig.refresh.enabled` 改为 `true`（详见部署配置注释），独立手册后续补充。
+**模式 B：Hybrid / Node 运行时（`npm run build:server`）**
+
+需要支持 Node 的托管（VPS + systemd / PM2 / Docker 等），运行 `dist/server/entry.mjs`，Nginx 将请求反代到该端口。启用 memos 增量刷新：将 `memosConfig.refresh.enabled` 改为 `true`（动态页出现刷新按钮，点击经 `/api/memos/sync` 同步）。
+
+> 完整双模式部署指南（含 Gitea 自动部署 webhook 配置）见 `docs/deploy-guide.md`。
 
 ## 页面
 

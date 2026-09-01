@@ -5,8 +5,11 @@
   "description": "以「档案卷宗」为设计语言的 Astro 个人主页开源模板（MoeHome 重构版）",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build --force",
+    "build": "node scripts/build-static.mjs",
+    "build:static": "node scripts/build-static.mjs",
+    "build:server": "BUILD_MODE=server astro build --force",
     "check": "astro check",
+    "verify:memos-route": "node scripts/verify-memos-route.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
