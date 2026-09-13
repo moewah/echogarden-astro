@@ -8,8 +8,8 @@ import { generateLlmsTxt } from '@/utils/llms';
 
 export const GET: APIRoute = async () => {
   const body = await generateLlmsTxt();
-  // UTF-8 BOM：确保浏览器直接打开 llms.txt 时正确识别中文编码
-  return new Response('\uFEFF' + body, {
+  // 机器消费的 Markdown 直接返回 UTF-8 文本，不额外添加 BOM，避免严格解析器将其当成首字符。
+  return new Response(body, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
     },

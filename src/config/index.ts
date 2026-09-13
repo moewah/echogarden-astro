@@ -42,7 +42,7 @@ export type { RemoteBlogConfig, RemotePost } from '@t/remoteBlog';
 export type { Artalk } from '@t/artalk';
 export type { RssConfig } from '@t/rss';
 export type { ExternalLinksConfig, SponsoredLink } from '@t/externalLinks';
-export type { LlmsConfig } from '@t/llms';
+export type { LlmsConfig, LlmsSemantic, LlmsSemanticSource, LlmsCuratedSection, LlmsCuratedItem, LlmsLinkTarget, LlmsEntityType } from '@t/llms';
 export type { SiteRoutes } from '@t/routes';
 export type { AnalyticsConfig, GoogleAnalyticsConfig, MicrosoftClarityConfig, UmamiConfig } from '@t/analytics';
 export type { ReadingConfig } from '@t/reading';

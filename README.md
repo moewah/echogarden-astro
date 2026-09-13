@@ -102,6 +102,13 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
     }
+    # 纯文本类产物（llms.txt / sitemap.xml / rss.xml）显式声明 UTF-8：
+    # 否则即使文件字节是 UTF-8，缺少响应头 charset 时浏览器打开可能乱码
+    location ~* \.(txt|xml)$ {
+        charset utf-8;
+        charset_types text/plain text/markdown text/xml application/xml application/rss+xml;
+        expires 1h;
+    }
 }
 ```
 
