@@ -5,6 +5,7 @@
 以「档案卷宗」为设计语言的个人主页开源模板（MoeHome 重构版），基于 Astro 构建。
 
 > **仓库地址**：https://github.com/moewah/echogarden-astro.git
+> **更新日志**：见 [CHANGELOG.md](./CHANGELOG.md)
 >
 > 本仓库默认配置与内容**全部为示例数据**（不含任何真实个人数据），fork 后替换配置与内容即可搭建个人站点。
 >
