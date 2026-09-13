@@ -194,9 +194,14 @@ async function semanticSections(): Promise<string[]> {
 }
 
 function introSection(): string {
+  // 与板块开关联动：关闭的板块不再出现在顶部概览，避免 AI 把已关闭栏目当作当前栏目
   const columns = [
-    `${i18n.sections.weeklyPage.title}：${siteConfig.site.seo.pages.weekly.description}`,
-    `${i18n.sections.albums.title}：${siteConfig.site.seo.pages.photos.description}`,
+    ...(weeklyConfig.enabled
+      ? [`${i18n.sections.weeklyPage.title}：${siteConfig.site.seo.pages.weekly.description}`]
+      : []),
+    ...(albumsConfig.enabled
+      ? [`${i18n.sections.albums.title}：${siteConfig.site.seo.pages.photos.description}`]
+      : []),
     ...(memosConfig.pageEnabled
       ? [`${i18n.sections.moments.title}：${siteConfig.site.seo.pages.moments.description}`]
       : []),
