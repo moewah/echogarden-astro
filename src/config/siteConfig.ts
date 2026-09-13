@@ -14,8 +14,9 @@ export const siteConfig: SiteConfig = {
     name: 'EchoGarden',
     // 浏览器标签标题后缀
     titleSuffix: '个人主页',
-    // 站点根 URL（绝对地址，必须带尾斜杠）——开源模板暂时沿用作者主页地址，发布前替换为实际部署域名
-    url: 'https://www.moewah.com/',
+    // 站点根 URL（绝对地址，必须带尾斜杠）——canonical / og:url / sitemap / RSS / llms.txt 的绝对 URL 基础。
+    // 开源模板默认给示例域名占位，部署前必须替换为你的真实地址。
+    url: 'https://example.com/',
     // 站点类型：用于 Hero 网站档案卡，明确「这是个人主页，不是博客」。
     type: '个人主页模板',
     // 一句话标签（Hero 副标）

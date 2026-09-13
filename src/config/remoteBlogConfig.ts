@@ -9,11 +9,11 @@ export const remoteBlogConfig: RemoteBlogConfig = {
   // 与周刊（weeklyConfig.ts）独立并存：weekly 开启时首页「近期周刊」与「近期文章」两块各显示各的。
   enabled: false,
   // 博客站点主页（板块「全部记录」跳转链接）
-  url: 'https://blog.moewah.com',
+  url: 'https://blog.example.com',
   // 博客名（Hero 展示）
-  name: '喵斯基部落',
+  name: '示例博客',
   // RSS 订阅地址
-  feedUrl: 'https://blog.moewah.com/rss.xml',
+  feedUrl: 'https://blog.example.com/rss.xml',
   // 拉取条数上限（首页展示由组件截断，此值保证去重后仍有足够余量）
   poolSize: 12,
 };

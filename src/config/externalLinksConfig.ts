@@ -23,8 +23,8 @@ export const externalLinksConfig: ExternalLinksConfig = {
 
   // 视为站内的 apex 域名（自动忽略子域）。
   // 例：填 'example.com'，则 www.example.com / blog.example.com / photos.example.com 都算站内。
-  // 留空时自动从 siteConfig.site.url 推导。
-  internalDomains: ['moewah.com'],
+  // 留空时自动从 siteConfig.site.url 推导，站内子域无需在此重复填写。
+  internalDomains: [],
 
   // UGC 内容容器选择器：只有动态评论区继续由客户端补充 rel="ugc"
   // 目前仅 Artalk 评论区；后续若增加留言板，往数组加选择器即可
