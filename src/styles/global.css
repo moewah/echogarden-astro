@@ -27,6 +27,20 @@
   --hair: rgba(231, 232, 229, 0.14);
 }
 
+/* ---- 右下角悬浮链坐标（唯一事实）：控件尺寸 / 间距 / 链底基线，以及二维码这一“可选附加层”的整体偏移。
+   语义以「无二维码」为基线（--float-qr-offset: 0），有二维码时整条链统一上抬一步 + 链底余量；
+   由 Layout 按 siteConfig.wechat.enabled 在 body 上切 has-wechat-qr，关闭时归零自动下移，不留空洞。 ---- */
+:root {
+  --float-size: 44px;
+  --float-gap: 8px;
+  --float-base: 28px;
+  --float-step: calc(var(--float-size) + var(--float-gap));
+  --float-qr-offset: 0px;
+}
+body.has-wechat-qr {
+  --float-qr-offset: calc(var(--float-step) + var(--float-gap));
+}
+
 /* 全局内容容器：唯一允许的页面宽度 / 边距模式，新页面与板块禁止另写 */
 @utility wrap {
   max-width: 1160px;

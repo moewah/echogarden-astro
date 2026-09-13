@@ -11,7 +11,6 @@ import Comments from '@components/Comments.astro';
 import Sponsor from '@components/sections/Sponsor.astro';
 import Notice from '@components/sections/Notice.astro';
 import Footer from '@components/Footer.astro';
-import Icon from '@components/Icon.astro';
 import Lightbox from '@components/Lightbox.astro';
 import ReadingMode from '@components/ReadingMode.astro';
 import { weeklyConfig, artalkConfig, siteConfig, routesConfig } from '@config/index';
@@ -66,6 +65,8 @@ const articleJsonLd = {
   publisher: { '@id': websiteId },
 };
 const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus() : 'unconfigured';
+// 文末引用块的引用行（标题 / 作者 / 原文链接），纯文本不依赖 Markdown，供读者一键复制
+const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
 ---
 
 <Layout title={post.data.title} description={post.data.description} image={ogImg} type="article" mainEntity={{ '@id': articleId }} keywords={post.data.tags}>
@@ -135,45 +136,30 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
             <Content />
           </div>
 
-          <!-- 移动端阅读归档单（仅 <768px，PC 轨道不受影响）；置于标签行之上 -->
-          <div class="weekly-filing">
-            <div class="weekly-filing-row">
-              <button
-                type="button"
-                class="weekly-filing-btn"
-                aria-label={i18n.weekly.aiReading}
-                data-ai-reading
-                data-button-label={i18n.weekly.aiReading}
-                data-url={articleUrl}
-                data-prompt={i18n.weekly.aiReadingPrompt}
-                data-default-label={i18n.weekly.aiReadingHint}
-                data-copied-label={i18n.weekly.aiReadingCopied}
-                data-failed-label={i18n.weekly.aiReadingCopyFailed}
-                {...umamiEvent('weekly-ai-reading', { id: post.id, issue, surface: 'detail-filing' })}
-              >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3" /><path d="M8 9h8a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h-8a3 3 0 0 1 -3 -3v-5a3 3 0 0 1 3 -3" /><path d="M9 13h.01" /><path d="M15 13h.01" /><path d="M9 17h6" /><path d="M3 13v2" /><path d="M21 13v2" /></svg>
-                    <span class="weekly-filing-label">{i18n.weekly.aiReadingHint}</span>
-              </button>
-              <button
-                type="button"
-                class="weekly-filing-btn"
-                aria-label={i18n.weekly.share}
-                data-share-url={articleUrl}
-                data-share-title={post.data.title}
-                data-share-text={post.data.description}
-                data-button-label={i18n.weekly.share}
-                data-copied-label={i18n.weekly.shareCopied}
-                data-failed-label={i18n.weekly.shareFailed}
-                {...umamiEvent('weekly-share', { id: post.id, issue, surface: 'detail-filing' })}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5l7 -4" /><path d="M8.5 9.5l7 4" /><path d="M6 12a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 9a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 20a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /></svg>
-                <span class="weekly-filing-label">{i18n.weekly.share}</span>
-              </button>
-              <button type="button" class="weekly-filing-btn" data-toc-toggle>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16" /><path d="M4 12h10" /><path d="M4 17h16" /></svg>
-                <span>{i18n.weekly.toc}</span>
-              </button>
-            </div>
+          <!-- 文末分享：读后才做的动作（PC 与移动一致）；读中要用的目录 / AI 辅助在右下角悬浮 -->
+          <div class="weekly-share">
+            <span class="weekly-share-meta">
+              <span class="weekly-share-mark" aria-hidden="true">↗</span>
+              <span class="weekly-share-copy-wrap">
+                <span class="weekly-share-kicker">{i18n.weekly.shareKicker}</span>
+                <span class="weekly-share-copy">{i18n.weekly.shareArticle}</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              class="weekly-share-btn"
+              aria-label={i18n.weekly.share}
+              data-share-url={articleUrl}
+              data-share-title={post.data.title}
+              data-share-text={post.data.description}
+              data-button-label={i18n.weekly.share}
+              data-copied-label={i18n.weekly.shareCopied}
+              data-failed-label={i18n.weekly.shareFailed}
+              {...umamiEvent('weekly-share', { id: post.id, issue, surface: 'detail-filing' })}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5l7 -4" /><path d="M8.5 9.5l7 4" /><path d="M6 12a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 9a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /><path d="M18 20a2.5 2.5 0 1 0 0 -5a2.5 2.5 0 0 0 0 5" /></svg>
+              <span class="weekly-share-label">{i18n.weekly.share}</span>
+            </button>
           </div>
 
           {
@@ -185,6 +171,45 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
               </div>
             )
           }
+
+          <!-- 文末引用块：作者、标题、原文链接由当前文章动态生成，条款见 siteConfig.copyright；折叠用原生 details，无专属 JS -->
+          <details class="weekly-copyright">
+            <summary class="weekly-copyright-summary">
+              <span class="weekly-copyright-mark" aria-hidden="true"></span>
+              <span>{i18n.weekly.copyrightLabel}</span>
+              {siteConfig.copyright.brief && <span class="weekly-copyright-brief">{siteConfig.copyright.brief}</span>}
+            </summary>
+            <dl class="weekly-copyright-rows">
+              <div class="weekly-copyright-row">
+                <dt>{i18n.weekly.copyrightSource}</dt>
+                <dd><a href={articleUrl}>{articleUrl}</a></dd>
+              </div>
+              <div class="weekly-copyright-row">
+                <dt>{i18n.weekly.copyrightCitation}</dt>
+                <dd class="weekly-copyright-cite">
+                  <span class="weekly-copyright-quote"><span class="weekly-copyright-title">{post.data.title}</span> · {weeklyAuthor(post)} · {articleUrl}</span>
+                  <button
+                    type="button"
+                    class="weekly-copyright-copy"
+                    data-copy-value={citation}
+                    data-copy-label={i18n.weekly.copyrightCopy}
+                    data-copied-label={i18n.weekly.copyrightCopied}
+                    data-failed-label={i18n.weekly.copyrightCopyFailed}
+                  >
+                    <span class="weekly-copyright-copy-label">{i18n.weekly.copyrightCopy}</span>
+                  </button>
+                </dd>
+              </div>
+              {
+                siteConfig.copyright.terms && (
+                  <div class="weekly-copyright-row">
+                    <dt>{i18n.weekly.copyrightTerms}</dt>
+                    <dd>{siteConfig.copyright.terms}</dd>
+                  </div>
+                )
+              }
+            </dl>
+          </details>
 
           <!-- 上一期 / 下一期 -->
           <nav class="mx-auto mt-10 grid max-w-[680px] grid-cols-2 items-center gap-3 border-t border-[var(--line)] pt-5 font-mono text-[11px] tracking-[0.12em]">
@@ -222,46 +247,41 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
         <nav class="weekly-toc" aria-label={i18n.weekly.toc} data-state="scroll" data-id={post.id} data-issue={issue} data-read-min={readMin} hidden>
           <div class="weekly-toc-inner">
             <ol class="weekly-toc-list" />
-            <div class="weekly-reading-actions" role="group" aria-label={i18n.weekly.readingTools}>
-              <button
-                type="button"
-                class="weekly-reading-action"
-                aria-label={i18n.weekly.aiReading}
-                data-ai-reading
-                data-button-label={i18n.weekly.aiReading}
-                data-url={articleUrl}
-                data-prompt={i18n.weekly.aiReadingPrompt}
-                data-default-label={i18n.weekly.aiReadingHint}
-                data-copied-label={i18n.weekly.aiReadingCopied}
-                data-failed-label={i18n.weekly.aiReadingCopyFailed}
-                {...umamiEvent('weekly-ai-reading', { id: post.id, issue, surface: 'detail-rail' })}
-              >
-                <Icon name="bot" class="h-[15px] w-[15px]" />
-                <span class="weekly-reading-label" aria-hidden="true">{i18n.weekly.aiReadingHint}</span>
-              </button>
-              <button
-                type="button"
-                class="weekly-reading-action"
-                aria-label={i18n.weekly.share}
-                data-share-url={articleUrl}
-                data-share-title={post.data.title}
-                data-share-text={post.data.description}
-                data-button-label={i18n.weekly.share}
-                data-copied-label={i18n.weekly.shareCopied}
-                data-failed-label={i18n.weekly.shareFailed}
-                {...umamiEvent('weekly-share', { id: post.id, issue, surface: 'detail-rail' })}
-              >
-                <Icon name="share" class="h-[15px] w-[15px]" />
-                <span class="weekly-reading-label" aria-hidden="true">{i18n.weekly.share}</span>
-              </button>
-            </div>
           </div>
         </nav>
       </div>
 
       <Lightbox />
 
-      <!-- 移动端目录面板（归档单 / 工具条共用，仅移动端使用） -->
+      <!-- 阅读中工具（悬浮，z-40，与右下角既有悬浮件同层同形）：DOM 顺序 = 视觉顺序，目录在上、AI 辅助在下；返回顶部在最上（自动淡出不留洞） -->
+      <div class="weekly-tools">
+        <button type="button" class="weekly-tools-btn weekly-tools-toc" aria-label={i18n.weekly.toc} data-toc-toggle>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16" /><path d="M4 12h10" /><path d="M4 17h16" /></svg>
+        </button>
+        <button
+          type="button"
+          class="weekly-tools-btn"
+          aria-label={i18n.weekly.aiReading}
+          data-ai-reading
+          data-button-label={i18n.weekly.aiReading}
+          data-url={articleUrl}
+          data-prompt={i18n.weekly.aiReadingPrompt}
+          data-copied-label={i18n.weekly.aiReadingCopied}
+          data-failed-label={i18n.weekly.aiReadingCopyFailed}
+          {...umamiEvent('weekly-ai-reading', { id: post.id, issue, surface: 'detail-float' })}
+        >
+          <span class="weekly-tools-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3" /><path d="M8 9h8a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h-8a3 3 0 0 1 -3 -3v-5a3 3 0 0 1 3 -3" /><path d="M9 13h.01" /><path d="M15 13h.01" /><path d="M9 17h6" /><path d="M3 13v2" /><path d="M21 13v2" /></svg>
+          </span>
+          <span class="weekly-tools-icon-done" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+          </span>
+          <span class="weekly-tools-hint weekly-tools-hint-copied" aria-hidden="true">{i18n.weekly.aiReadingCopied}</span>
+          <span class="weekly-tools-hint weekly-tools-hint-failed" aria-hidden="true">{i18n.weekly.aiReadingCopyFailed}</span>
+        </button>
+      </div>
+
+      <!-- 移动端目录面板（由悬浮目录按钮唤起，仅移动端使用） -->
       <div class="weekly-dir-panel" id="weekly-dir-panel" hidden>
         <div class="weekly-dir-head">
           <span>DIRECTORY</span>
@@ -392,46 +412,327 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
   .weekly-reading-layout {
     position: relative;
   }
-  .weekly-filing {
+  /* 文末分享：方案 03 归档签章行；读后才做的动作，PC 与移动一致 */
+  .weekly-share {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
     max-width: 680px;
     margin-top: 40px;
     margin-inline: auto;
+    border-left: 2px solid var(--accent);
+    padding: 9px 13px 9px;
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
   }
-  .weekly-filing-row {
+  .weekly-share-meta {
     display: flex;
-    gap: 6px;
-  }
-  .weekly-filing-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    flex: 1;
     min-width: 0;
-    border: 0;
-    padding: 13px 0;
+    align-items: center;
+    gap: 12px;
+  }
+  .weekly-share-mark {
+    display: grid;
+    width: 25px;
+    height: 25px;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+  }
+  .weekly-share-copy-wrap {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .weekly-share-kicker {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+  }
+  .weekly-share-copy {
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+  .weekly-share-btn {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--accent);
+    padding: 7px 13px;
     background: transparent;
-    border: 1px solid var(--line);
-    color: var(--soft);
+    color: var(--accent);
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   }
-  .weekly-filing-btn:hover,
-  .weekly-filing-btn:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
+  .weekly-share-btn:hover,
+  .weekly-share-btn:focus-visible,
+  .weekly-share-btn[data-state='copied'],
+  .weekly-share-btn[data-state='failed'] {
+    background: var(--accent);
+    color: var(--bg);
   }
-  .weekly-filing-btn svg {
+  .weekly-share-btn:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .weekly-share-btn svg {
     flex: none;
     width: 14px;
     height: 14px;
   }
-  .weekly-filing-btn:focus-visible {
+  @media (max-width: 640px) {
+    .weekly-share {
+      flex-wrap: wrap;
+      gap: 11px 12px;
+      padding-right: 10px;
+    }
+    .weekly-share-meta {
+      flex: 1 1 auto;
+    }
+    .weekly-share-btn {
+      flex: none;
+    }
+  }
+  /* 文末引用块：收起态一条 mono，展开为 原文 / 引用 / 条款；折叠与 +− 标记均零 JS */
+  .weekly-copyright {
+    max-width: 680px;
+    margin-top: 40px;
+    margin-inline: auto;
+    border-block: 1px solid var(--hair);
+  }
+  .weekly-copyright-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 11px;
+    padding: 13px 0;
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    list-style: none;
+  }
+  .weekly-copyright-summary::-webkit-details-marker {
+    display: none;
+  }
+  .weekly-copyright-summary:focus-visible {
     outline: 1px solid var(--accent);
     outline-offset: 3px;
+  }
+  .weekly-copyright-mark {
+    flex: none;
+    width: 12px;
+    color: var(--accent);
+    font-size: 12px;
+    line-height: 1;
+    text-align: center;
+  }
+  .weekly-copyright-mark::after {
+    content: '+';
+  }
+  .weekly-copyright[open] .weekly-copyright-mark::after {
+    content: '−';
+  }
+  .weekly-copyright-brief {
+    margin-right: 13px;
+    margin-left: auto;
+    color: var(--faint);
+  }
+  .weekly-copyright-rows {
+    margin: 0;
+    padding-bottom: 16px;
+  }
+  .weekly-copyright-row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 4px 18px;
+    padding: 8px 0;
+  }
+  .weekly-copyright-row + .weekly-copyright-row {
+    border-top: 1px solid var(--hair);
+  }
+  .weekly-copyright-row dt {
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .weekly-copyright-row dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--soft);
+    font-size: 13px;
+    line-height: 1.85;
+    overflow-wrap: anywhere;
+  }
+  .weekly-copyright-row a {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    text-decoration: none;
+  }
+  .weekly-copyright-row a:hover {
+    text-decoration: underline;
+  }
+  .weekly-copyright-cite {
+    display: block;
+  }
+  .weekly-copyright-quote {
+    display: block;
+    min-width: 0;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.85;
+    overflow-wrap: anywhere;
+  }
+  /* 标题是引用行里最重要的信息，用正文 sans 与大一号字号拉开层次（对照设计稿） */
+  .weekly-copyright-title {
+    color: var(--soft);
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+  .weekly-copyright-copy {
+    margin-top: 8px;
+    border: 1px solid var(--hair);
+    padding: 3px 10px;
+    color: var(--soft);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .weekly-copyright-copy:hover,
+  .weekly-copyright-copy:focus-visible,
+  .weekly-copyright-copy.is-copied,
+  .weekly-copyright-copy.is-failed {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  @media (max-width: 640px) {
+    .weekly-copyright-brief {
+      flex-basis: 100%;
+      margin-left: 23px;
+    }
+    .weekly-copyright-row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 3px;
+    }
+  }
+
+  /* 阅读中工具（悬浮，z-40）：与右下角既有悬浮件（返回顶部 / 公众号）同层同形；
+     坐标全部派生自全局悬浮链变量（global.css），整链随公众号开关统一让位，见链上注释 */
+  .weekly-tools {
+    position: fixed;
+    right: 18px;
+    bottom: calc(var(--float-base) + var(--float-qr-offset));
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .weekly-tools.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+  /* 返回顶部是全局组件（Layout 挂载），在本页上移到工具组之上（目录存在 = 链底 + 两步，链顶）：它滚动停止 3 秒后自动淡出，
+     放在链顶消失时不会在链中留洞；目录按钮隐藏时（PC 有轨道 / 无小标题）它下移一格，链上同样不留空洞 */
+  #back-to-top {
+    bottom: calc(var(--float-base) + var(--float-qr-offset) + var(--float-step) * 2);
+  }
+  @media (min-width: 1024px) {
+    #back-to-top {
+      bottom: calc(var(--float-base) + var(--float-qr-offset) + var(--float-step));
+    }
+  }
+  body.weekly-no-toc #back-to-top {
+    bottom: calc(var(--float-base) + var(--float-qr-offset) + var(--float-step));
+  }
+  .weekly-tools-btn {
+    position: relative;
+    display: grid;
+    width: var(--float-size);
+    height: var(--float-size);
+    place-items: center;
+    border: 1.5px solid var(--accent);
+    background: var(--bg);
+    color: var(--accent);
+    padding: 0;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .weekly-tools-btn:hover,
+  .weekly-tools-btn:focus-visible,
+  .weekly-tools-btn[data-state='copied'] {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .weekly-tools-btn:focus-visible {
+    outline: 1.5px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .weekly-tools-btn[hidden] {
+    display: none;
+  }
+  .weekly-tools-btn svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+  /* 复制成功后换勾：状态由既有 JS 的 data-state 驱动，图标切换走 CSS，不新增 JS */
+  .weekly-tools-icon-done {
+    display: none;
+  }
+  .weekly-tools-btn[data-state='copied'] .weekly-tools-icon {
+    display: none;
+  }
+  .weekly-tools-btn[data-state='copied'] .weekly-tools-icon-done {
+    display: grid;
+    place-items: center;
+  }
+  /* 剪贴板动作没有可见结果，用左侧一枚小标签补一句（无过渡，不引入动效） */
+  .weekly-tools-hint {
+    display: none;
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    background: var(--panel);
+    color: var(--soft);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .weekly-tools-btn[data-state='copied'] .weekly-tools-hint-copied,
+  .weekly-tools-btn[data-state='failed'] .weekly-tools-hint-failed {
+    display: block;
   }
   .weekly-dir-panel {
     position: fixed;
@@ -500,81 +801,12 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     height: 1px;
     background: var(--accent);
   }
-  /* 断点与右侧轨道同步（1024）：空间不足时轨道让位给文末归档单 */
+  /* 断点与右侧轨道同步（1024）：PC 有右侧轨道，浮动目录按钮与底部面板让位 */
   @media (min-width: 1024px) {
-    .weekly-filing {
+    .weekly-dir-panel,
+    .weekly-tools-toc {
       display: none;
     }
-    .weekly-dir-panel {
-      display: none;
-    }
-  }
-  .weekly-reading-actions {
-    display: flex;
-    width: var(--toc-bar-width);
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    margin-top: clamp(24px, 4vh, 36px);
-    margin-left: auto;
-  }
-  .weekly-reading-action {
-    position: relative;
-    display: inline-flex;
-    width: 32px;
-    height: 32px;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    padding: 0;
-    color: var(--soft);
-    background: transparent;
-    cursor: pointer;
-    transition: color 0.2s ease, transform 0.2s ease;
-  }
-  .weekly-reading-action:hover,
-  .weekly-reading-action[data-state='copied'],
-  .weekly-reading-action[data-state='failed'] {
-    color: var(--accent);
-  }
-  .weekly-reading-action:focus-visible {
-    outline: 1px solid var(--accent);
-    outline-offset: 3px;
-  }
-  .weekly-reading-action:active {
-    transform: translateY(1px);
-  }
-  .weekly-reading-action svg {
-    width: 15px;
-    height: 15px;
-    flex: none;
-  }
-  .weekly-reading-label {
-    position: absolute;
-    right: calc(100% + 10px);
-    width: max-content;
-    visibility: hidden;
-    opacity: 0;
-    color: var(--soft);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.08em;
-    line-height: 1.5;
-    text-align: right;
-    white-space: nowrap;
-    pointer-events: none;
-    transform: translateX(2px);
-    transition: opacity 0.18s ease, transform 0.2s ease, color 0.18s ease;
-  }
-  .weekly-reading-action:hover .weekly-reading-label,
-  .weekly-reading-action:focus-visible .weekly-reading-label,
-  .weekly-reading-action[data-state='copied'] .weekly-reading-label,
-  .weekly-reading-action[data-state='failed'] .weekly-reading-label {
-    visibility: visible;
-    opacity: 1;
-    color: var(--accent);
-    transform: translateX(0);
   }
   .weekly-reading-body :is(h2, h3, h4) {
     scroll-margin-top: 100px;
@@ -627,58 +859,6 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     border-color: var(--accent);
     color: var(--accent);
   }
-  .ai-reading-trigger {
-    position: relative;
-    display: inline-flex;
-    width: 32px;
-    height: 32px;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--hair);
-    color: var(--soft);
-    background: transparent;
-    cursor: pointer;
-    transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  }
-  .ai-reading-trigger:hover,
-  .ai-reading-trigger:focus-visible,
-  .ai-reading-trigger[data-state='copied'],
-  .ai-reading-trigger[data-state='failed'] {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .ai-reading-trigger:active {
-    transform: translateY(1px);
-  }
-  .ai-reading-label {
-    position: absolute;
-    right: calc(100% + 10px);
-    width: max-content;
-    max-width: min(240px, 38vw);
-    visibility: hidden;
-    opacity: 0;
-    color: var(--soft);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    line-height: 1.5;
-    text-align: right;
-    white-space: nowrap;
-    pointer-events: none;
-    transform: translateX(2px);
-    transition: opacity 0.18s ease, transform 0.2s ease, color 0.18s ease;
-  }
-  .ai-reading-trigger:hover .ai-reading-label,
-  .ai-reading-trigger:focus-visible .ai-reading-label,
-  .ai-reading-trigger[data-state='copied'] .ai-reading-label,
-  .ai-reading-trigger[data-state='failed'] .ai-reading-label {
-    visibility: visible;
-    opacity: 1;
-    color: var(--accent);
-    transform: translateX(0);
-  }
   .ai-reading-copy-buffer,
   .weekly-share-copy-buffer {
     position: fixed;
@@ -711,9 +891,6 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     margin: 0 0 0 auto;
     padding: 0;
     list-style: none;
-    pointer-events: auto;
-  }
-  .weekly-reading-actions {
     pointer-events: auto;
   }
   .weekly-toc-link {
@@ -795,20 +972,6 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
   .weekly-toc-link[data-hovered='true'][data-level='h4'] .weekly-toc-label {
     font-weight: 400;
   }
-  @media (max-width: 767px) {
-    .ai-reading-trigger {
-      width: auto;
-      min-height: 32px;
-      gap: 6px;
-      padding: 4px 10px;
-    }
-    .ai-reading-label {
-      position: static;
-      visibility: visible;
-      opacity: 1;
-      transform: none;
-    }
-  }
   @media (min-width: 1024px) {
     .weekly-toc:not([hidden]) {
       position: absolute;
@@ -823,10 +986,8 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
   @media (prefers-reduced-motion: reduce) {
     .weekly-toc-bar,
     .weekly-toc-label,
-    .weekly-reading-action,
-    .weekly-reading-label,
-    .ai-reading-trigger,
-    .ai-reading-label {
+    .weekly-tools,
+    .weekly-tools-btn {
       transition: none;
     }
   }
@@ -1013,17 +1174,29 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     }
   }
 
-  if (weeklyToc && weeklyHeadings.length === 0) {
-    weeklyToc.hidden = false;
+  // 无小标题：右侧轨道没有内容可挂，保持隐藏；悬浮目录按钮也一并隐藏（只留 AI 辅助），
+  // 并在 body 上留标记，供 CSS 把返回顶部下移一格（链上不留空洞）
+  if (weeklyHeadings.length === 0) {
+    const dirToggleButton = document.querySelector<HTMLElement>('[data-toc-toggle]');
+    if (dirToggleButton) dirToggleButton.hidden = true;
+    document.body.classList.add('weekly-no-toc');
+  }
+
+  // 悬浮工具组：滚动进入正文后淡入（与返回顶部同阈值 400），不自动淡出
+  const weeklyTools = document.querySelector<HTMLElement>('.weekly-tools');
+  if (weeklyTools) {
+    const syncTools = () => {
+      weeklyTools.classList.toggle('show', window.scrollY > 400);
+    };
+    window.addEventListener('scroll', syncTools, { passive: true });
+    syncTools();
   }
 
   const aiReadingButtons = document.querySelectorAll<HTMLButtonElement>('[data-ai-reading]');
   aiReadingButtons.forEach((aiReadingButton) => {
-    const label = aiReadingButton.querySelector<HTMLElement>('.weekly-reading-label, .weekly-filing-label');
     const promptTemplate = aiReadingButton.dataset.prompt || '';
     const articleUrl = aiReadingButton.dataset.url || '';
     const buttonLabel = aiReadingButton.dataset.buttonLabel || '';
-    const defaultLabel = aiReadingButton.dataset.defaultLabel || '';
     const copiedLabel = aiReadingButton.dataset.copiedLabel || '';
     const failedLabel = aiReadingButton.dataset.failedLabel || '';
     let resetTimer = 0;
@@ -1031,7 +1204,6 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     const setAiReadingState = (state: 'copied' | 'failed' | '') => {
       window.clearTimeout(resetTimer);
       aiReadingButton.dataset.state = state;
-      if (label) label.textContent = state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : defaultLabel;
       aiReadingButton.setAttribute('aria-label', state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel);
       if (state) {
         resetTimer = window.setTimeout(() => setAiReadingState(''), 2200);
@@ -1071,7 +1243,7 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
 
   const shareButtons = document.querySelectorAll<HTMLButtonElement>('[data-share-url]');
   shareButtons.forEach((shareButton) => {
-    const label = shareButton.querySelector<HTMLElement>('.weekly-reading-label, .weekly-filing-label');
+    const label = shareButton.querySelector<HTMLElement>('.weekly-share-label');
     const url = shareButton.dataset.shareUrl || '';
     const title = shareButton.dataset.shareTitle || '';
     const text = shareButton.dataset.shareText || '';
@@ -1164,6 +1336,45 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     window.setTimeout(() => {
       if (statusLabel) statusLabel.textContent = copyLabel;
       rssCopyButton.classList.remove('is-copied', 'is-failed');
+    }, 1500);
+  });
+
+  // 文末引用块：复制 Markdown 引用行（与 RSS 复制同款 clipboard + textarea 降级）
+  const citationCopyButton = document.querySelector<HTMLButtonElement>('[data-copy-value]');
+  citationCopyButton?.addEventListener('click', async () => {
+    const value = citationCopyButton.dataset.copyValue || '';
+    const copyLabel = citationCopyButton.dataset.copyLabel || '';
+    const copiedLabel = citationCopyButton.dataset.copiedLabel || '';
+    const failedLabel = citationCopyButton.dataset.failedLabel || '';
+    const statusLabel = citationCopyButton.querySelector<HTMLElement>('.weekly-copyright-copy-label');
+    let copied = false;
+
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(value);
+      copied = true;
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        copied = (document as any).execCommand('copy');
+        textarea.remove();
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (statusLabel) statusLabel.textContent = copied ? copiedLabel : failedLabel;
+    citationCopyButton.classList.toggle('is-copied', copied);
+    citationCopyButton.classList.toggle('is-failed', !copied);
+    window.setTimeout(() => {
+      if (statusLabel) statusLabel.textContent = copyLabel;
+      citationCopyButton.classList.remove('is-copied', 'is-failed');
     }, 1500);
   });
 

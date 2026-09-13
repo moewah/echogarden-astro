@@ -32,7 +32,7 @@ export { llmsConfig } from './llmsConfig'; // LLMs.txt 生成配置
 export { routesConfig } from './routesConfig'; // 站点核心路由路径
 
 // —— 类型（来自 src/types/） ——
-export type { SiteConfig, Site, Profile, Background, Images } from '@t/siteConfig';
+export type { SiteConfig, Site, Profile, Background, Images, Wechat } from '@t/siteConfig';
 export type { Albums } from '@t/albums';
 export type { WeeklyConfig } from '@t/weekly';
 export type { ElsewhereLink } from '@t/elsewhere';

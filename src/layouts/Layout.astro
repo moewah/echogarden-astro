@@ -12,6 +12,7 @@ import PageFrame from '@components/PageFrame.astro';
 import SiteBackground from '@components/SiteBackground.astro';
 import ThemeToggle from '@components/ThemeToggle.astro';
 import BackToTop from '@components/BackToTop.astro';
+import WechatQr from '@components/WechatQr.astro';
 import ExternalLinks from '@components/ExternalLinks.astro';
 import Analytics from '@components/Analytics.astro';
 
@@ -254,7 +255,7 @@ const jsonLd = {
     </script>
   </head>
 
-  <body class="relative">
+  <body class={`relative${siteConfig.wechat.enabled ? ' has-wechat-qr' : ''}`}>
     <SiteBackground />
     <PageFrame />
 
@@ -390,6 +391,7 @@ const jsonLd = {
       <slot />
     </main>
 
+    <WechatQr />
     <BackToTop />
     <ExternalLinks />
     <Analytics />

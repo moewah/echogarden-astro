@@ -7,6 +7,9 @@ export const zh = {
     system: '跟随系统',
   },
   backToTop: '返回顶部',
+  wechatQr: {
+    button: '打开微信公众号二维码',
+  },
   menu: '菜单',
   nav: {
     home: '主页',
@@ -84,7 +87,6 @@ export const zh = {
     empty: '暂无影辑归档。',
     emptyPhotos: '暂无影像归档。',
     author: 'Author / 作者',
-    caption: 'Caption / 说明',
     time: 'Time / 时间',
     location: 'Location / 位置',
     note: 'Note / 备注',
@@ -112,7 +114,6 @@ export const zh = {
     next: '下一期',
     home: '周刊首页',
     history: '历史期刊',
-    historyEn: 'Archive — All Issues',
     toc: '文章目录',
     comments: '评论',
     commentsEn: 'Comments',
@@ -128,16 +129,24 @@ export const zh = {
     copy: 'COPY',
     copied: 'COPIED',
     aiReading: 'AI 辅助阅读',
-    aiReadingHint: 'AI 辅助阅读',
     aiReadingCopied: '请粘贴给 AI',
     aiReadingCopyFailed: '复制失败',
     aiReadingPrompt: '请访问并阅读 {canonical URL}\n\n请不要只做摘要，请帮助我理解：\n1. 核心观点\n2. 论证逻辑\n3. 关键概念\n4. 必要前置知识。',
-    readingTools: '阅读工具',
     share: '分享',
+    shareKicker: 'CARRY THE RECORD',
+    shareArticle: '分享这篇文章',
     shareCopied: '已复制',
     shareFailed: '分享失败',
     issue: '第{n}期',
     tocClose: 'CLOSE ×',
+    // 文末引用块（收起态标题 / 展开态行标签与复制按钮；条款文本在 siteConfig.copyright）
+    copyrightLabel: 'COPYRIGHT / 版权与引用',
+    copyrightSource: 'Source / 原文',
+    copyrightCitation: 'Citation / 引用',
+    copyrightTerms: 'Terms / 条款',
+    copyrightCopy: 'COPY',
+    copyrightCopied: 'COPIED',
+    copyrightCopyFailed: '复制失败',
   },
 
   // 项目展示
@@ -157,7 +166,6 @@ export const zh = {
     records: 'RECORDS',
     lastSynced: 'LAST SYNCED',
     synced: 'SYNCED',
-    more: '完整日志 →',
     all: '全部',
     copy: 'COPY',
     copied: 'COPIED',
@@ -207,7 +215,6 @@ export const zh = {
   // 页脚
   footer: {
     eof: 'END OF FILE · 卷终',
-    rss: 'RSS',
     resources: '扩展资源',
     weeklyRss: '周刊 RSS',
     sitemap: 'Sitemap',

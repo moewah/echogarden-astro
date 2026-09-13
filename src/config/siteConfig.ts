@@ -3,6 +3,7 @@
 // —— 以下别动：板块级（albums/weekly/projects/links/donation/guestbook）与接口级（remoteBlog/memos/artalk）在各自文件。
 import type { SiteConfig } from '@t/siteConfig';
 import defaultBgImg from '@/assets/images/background/default-bg.jpg';
+import wechatQrImg from '@/assets/images/elsewhere/wechat-mp.jpg';
 
 export const siteConfig: SiteConfig = {
   // ===== 站点身份 =====
@@ -97,6 +98,18 @@ export const siteConfig: SiteConfig = {
   notice:
     '本人不会主动邀请或联系任何人，任何冒用本人名义发布的一切信息，请务必谨防受骗！',
 
+  // ===== 版权与引用声明（周刊详情页文末「引用块」） =====
+  // 作用：正文结束处的可折叠引用块。作者、标题、原文链接由页面按当前文章动态生成，不在此配置。
+  // 与 site.copyright（页脚 © 行）互不影响，改这里不动页脚。
+  copyright: {
+    // 收起态右侧的短句：一句话说清引用要求。
+    // 可选值：任意短句；留空则收起态只显示标题与作者（降级：少一句，不影响展开后的内容）。
+    brief: '必须保留署名与原文链接',
+    // 展开态「条款」整句。
+    // 可选值：任意声明文本；留空则该行不渲染（降级：引用块仍可展开，只是没有条款行）。
+    terms: '除另有声明，本文内容归作者所有。转载、引用或演绎时，必须保留作者署名与原文链接。',
+  },
+
   // ===== 全局背景层 =====
   // 效果：背景开关与高光照片开关都开启时，默认图 + 高光影像随机轮播（呼吸漂移）；reduced-motion 下静止为默认图。
   background: {
@@ -128,6 +141,21 @@ export const siteConfig: SiteConfig = {
     format: 'avif',
     // 压缩质量（1–100）：越高越清晰、体积越大；80 是画质与体积的平衡点。
     quality: 80,
+  },
+
+  // ===== 全局公众号入口 =====
+  // 作用：全站右下角悬浮二维码入口；关闭后不渲染按钮，不影响「我在别处」或页脚资源。
+  wechat: {
+    // 总开关：true 显示二维码入口；false 完全隐藏，仅保留站点其他悬浮控件。
+    enabled: true,
+    // 按钮展开卡片中的公众号名称；用于可见标题与图片替代文本。
+    label: '微信公众号',
+    // 可选：公众号账号/微信号；留空则不显示该行。
+    handle: '搜一搜 IMMOEWAH',
+    // 二维码：本地图经 OptImage 按 images 组压缩；URL 字符串原样引用。
+    qr: wechatQrImg,
+    // 可选：二维码卡片中的补充说明；留空则不显示该行。
+    note: '站点首发 · 公众号延后',
   },
 
   // ===== 字体配置 =====

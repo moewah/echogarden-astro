@@ -61,6 +61,12 @@ export interface Profile {
   email: string;
 }
 
+/** 版权与引用声明 */
+export interface CopyrightNotice {
+  brief: string;
+  terms: string;
+}
+
 /** 全局背景 */
 export interface Background {
   enabled: boolean;
@@ -77,6 +83,15 @@ export interface Images {
   quality: number;
 }
 
+/** 全局公众号二维码入口 */
+export interface Wechat {
+  enabled: boolean;
+  label: string;
+  handle?: string;
+  qr: ImageMetadata | string;
+  note?: string;
+}
+
 export interface Fonts {
   // 字体加载模式：
   // - 'default': Google Fonts 官方源 + 默认字体
@@ -91,7 +106,9 @@ export interface SiteConfig {
   site: Site;
   profile: Profile;
   notice: string;
+  copyright: CopyrightNotice;
   background: Background;
   images: Images;
+  wechat: Wechat;
   fonts: Fonts;
 }
