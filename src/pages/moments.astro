@@ -17,15 +17,16 @@ if (!memosConfig.pageEnabled) {
   return Astro.redirect('/404.html');
 }
 
+const pageTitle = siteConfig.site.seo.pages.moments.title;
 const pageCode = archiveCode('MW-MMT', memosConfig.archiveNo);
 ---
 
 <Layout
-  title={siteConfig.site.seo.pages.moments.title}
+  title={pageTitle}
   description={siteConfig.site.seo.pages.moments.description}
   keywords={siteConfig.site.seo.pages.moments.keywords}
 >
-  <PageHeader title={i18n.sections.moments.title} tagline={i18n.page.momentsTagline} no={pageCode}>
+  <PageHeader title={pageTitle} tagline={i18n.page.momentsTagline} no={pageCode}>
     <div class="shrink-0 w-[clamp(32px,5vw,52px)] h-[clamp(32px,5vw,52px)] border border-[var(--hair)] rounded-full grid place-items-center text-[var(--faint)]" aria-hidden="true">
       <svg class="w-[clamp(17px,2.7vw,28px)] h-[clamp(17px,2.7vw,28px)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M16 7h.01"></path>
