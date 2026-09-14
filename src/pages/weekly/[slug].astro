@@ -138,17 +138,37 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
 
           <!-- 文末分享：读后才做的动作（PC 与移动一致）；读中要用的目录 / AI 辅助在右下角悬浮 -->
           <div class="weekly-share">
+            <div id="weekly-share-menu" class="weekly-share-menu" data-share-menu hidden role="menu" aria-label={i18n.weekly.shareMenuAria}>
+              <div class="weekly-share-menu-head">
+                <span>{i18n.weekly.shareMenuLabel}</span>
+                <span>{i18n.weekly.shareMenuCount}</span>
+              </div>
+              <div class="weekly-share-menu-grid">
+                <button type="button" class="weekly-share-channel is-primary" data-share-channel="system" data-share-label={i18n.weekly.shareSystem} role="menuitem"><span class="weekly-share-channel-code">SYS</span><span>{i18n.weekly.shareSystem}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="x" data-share-label={i18n.weekly.shareX} role="menuitem"><span class="weekly-share-channel-code">X</span><span>{i18n.weekly.shareX}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="telegram" data-share-label={i18n.weekly.shareTelegram} role="menuitem"><span class="weekly-share-channel-code">TG</span><span>{i18n.weekly.shareTelegram}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="linkedin" data-share-label={i18n.weekly.shareLinkedIn} role="menuitem"><span class="weekly-share-channel-code">IN</span><span>{i18n.weekly.shareLinkedIn}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="bluesky" data-share-label={i18n.weekly.shareBluesky} role="menuitem"><span class="weekly-share-channel-code">BS</span><span>{i18n.weekly.shareBluesky}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="mastodon" data-share-label={i18n.weekly.shareMastodon} role="menuitem"><span class="weekly-share-channel-code">MA</span><span>{i18n.weekly.shareMastodon}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="email" data-share-label={i18n.weekly.shareEmail} role="menuitem"><span class="weekly-share-channel-code">MAIL</span><span>{i18n.weekly.shareEmail}</span></button>
+                <button type="button" class="weekly-share-channel" data-share-channel="copy" data-share-label={i18n.weekly.shareCopyLink} role="menuitem"><span class="weekly-share-channel-code">URL</span><span>{i18n.weekly.shareCopyLink}</span></button>
+              </div>
+            </div>
             <span class="weekly-share-meta">
               <span class="weekly-share-mark" aria-hidden="true">↗</span>
               <span class="weekly-share-copy-wrap">
                 <span class="weekly-share-kicker">{i18n.weekly.shareKicker}</span>
-                <span class="weekly-share-copy">{i18n.weekly.shareArticle}</span>
+                <span class="weekly-share-copy" aria-live="polite">{i18n.weekly.shareArticle}</span>
               </span>
             </span>
             <button
               type="button"
               class="weekly-share-btn"
               aria-label={i18n.weekly.share}
+              aria-controls="weekly-share-menu"
+              aria-expanded="false"
+              aria-haspopup="menu"
+              data-share-menu-toggle
               data-share-url={articleUrl}
               data-share-title={post.data.title}
               data-share-text={post.data.description}
@@ -412,8 +432,9 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
   .weekly-reading-layout {
     position: relative;
   }
-  /* 文末分享：方案 03 归档签章行；读后才做的动作，PC 与移动一致 */
+  /* 文末分享：方案 01 索引簿；读后才做的动作，PC 与移动一致 */
   .weekly-share {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -424,6 +445,70 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
     border-left: 2px solid var(--accent);
     padding: 9px 13px 9px;
     background: color-mix(in srgb, var(--accent) 4%, transparent);
+  }
+  .weekly-share-menu {
+    position: absolute;
+    right: 13px;
+    bottom: calc(100% + 7px);
+    z-index: 10;
+    width: min(276px, calc(100vw - 40px));
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+  }
+  .weekly-share-menu-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--hair);
+    padding: 10px 12px 8px;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+  }
+  .weekly-share-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .weekly-share-channel {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    border: 0;
+    border-bottom: 1px solid var(--hair);
+    background: transparent;
+    color: var(--soft);
+    cursor: pointer;
+    gap: 5px;
+    padding: 10px 11px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .weekly-share-channel:nth-child(odd) {
+    border-right: 1px solid var(--hair);
+  }
+  .weekly-share-channel:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+  .weekly-share-channel:hover,
+  .weekly-share-channel:focus-visible,
+  .weekly-share-channel.is-primary {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--accent);
+  }
+  .weekly-share-channel:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .weekly-share-channel-code {
+    flex: none;
+    min-width: 27px;
+    color: var(--accent);
+    font-size: 9px;
+    letter-spacing: 0.08em;
   }
   .weekly-share-meta {
     display: flex;
@@ -457,10 +542,13 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
     letter-spacing: 0.15em;
   }
   .weekly-share-copy {
+    overflow: hidden;
     color: var(--faint);
     font-family: var(--font-mono);
     font-size: 9px;
     letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .weekly-share-btn {
     display: inline-flex;
@@ -476,6 +564,7 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
     letter-spacing: 0.1em;
     cursor: pointer;
     transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    white-space: nowrap;
   }
   .weekly-share-btn:hover,
   .weekly-share-btn:focus-visible,
@@ -495,12 +584,18 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
   }
   @media (max-width: 640px) {
     .weekly-share {
-      flex-wrap: wrap;
       gap: 11px 12px;
       padding-right: 10px;
     }
+    .weekly-share-menu {
+      right: 10px;
+    }
     .weekly-share-meta {
       flex: 1 1 auto;
+      overflow: hidden;
+    }
+    .weekly-share-copy-wrap {
+      overflow: hidden;
     }
     .weekly-share-btn {
       flex: none;
@@ -1243,21 +1338,33 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
 
   const shareButtons = document.querySelectorAll<HTMLButtonElement>('[data-share-url]');
   shareButtons.forEach((shareButton) => {
+    const shareRow = shareButton.closest<HTMLElement>('.weekly-share');
     const label = shareButton.querySelector<HTMLElement>('.weekly-share-label');
+    const copyLabel = shareRow?.querySelector<HTMLElement>('.weekly-share-copy');
+    const menu = shareRow?.querySelector<HTMLElement>('[data-share-menu]');
     const url = shareButton.dataset.shareUrl || '';
     const title = shareButton.dataset.shareTitle || '';
     const text = shareButton.dataset.shareText || '';
     const buttonLabel = shareButton.dataset.buttonLabel || '';
     const copiedLabel = shareButton.dataset.copiedLabel || '';
     const failedLabel = shareButton.dataset.failedLabel || '';
+    const defaultCopyLabel = copyLabel?.textContent || '';
     let resetTimer = 0;
 
     const setShareState = (state: 'copied' | 'failed' | '') => {
       window.clearTimeout(resetTimer);
       shareButton.dataset.state = state;
-      if (label) label.textContent = state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel;
-      shareButton.setAttribute('aria-label', state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel);
+      const nextLabel = state === 'copied' ? copiedLabel : state === 'failed' ? failedLabel : buttonLabel;
+      if (label) label.textContent = nextLabel;
+      if (copyLabel) copyLabel.textContent = nextLabel === buttonLabel ? defaultCopyLabel : nextLabel;
+      shareButton.setAttribute('aria-label', nextLabel);
       if (state) resetTimer = window.setTimeout(() => setShareState(''), 2200);
+    };
+
+    const setMenuState = (isOpen: boolean) => {
+      if (!menu) return;
+      menu.hidden = !isOpen;
+      shareButton.setAttribute('aria-expanded', String(isOpen));
     };
 
     const copyUrl = async () => {
@@ -1280,7 +1387,7 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
       if (!copied) throw new Error('Clipboard unavailable');
     };
 
-    shareButton.addEventListener('click', async () => {
+    const shareWithSystem = async () => {
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({ title, text, url });
@@ -1297,6 +1404,63 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
         setShareState('copied');
       } catch {
         setShareState('failed');
+      }
+    };
+
+    const openChannel = (channel: string) => {
+      const encodedUrl = encodeURIComponent(url);
+      const encodedTitle = encodeURIComponent(title);
+      const encodedText = encodeURIComponent(text ? `${title} — ${text}` : title);
+      const encodedArticle = encodeURIComponent(`${title}\n${url}`);
+      const channelUrls: Record<string, string> = {
+        x: `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+        telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+        bluesky: `https://bsky.app/intent/compose?text=${encodedArticle}`,
+        mastodon: `https://share.joinmastodon.org/?text=${encodedArticle}`,
+        email: `mailto:?subject=${encodedTitle}&body=${encodeURIComponent(`${text}\n\n${url}`)}`,
+      };
+      const shareUrl = channelUrls[channel];
+      if (!shareUrl) return;
+      window.open(shareUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    shareButton.addEventListener('click', () => {
+      if (!menu) {
+        void shareWithSystem();
+        return;
+      }
+      setMenuState(menu.hidden);
+    });
+
+    menu?.querySelectorAll<HTMLButtonElement>('[data-share-channel]').forEach((channelButton) => {
+      channelButton.addEventListener('click', async () => {
+        const channel = channelButton.dataset.shareChannel || '';
+        setMenuState(false);
+        if (channel === 'system') {
+          await shareWithSystem();
+          return;
+        }
+        if (channel === 'copy') {
+          try {
+            await copyUrl();
+            setShareState('copied');
+          } catch {
+            setShareState('failed');
+          }
+          return;
+        }
+        openChannel(channel);
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      if (menu && !shareRow?.contains(event.target as Node)) setMenuState(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && menu && !menu.hidden) {
+        setMenuState(false);
+        shareButton.focus();
       }
     });
   });
