@@ -195,17 +195,18 @@ async function semanticSections(): Promise<string[]> {
 
 function introSection(): string {
   // 与板块开关联动：关闭的板块不再出现在顶部概览，避免 AI 把已关闭栏目当作当前栏目
+  const seoPages = siteConfig.site.seo.pages;
   const columns = [
     ...(weeklyConfig.enabled
-      ? [`${i18n.sections.weeklyPage.title}：${siteConfig.site.seo.pages.weekly.description}`]
+      ? [`${seoPages.weekly.title}：${seoPages.weekly.description}`]
       : []),
     ...(albumsConfig.enabled
-      ? [`${i18n.sections.albums.title}：${siteConfig.site.seo.pages.photos.description}`]
+      ? [`${seoPages.photos.title}：${seoPages.photos.description}`]
       : []),
     ...(memosConfig.pageEnabled
-      ? [`${i18n.sections.moments.title}：${siteConfig.site.seo.pages.moments.description}`]
+      ? [`${seoPages.moments.title}：${seoPages.moments.description}`]
       : []),
-    `${i18n.sections.guestbook.title}：${siteConfig.site.seo.pages.guestbook.description}`,
+    `${seoPages.guestbook.title}：${seoPages.guestbook.description}`,
   ];
 
   const d = new Date();
@@ -226,12 +227,13 @@ function corePagesSection(): string {
   const pages = [mdListItem(i18n.nav.home, siteUrl(routesConfig.home))];
 
   // 与板块开关联动：关闭的板块不列入口，避免 llms.txt 留下死链（与 semantic 的降级规则一致）
+  const seoPages = siteConfig.site.seo.pages;
   if (weeklyConfig.enabled) {
     pages.push(
       mdListItem(
-        i18n.sections.weeklyPage.title,
+        seoPages.weekly.title,
         siteUrl(routesConfig.weekly),
-        siteConfig.site.seo.pages.weekly.description
+        seoPages.weekly.description
       )
     );
   }
@@ -239,9 +241,9 @@ function corePagesSection(): string {
   if (albumsConfig.enabled) {
     pages.push(
       mdListItem(
-        i18n.sections.albums.title,
+        seoPages.photos.title,
         siteUrl(routesConfig.photos),
-        siteConfig.site.seo.pages.photos.description
+        seoPages.photos.description
       )
     );
   }
@@ -249,18 +251,18 @@ function corePagesSection(): string {
   if (memosConfig.pageEnabled) {
     pages.push(
       mdListItem(
-        i18n.sections.moments.title,
+        seoPages.moments.title,
         siteUrl(routesConfig.moments),
-        siteConfig.site.seo.pages.moments.description
+        seoPages.moments.description
       )
     );
   }
 
   pages.push(
     mdListItem(
-      i18n.sections.guestbook.title,
+      seoPages.guestbook.title,
       siteUrl(routesConfig.guestbook),
-      siteConfig.site.seo.pages.guestbook.description
+      seoPages.guestbook.description
     )
   );
 
