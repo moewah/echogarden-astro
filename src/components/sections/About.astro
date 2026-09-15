@@ -20,11 +20,13 @@ const locationDisplay = [locationCity, locationRegion]
   <div class="wrap">
     <SecHead no={sectionNo.about} title={i18n.sections.about.title} en={i18n.sections.about.en} />
 
-    <div class="bg-[var(--panel)] border border-[var(--line)] relative p-[clamp(24px,4vw,48px)] pl-[clamp(44px,7vw,84px)] reveal">
-      <span class="hole" style="top:20%"></span>
-      <span class="hole" style="top:47%"></span>
-      <span class="hole" style="top:74%"></span>
-      <div class="absolute left-[21px] top-[60px] bottom-[60px] w-px bg-[var(--hair)]"></div>
+    <div class="record-card bg-[var(--panel)] border border-[var(--line)] relative p-[clamp(24px,4vw,48px)] reveal">
+      <span class="rail" aria-hidden="true">
+        <span class="rail-line"></span>
+        <span class="hole hole-1"></span>
+        <span class="hole hole-2"></span>
+        <span class="hole hole-3"></span>
+      </span>
 
       <div class="flex justify-between items-center border-b border-[var(--line)] pb-3.5 mb-2">
         <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.about.record}</span>
@@ -95,13 +97,50 @@ const locationDisplay = [locationCity, locationRegion]
 </section>
 
 <style>
+  /* 登记卡左侧装订边：发丝线与三颗打孔同轴，落在「卡片左边线 → 内容区左沿」
+     这段留白的中点。
+     --gutter 是这段留白的唯一事实：卡片左内边距与轨道宽度同源，
+     改一处两处一起变，不再有写死 21px 这种对 padding 的隐含假设。 */
+  .record-card {
+    --gutter: clamp(44px, 7vw, 84px);
+    padding-left: var(--gutter);
+  }
+  .rail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--gutter);
+    pointer-events: none;
+  }
+  /* 轨道内元素一律以轨道中线定位：left:50% + 自身中心对齐 */
+  .rail-line {
+    position: absolute;
+    left: 50%;
+    top: 60px;
+    bottom: 60px;
+    width: 1px;
+    transform: translateX(-50%);
+    background: var(--hair);
+  }
   .hole {
     position: absolute;
-    left: 15px;
+    left: 50%;
     width: 13px;
     height: 13px;
     border-radius: 9999px;
     border: 1px solid var(--hair);
     background: var(--bg);
+    transform: translate(-50%, -50%);
+  }
+  /* 三颗点等距，组中心落在卡片垂直中线（23 / 50 / 77） */
+  .hole-1 {
+    top: 23%;
+  }
+  .hole-2 {
+    top: 50%;
+  }
+  .hole-3 {
+    top: 77%;
   }
 </style>
