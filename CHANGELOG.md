@@ -2,6 +2,19 @@
 
 EchoGarden（echogarden-astro）的版本变更记录。版本号遵循语义化版本，git tag 与本文档段落一一对应。
 
+## 0.2.2 - 2026-09-16
+
+### 修复
+
+- **阅读深度埋点的两处实现缺陷**（`weekly-scroll-depth` / `weekly-read-complete`）
+  - 分母混算视口相对与文档相对坐标：`rect.top + offsetHeight − innerHeight − docTop` 展开后含 `−scrollY`，分母随滚动递减、各档阈值提前触发（100% 档约在真实滚动量一半处上报）；改为 `max = offsetHeight − innerHeight`，与滚动位置无关。连带修掉旧式在「滚动量 ≥ 正文高 − 视口高」后静默停止上报的中途断流
+  - 完读判定原先只在滚动事件里比对停留时长，「先滚到底、再慢慢读完」被漏判；改为滚到 100% 时若停留不足则挂定时器到门槛复核
+  - 守卫改用 `!(readGate > 0)`：原先的 `readGate <= 0` 对 NaN 放行，会让每个到过底的读者立即被上报为 Reader
+  - **口径断裂点**：深度分布与完读率的基线自本次起重新起算，与修复前的数据不可直接比较
+- **首页登记卡左侧轨道落到留白中点并垂直居中**：发丝线与三颗打孔的横向位置由写死的 `21px` 改为与左侧留白同源（组件内 `--gutter`，卡片 `padding-left` 与轨道宽度共用一处事实），宽屏不再偏 20px（1440 视口原偏 −20.5px，移动端本就接近正确）；打孔改以自身中心定位，三颗点等距（23% / 50% / 77%）且点组中心落在卡片垂直中线；顺带清掉三个内联 `style`
+- **页面标题与 SEO / JSON-LD 共用一处事实源**：`/moments/`、`/guestbook/`、影辑分页、周刊分页的页头标题与 JSON-LD 栏目名改取 `siteConfig.site.seo.pages.*.title`，不再取导航文案 `i18n.sections.*.title`——两套名字分叉时会出现「页面显示名 ≠ SEO 与分享卡片」。当前两处取值相同、产物不变，属消除未来漂移的潜伏修复
+- **`/llms.txt` 栏目名同源**：`introSection` 与 `corePagesSection` 的栏目名改取 SEO 页名，与页面 `<title>`、JSON-LD 共用一个事实源；`llms.ts` 不再引用 `i18n.sections`（同为潜伏修复，产物不变）
+
 ## 0.2.1 - 2026-09-14
 
 ### 新功能
