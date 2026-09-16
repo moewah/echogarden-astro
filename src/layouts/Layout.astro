@@ -210,7 +210,7 @@ const jsonLd = {
     <link rel="canonical" href={canonical ?? pageUrl} />
     {prev && <link rel="prev" href={prev} />}
     {next && <link rel="next" href={next} />}
-    {llmsConfig.enabled && <link rel="describedby" type="text/markdown" href="/llms.txt" />}
+    {llmsConfig.enabled && <link rel="describedby" href="/llms.txt" />}
     {
       weeklyConfig.enabled && (
         <link
