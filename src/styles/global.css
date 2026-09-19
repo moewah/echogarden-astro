@@ -76,6 +76,15 @@ body::after {
     background-color: var(--accent);
     color: #fff;
   }
+
+  /* 强调字重显式声明：UA 默认的 relative 关键字 bolder 会把 600 提到 700，
+     而 700 未在字体链接中声明，浏览器再按「先向上、找不到向下」的匹配规则跳到
+     Archivo 900 / Noto Sans SC 700——同一行中英混排会出现两种重量。
+     显式钉住 600，声明与设计系统一致，也让字体链接里的 900/700 真正不可达。 */
+  strong,
+  b {
+    font-weight: 600;
+  }
 }
 
 /* 默认可见，保证禁用 JavaScript 时静态内容仍可读；JS 开启后再启用入场动画。 */

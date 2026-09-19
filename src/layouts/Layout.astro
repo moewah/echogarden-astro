@@ -65,9 +65,12 @@ const faviconType = `image/${siteConfig.profile.avatar.split('.').pop() ?? 'webp
 // - 'mirror':  自定义镜像源 + 默认字体
 // - 'off':     不加载 Google Fonts，使用系统字体栈
 const { fonts } = siteConfig;
+// 字重集合 = 站内实际可达的字重（AGENTS 1.2：sans 300/400/500/600、mono 400/500/600）。
+// sans 的 500 用于 mono 语境中的中文回退（顶栏导航、Hero 元数据 dd）；
+// Archivo 900 与 Noto Sans SC 700 在 strong/b 显式声明 600 后已不可达，不再声明。
 const FONT_FAMILIES = [
-  'Archivo:wght@300;400;600;900',
-  'Noto+Sans+SC:wght@300;400;500;700',
+  'Archivo:wght@300;400;600',
+  'Noto+Sans+SC:wght@300;400;500;600',
   'IBM+Plex+Mono:wght@400;500;600',
 ];
 const googleFontsOrigin = fonts.mode === 'mirror' ? fonts.mirror : 'https://fonts.googleapis.com';
