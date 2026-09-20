@@ -28,13 +28,39 @@ function llmsTxtCleanup() {
 
 // 部署模式由构建期环境变量 BUILD_MODE 驱动（不用业务配置表达式控制路由/adapter）：
 //   server → node adapter 常驻（Hybrid：页面静态输出，/api/memos/sync 由 Node 动态提供，支持增量刷新）
-//   static → 无 adapter，纯静态产物（任意静态托管可部署）；sync 端点由 build-static 脚本在构建前临时移出
+//   static → 无 adapter，纯静态产物（任意静态托管可部署）；sync 端点根本不存在（见 memosSyncRoute）
 // 未设置时默认 static（向后兼容 npm run build 的纯静态行为）。
 const buildMode = process.env.BUILD_MODE || 'static';
 if (buildMode === 'static' && memosConfig.refresh.enabled) {
   throw new Error(
     '静态模式不支持增量刷新：请将 memosConfig.refresh.enabled 设为 false，或改用 server 模式（npm run build:server / ECHOGARDEN_RUNTIME=server）'
   );
+}
+
+/**
+ * memos 增量同步端点：仅在 server 模式注入。
+ *
+ * 端点文件放在 src/endpoints/ 而非 src/pages/，所以静态构建与静态预览的源码树里
+ * 不存在任何未预渲染路由——那正是 astro preview 判定「静态产物」走静态预览分支的
+ * 前提（否则它会把 buildOutput 掀成 server，再因无 adapter 直接报 No adapter found）。
+ *
+ * 注入时必须显式给 prerender: false：注入路由取 prerenderInjected ?? 默认值，
+ * 而默认值 = (output !== 'server')——本项目不设 output，默认即 true。
+ */
+function memosSyncRoute() {
+  return {
+    name: 'memos-sync-route',
+    hooks: {
+      'astro:config:setup': ({ injectRoute }) => {
+        if (buildMode !== 'server') return;
+        injectRoute({
+          pattern: '/api/memos/sync',
+          entrypoint: './src/endpoints/memos-sync.ts',
+          prerender: false,
+        });
+      },
+    },
+  };
 }
 
 export default defineConfig({
@@ -57,5 +83,5 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  integrations: [llmsTxtCleanup()],
+  integrations: [llmsTxtCleanup(), memosSyncRoute()],
 });

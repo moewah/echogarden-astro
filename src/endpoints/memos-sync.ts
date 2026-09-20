@@ -8,13 +8,15 @@ import { experimental_AstroContainer } from 'astro/container';
 import { syncMemos } from '@/utils/memos';
 import MomentCard from '@components/MomentCard.astro';
 
-// 动态增量同步端点（唯一动态路由）：由 server 模式（build:server，node adapter）提供运行时，
-// 其余页面保持静态产物（Hybrid）。静态构建（build:static）时本文件会被
-// scripts/build-static.mjs 在构建前临时移出，不生成任何产物。
+// 动态增量同步端点（唯一动态路由）：**不在 src/pages/ 里**——由 astro.config.mjs 的
+// memosSyncRoute 集成在 server 模式（build:server，node adapter）下注入，静态构建
+// （build:static）与静态预览根本看不到该路由，产物天然不含它，无需任何移文件的预处理。
 // 前端 POST 上次同步快照 {uid: updateTime}，返回 added/updated/removed 的卡片 HTML 与新快照。
 // 卡片 HTML 经 Astro Container API 渲染 MomentCard 组件（与静态渲染同一组件，scoped 样式
 // 自动匹配页面 head 中已有的组件 CSS）；token 只在此服务端读取，绝不下发。
 // 增量刷新开关（memosConfig.refresh.enabled）只控制页面是否渲染刷新按钮，不参与路由编译。
+// 下面这行对注入路由不生效（注入时以 astro.config 的 prerender: false 参数为准），
+// 保留它作为语义声明，同时保证将来若被挪回 src/pages/ 行为仍然正确。
 export const prerender = false;
 
 // Container 实例复用（首次创建开销大，后续请求零成本）
