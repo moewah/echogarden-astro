@@ -5,7 +5,7 @@
 
 // Memos API 契约与渲染管线（开发级，用户勿动）。
 // 行为契约：API 参数（CEL filter）、响应字段映射、附件 URL 拼法、markdown 渲染。
-// 用户级配置（地址 / tag 白名单 / 兜底数据）见 @config/memos。
+// 用户级配置（地址 / tag 白名单 / 凭据读取）见 @config/memos。
 
 import { Marked } from 'marked';
 import { toHtml } from 'hast-util-to-html';

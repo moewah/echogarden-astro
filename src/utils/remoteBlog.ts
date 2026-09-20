@@ -4,7 +4,7 @@
 // Licensed under MIT
 
 // 外部博客 RSS 拉取与解析：仅当 remoteBlogConfig.enabled 时调用。
-// 拉取失败回退 config 内置静态数据，构建不炸。
+// 拉取失败返回 null → 板块降级空态（方案 B：config 不存兜底数据），构建不炸。
 import { remoteBlogConfig, type RemotePost } from '@config/index';
 
 /** 反转义 RSS 里的 XML/HTML 实体 */

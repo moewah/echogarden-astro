@@ -11,7 +11,7 @@
 | | `rssConfig.ts` | 站点自身 RSS（`/rss.xml`）的条目描述模式（摘要 / 全文） |
 | ③ 页面 | `albumsConfig.ts` | 影辑总开关 |
 | | `weeklyConfig.ts` | 周刊总开关 + 详情页评论开关 + 每页数量 |
-| | `projectsConfig.ts` | GitHub 地址 + 兜底项目 |
+| | `projectsConfig.ts` | GitHub 地址（拉取失败降级空态，无兜底数据） |
 | | `elsewhereConfig.ts` | 我在别处（外部触点）列表 |
 | | `donationConfig.ts` | 赞助文案 + 方式(二维码/链接) |
 | | `guestbookConfig.ts` | 留言须知文案 |

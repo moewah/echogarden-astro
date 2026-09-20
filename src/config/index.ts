@@ -7,13 +7,13 @@ export { siteConfig } from './siteConfig'; // 全站级聚合（嵌套：site �
 // —— 页面板块 ——
 export { albumsConfig } from './albumsConfig'; // 影辑总开关
 export { weeklyConfig } from './weeklyConfig'; // 周刊总开关 + 评论开关
-export { projectsConfig } from './projectsConfig'; // GitHub 地址 + 兜底项目
+export { projectsConfig } from './projectsConfig'; // GitHub 地址（拉取失败降级空态）
 export { elsewhereConfig } from './elsewhereConfig'; // 我在别处（外部触点）列表
 export { donationConfig } from './donationConfig'; // 赞助文案与方式
 export { guestbookConfig } from './guestbookConfig'; // 留言须知文案
 
 // —— 外部接口 ——
-export { remoteBlogConfig } from './remoteBlogConfig'; // 外部博客 RSS：地址/开关/兜底文章
+export { remoteBlogConfig } from './remoteBlogConfig'; // 外部博客 RSS：地址 / 开关 / 拉取条数
 export { memosConfig } from './memosConfig'; // 动态：tag 白名单/凭据读取/版本要求
 export { artalkConfig } from './artalkConfig'; // 评论：地址与站点名（凭据走 .env）
 

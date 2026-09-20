@@ -1,4 +1,4 @@
-// ③ 页面：项目板块。字段形状见 @t/github（utils）。
+// ③ 页面：项目板块。拉取规则与条目形状（Project）见 utils/github.ts。
 // —— 改这里：GitHub 地址。
 // —— 以下别动：API 契约、筛选排序、条目编号、拉取编排 → utils/github.ts。
 
