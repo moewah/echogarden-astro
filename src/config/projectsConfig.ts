@@ -1,8 +1,9 @@
-// ③ 页面：项目板块。拉取规则与条目形状（Project）见 utils/github.ts。
+// ③ 页面：项目展示板块。字段形状见 @t/github。
 // —— 改这里：GitHub 地址。
 // —— 以下别动：API 契约、筛选排序、条目编号、拉取编排 → utils/github.ts。
+import type { ProjectsConfig } from '@t/github';
 
-export const projectsConfig = {
+export const projectsConfig: ProjectsConfig = {
   // 板块总开关：默认关闭（开源模板默认不展示项目板块，部署后自行开启）。
   // 联动面：关闭时首页板块不渲染、hero 导航项隐藏、SEC 编号回收顺延（sections.ts）。
   enabled: false,

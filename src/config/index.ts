@@ -35,6 +35,7 @@ export { routesConfig } from './routesConfig'; // 站点核心路由路径
 export type { SiteConfig, Site, Profile, Background, Images, Wechat } from '@t/siteConfig';
 export type { Albums } from '@t/albums';
 export type { WeeklyConfig } from '@t/weekly';
+export type { ProjectsConfig } from '@t/github';
 export type { ElsewhereLink } from '@t/elsewhere';
 export type { Donation, DonationMethod } from '@t/donation';
 export type { GuestbookInfo } from '@t/guestbook';
