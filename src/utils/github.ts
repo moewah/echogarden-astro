@@ -34,7 +34,7 @@ interface GitHubRepo {
 }
 
 export async function fetchProjects(githubUrl: string): Promise<Project[]> {
-  // owner 提取兼容两种填法：用户主页（https://github.com/moewah）与具体仓库（https://github.com/moewah/echogarden-astro）
+  // owner 提取兼容两种填法：用户主页（https://github.com/example）与具体仓库（https://github.com/example/your-repo）
   const owner = githubUrl.replace(/^https?:\/\/github\.com\//, '').split('/')[0];
   const token = import.meta.env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
   const headers: Record<string, string> = {
