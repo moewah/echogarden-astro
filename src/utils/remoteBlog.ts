@@ -10,12 +10,39 @@ import { remoteBlogConfig, type RemotePost } from '@config/index';
 /** 反转义 RSS 里的 XML/HTML 实体 */
 function decodeEntities(s: string): string {
   return s
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ');
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#x([\da-f]+);/gi, (match, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : match;
+    })
+    .replace(/&#(\d+);/g, (match, decimal: string) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : match;
+    });
+}
+
+const blockTags = new Set([
+  'address', 'article', 'blockquote', 'br', 'div', 'h1', 'h2', 'h3',
+  'h4', 'h5', 'h6', 'li', 'ol', 'p', 'pre', 'section', 'tr', 'ul',
+]);
+const tagRe = /<\/?([a-z][a-z0-9-]*)(?:\s+(?:[^\s"'=<>]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>]+))?))*\s*\/?>/gi;
+
+/** 将 RSS 摘要统一转为纯文本，避免外部 HTML 破坏卡片结构。 */
+function toPlainText(raw: string): string {
+  const content = raw.match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/i)?.[1] ?? raw;
+
+  return content
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(tagRe, (_, tag: string) => (blockTags.has(tag.toLowerCase()) ? ' ' : ''))
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** 提取单个标签内容（不含嵌套同名标签） */
@@ -78,7 +105,7 @@ export async function fetchRemotePosts(): Promise<RemotePost[] | null> {
     items.push({
       code: `MW-BLG-${String(i).padStart(3, '0')}`,
       title,
-      description: extractTag(block, 'description'),
+      description: toPlainText(extractTag(block, 'description')),
       date: formatDate(extractTag(block, 'pubDate')),
       url,
     });

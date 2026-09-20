@@ -26,6 +26,11 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;');
 }
 
+/** 拆开 CDATA 结束序列，保留 HTML 内容并保持外层 XML 合法。 */
+function wrapCdata(value: string): string {
+  return `<![CDATA[${value.replace(/\]\]>/g, ']]]]><![CDATA[>')}]]>`;
+}
+
 function formatRssDate(date: Date): string {
   return new Date(date).toUTCString();
 }
@@ -109,14 +114,14 @@ export const GET: APIRoute = async () => {
       const issueText = weeklyIssueLabel(post.data.issue);
       const title = escapeXml(`${issueText} · ${post.data.title}`);
       const coverUrl = resolveCoverUrl(post.data.cover);
-      const coverImg = `<img src="${coverUrl}" alt="${escapeXml(post.data.title)}" />`;
+      const coverImg = `<img src="${escapeXml(coverUrl)}" alt="${escapeXml(post.data.title)}" />`;
       const contentHtml =
         rssConfig.descriptionMode === 'full'
           ? (new Marked({ renderer: makeImageRenderer(await buildBodyImageMap(post.body ?? '', post.id)) }).parse(
               post.body ?? '',
             ) as string)
           : `<p>${escapeXml(post.data.description)}</p>`;
-      const description = `<![CDATA[${coverImg}${contentHtml}]]>`;
+      const description = wrapCdata(`${coverImg}${contentHtml}`);
 
       const pubDate = formatRssDate(post.data.date);
       // 作者只用 dc:creator（纯名字）——author 标签按 RSS 2.0 规范必须含邮箱，
