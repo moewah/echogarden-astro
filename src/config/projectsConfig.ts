@@ -10,6 +10,6 @@ export const projectsConfig = {
   // 两种填法都支持：用户主页（https://github.com/moewah）或具体仓库（https://github.com/moewah/echogarden-astro），
   // owner 提取逻辑见 utils/github.ts（取路径第一段）。
   // 拉取规则（utils/github.ts）：原创 + 非归档 → 高人气 4 条（star 降序）+ 最新 1 条（pushed_at 降序），
-  // 条目编号 MW-NNN 自动生成。拉取失败板块降级空态（无兜底数据，方案 B）。
+  // 条目编号 MW-PRJ-NNN 自动生成。拉取失败板块降级空态（无兜底数据，方案 B）。
   github: 'https://github.com/moewah',
 };

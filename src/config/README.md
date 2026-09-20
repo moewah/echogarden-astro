@@ -2,12 +2,13 @@
 
 本目录是**用户级配置的唯一入口**——接手本项目只需改这里 + `src/content/`(内容)+ `.env`(凭据),不碰任何组件与逻辑代码。
 
-## 目录结构(按五维)
+## 目录结构(按维度分组：全站级 / ③ 页面 / ④ 接口 / ⑤ 扩展)
 
 | 维度 | 文件 | 管什么 |
 |---|---|---|
-| 全站级 | `siteConfig.ts` | 嵌套分组：`site`（站点名/URL/描述/版权/ogImage）/ `profile`（名字/头像/身份/自述/邮箱）/ `notice`（防骗公告）/ `copyright`（周刊文末引用块的短句与条款）/ `background`（背景图开关/默认图/轮播间隔）/ `images`（压缩开关/格式/质量）/ `wechat`（全局二维码开关/二维码/展示信息） |
+| 全站级 | `siteConfig.ts` | 嵌套分组：`site`（站点名/URL/描述/版权/ogImage）/ `profile`（名字/头像/身份/自述/邮箱）/ `notice`（防骗公告）/ `copyright`（周刊文末引用块的短句与条款）/ `background`（背景图开关/默认图/轮播间隔）/ `images`（压缩开关/格式/质量）/ `wechat`（全局二维码开关/二维码/展示信息）/ `fonts`（字体加载模式：官方源 / 镜像 / 系统栈） |
 | | `routesConfig.ts` | 站点核心路由路径（首页/周刊/影辑/动态/留言/RSS/Sitemap） |
+| | `rssConfig.ts` | 站点自身 RSS（`/rss.xml`）的条目描述模式（摘要 / 全文） |
 | ③ 页面 | `albumsConfig.ts` | 影辑总开关 |
 | | `weeklyConfig.ts` | 周刊总开关 + 详情页评论开关 + 每页数量 |
 | | `projectsConfig.ts` | GitHub 地址 + 兜底项目 |
@@ -17,9 +18,10 @@
 | ④ 接口 | `remoteBlogConfig.ts` | 外部博客 RSS 地址 / 开关 |
 | | `memosConfig.ts` | 动态 tag 白名单 / 页面开关 / 折叠与截断 / 凭据读取 / 版本要求 |
 | | `artalkConfig.ts` | Artalk 地址与站点名（凭据走 .env） |
-| ⑤ 数据统计 | `analyticsConfig.ts` | Umami / GA / Clarity provider 开关与配置 |
-| ⑤ LLMs | `llmsConfig.ts` | `/llms.txt` 生成配置：总开关、近期周刊/影辑数量 + 可选语义扩展（身份路由 / 精选区块 / 读取规则 / 实体信息） |
-| ⑤ 阅读增强 | `readingConfig.ts` | 周刊/影辑详情页沉浸阅读：背景原始态开关 |
+| | `externalLinksConfig.ts` | 外链 rel / target 统一处理 + 赞助链接清单 + 站内域名判定 |
+| ⑤ 扩展 | `analyticsConfig.ts` | Umami / GA / Clarity provider 开关与配置 |
+| | `llmsConfig.ts` | `/llms.txt` 生成配置：总开关、近期周刊/影辑数量 + 可选语义扩展（身份路由 / 精选区块 / 读取规则 / 实体信息） |
+| | `readingConfig.ts` | 周刊/影辑详情页沉浸阅读：背景原始态开关 |
 
 ## 三条铁律
 

@@ -1,4 +1,4 @@
-// ⑩ 数据统计：GA + Umami 配置契约
+// ⑤ 扩展：数据统计。GA + Umami 配置契约
 
 export interface GoogleAnalyticsConfig {
   enabled: boolean;
