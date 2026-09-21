@@ -2,6 +2,36 @@
 
 EchoGarden（echogarden-astro）的版本变更记录。版本号遵循语义化版本，git tag 与本文档段落一一对应。
 
+## 0.2.3 - 2026-09-21
+
+### 新功能
+
+- **周刊 RSS 摘要模式补「阅读全文」链接**：`summary` 模式下条目只有封面图 + 摘要段落，订阅者读完点不进原文；`full` 模式不加（本就是全文，链接多余）
+
+### 修复
+
+- **RSS 内容处理加固**（两处外部 / 生成内容此前没有边界处理）
+  - `rss.xml`：`description` 用字符串拼接 CDATA，内容里出现 `]]>` 会提前闭合 CDATA 段、产出非法 XML；改为 `wrapCdata` 拆分结束序列（保留原内容并保持外层 XML 合法）；封面图 URL 补 `escapeXml`（与同一标签内的 `alt` 一致）
+  - `remoteBlog`：摘要原样透传，带 HTML 的摘要会打坏卡片结构；新增 `toPlainText`（先拆 CDATA 壳，再去注释、`script`/`style` 与标签，块级标签转空格，空白归一）统一输出纯文本
+  - `decodeEntities` 补齐：命名实体大小写不敏感、补 `&apos;`、支持 `&#x4e2d;` / `&#20013;` 数值实体；越界码点原样保留不抛异常
+- **远端文章卡片等高改由容器约束**：原先在标题行用 `min-h-[2lh]` 占位，窄屏单列时会多留一行空白；改为容器 `md:min-h-[180px]`——桌面端由容器统一最小高度保证网格内等高，移动端不再强制占位
+- **字重声明对齐可达集合**：`<strong>` / `<b>` 在 `global.css` base 层显式钉住 600——UA 默认的 `bolder` 会跳到未声明的 700 / 900，同一行中英混排会变成两种重量
+- **`/llms.txt` 的两处声明与实际不一致**：路由声明的 `Content-Type` 改回与线上实际一致的 `text/plain`；`describedby` 去掉 `type="text/markdown"`
+- **项目板块的 GitHub 地址换成示例值**：模板内置示例数据，不应指向作者真实账号——fork 后会直接拉取作者仓库、跳转到作者主页
+
+### 构建
+
+- **memos 同步端点改为 server 模式注入**：端点是全站唯一动态路由，此前靠 `build-static.mjs` 在构建前把 `src/pages/api/memos/sync.ts` 临时 rename 出去、`finally` 再恢复
+  - 端点移到 `src/endpoints/memos-sync.ts`，由 `astro.config.mjs` 的 `memosSyncRoute` 集成仅在 `BUILD_MODE=server` 时 `injectRoute`；`build-static.mjs` 的移文件机制整段删除，只留 `BUILD_MODE=static` 与产物校验
+  - **顺带修好一条长期失效的路径**：静态 profile 下 `astro preview` 原先必报 `No adapter found`——Astro 看到源码树里那条未预渲染路由会把 `buildOutput` 判成 `server`，而纯静态构建没有 adapter；端点移出路由树后 `astro preview` 裸跑即起（静态走静态预览分支，server 模式由 adapter 服务）
+  - `prerender: false` 必须显式传给 `injectRoute`：注入路由取 `prerenderInjected ?? 默认值`，而默认值 =（`output !== 'server'`），本项目不设 `output`
+- **`projectsConfig` 补显式类型契约**：新增 `src/types/github.ts`，消除全站最后一个无类型注解的配置对象
+
+### 文档
+
+- **AGENTS 与 `config/README` 对齐代码事实**：校正过期规则（板块间距是 `pt-` 而非 `py-`、编号体系 `MW-PRJ` / `MW-CAT` / `FORM CORR-01`、`rounded-full` 例外清单、`.img-ph--post`、mono 字距区间）、消除重复事实源（config 清单收敛到 `config/README.md` 单一事实）、补文档缺口（悬浮链 token、字体加载三态、`utils/og.ts` 按页出图、产物守卫、端点注入规则）
+- 清掉方案 B 执行后残留的「兜底项目 / 兜底文章 / 兜底数据 / 回退 config 内置静态数据」描述——实现是「拉取失败返回 `null` → 组件渲染空态」，注释与清单与实现相反会误导维护
+
 ## 0.2.2 - 2026-09-16
 
 ### 修复
