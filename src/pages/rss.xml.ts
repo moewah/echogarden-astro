@@ -9,6 +9,7 @@ import path from 'node:path';
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import { siteConfig, rssConfig, weeklyConfig } from '@config/index';
+import { i18n } from '@i18n';
 import { weeklyIssueLabel, getSortedWeekly } from '@/utils/weekly';
 
 // 构建期预载全部周刊正文图（getImage 只接受 import 的 ImageMetadata，
@@ -115,12 +116,13 @@ export const GET: APIRoute = async () => {
       const title = escapeXml(`${issueText} · ${post.data.title}`);
       const coverUrl = resolveCoverUrl(post.data.cover);
       const coverImg = `<img src="${escapeXml(coverUrl)}" alt="${escapeXml(post.data.title)}" />`;
+      const readMoreLink = `<p><a href="${escapeXml(postUrl)}">${escapeXml(i18n.weekly.rssReadMore)}</a></p>`;
       const contentHtml =
         rssConfig.descriptionMode === 'full'
           ? (new Marked({ renderer: makeImageRenderer(await buildBodyImageMap(post.body ?? '', post.id)) }).parse(
               post.body ?? '',
             ) as string)
-          : `<p>${escapeXml(post.data.description)}</p>`;
+          : `<p>${escapeXml(post.data.description)}</p>${readMoreLink}`;
       const description = wrapCdata(`${coverImg}${contentHtml}`);
 
       const pubDate = formatRssDate(post.data.date);

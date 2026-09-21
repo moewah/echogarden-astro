@@ -123,6 +123,7 @@ export const zh = {
     rssLabel: 'RSS / 周刊订阅',
     rssHint: '在阅读器中接收新期刊',
     rssOpen: '打开订阅',
+    rssReadMore: '阅读全文 →',
     rssCopy: '复制地址',
     rssCopied: '已复制',
     rssCopyFailed: '复制失败',
