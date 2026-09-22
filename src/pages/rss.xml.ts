@@ -4,7 +4,7 @@
 // Licensed under MIT
 
 import type { APIRoute } from 'astro';
-import { Marked, type Tokens } from 'marked';
+import { Marked, type Token, type Tokens } from 'marked';
 import path from 'node:path';
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
@@ -73,6 +73,21 @@ async function buildBodyImageMap(body: string, postId: string): Promise<Map<stri
   return map;
 }
 
+// 已带 scheme（http: / mailto: / data: …）或协议相对的 URL，不再处理
+const ABSOLUTE_URL_RE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+
+// 正文链接与图片是同一条逻辑：相对 URL 在订阅器里不可靠——阅读器可能走代理或缓存，
+// 基准 URI 一变就断链。图片由 makeImageRenderer 处理，链接靠这个 walkTokens 勾子。
+// base 用**条目自身 URL** 而不是站点根：这样 #锚点、../x/ 这类也能正确解析
+// （拿站点根当 base 会把 #锚点解到首页、把 ../x/ 解到错误层级）。
+function makeAbsolutizeLinks(itemUrl: string) {
+  return (token: Token) => {
+    if (token.type === 'link' && typeof token.href === 'string' && !ABSOLUTE_URL_RE.test(token.href)) {
+      token.href = new URL(token.href, itemUrl).toString();
+    }
+  };
+}
+
 function makeImageRenderer(imageMap: Map<string, string>) {
   return {
     image(token: Tokens.Image) {
@@ -119,9 +134,10 @@ export const GET: APIRoute = async () => {
       const readMoreLink = `<p><a href="${escapeXml(postUrl)}">${escapeXml(i18n.weekly.rssReadMore)}</a></p>`;
       const contentHtml =
         rssConfig.descriptionMode === 'full'
-          ? (new Marked({ renderer: makeImageRenderer(await buildBodyImageMap(post.body ?? '', post.id)) }).parse(
-              post.body ?? '',
-            ) as string)
+          ? (new Marked({
+              renderer: makeImageRenderer(await buildBodyImageMap(post.body ?? '', post.id)),
+              walkTokens: makeAbsolutizeLinks(postUrl),
+            }).parse(post.body ?? '') as string)
           : `<p>${escapeXml(post.data.description)}</p>${readMoreLink}`;
       const description = wrapCdata(`${coverImg}${contentHtml}`);
 
