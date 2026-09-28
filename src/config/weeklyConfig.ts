@@ -10,7 +10,7 @@ export const weeklyConfig: WeeklyConfig = {
   enabled: true,
   // 周刊详情页评论区开关。依赖 artalk 配置（.env）；server/site 未配置时自动降级为占位提示。
   comments: true,
-  // 索引页每页条目数。超过后生成 /weekly/page/N/，首页保持 /weekly/。
+  // 索引页每页条目数。超过后生成 /weekly/page/N/，第 1 页保持 /weekly/。
   perPage: 10,
   // 首页「近期周刊」板块展示的最新期数（如 3）。
   // 联动面：仅影响首页 Weekly 板块取数，与索引页 perPage 相互独立；enabled=false 时整块不渲染，此值不生效。

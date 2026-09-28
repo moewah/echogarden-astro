@@ -42,10 +42,10 @@ export const zh = {
     nav: [
       { title: '关于我', en: 'ABOUT ME', href: '#about' },
       { title: '近期周刊', en: 'LATEST WEEKLY', href: '#weekly' },
-      { title: '高光定格', en: 'HIGHLIGHTS', href: '#photos' },
+      { title: '高光定格', en: 'HIGHLIGHTS', href: '#highlights' },
       { title: '近期文章', en: 'LATEST POSTS', href: '#remote-blog' },
       { title: '项目展示', en: 'PROJECTS', href: '#projects' },
-      { title: '我在别处', en: 'ELSEWHERE', href: '#links' },
+      { title: '我在别处', en: 'ELSEWHERE', href: '#elsewhere' },
       { title: '赞助支持', en: 'SPONSOR', href: '#sponsor' },
     ],
   },

@@ -1,6 +1,6 @@
 // 全站级配置（嵌套分组）：站点 / 主人 / 公告 / 背景 / 压缩。字段形状见 @t/siteConfig。
 // —— 改这里：全站级配置，改动影响所有页面。
-// —— 以下别动：板块级（albums/weekly/projects/links/donation/guestbook）与接口级（remoteBlog/memos/artalk）在各自文件。
+// —— 以下别动：板块级（albums/weekly/projects/elsewhere/donation/guestbook）与接口级（remoteBlog/memos/artalk）在各自文件。
 import type { SiteConfig } from '@t/siteConfig';
 import defaultBgImg from '@/assets/images/background/default-bg.jpg';
 import wechatQrImg from '@/assets/images/elsewhere/wechat-mp.jpg';
