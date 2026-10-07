@@ -160,7 +160,7 @@ export const siteConfig: SiteConfig = {
   },
 
   // ===== 字体配置 =====
-  // mode: 'default' = Google Fonts 官方源 + 默认字体（Plus Jakarta Sans + Noto Sans SC + IBM Plex Mono）
+  // mode: 'default' = Google Fonts 官方源 + 默认字体（Mulish + Noto Sans SC + IBM Plex Mono）
   // mode: 'mirror'  = 自定义镜像源 + 默认字体（默认值，镜像源见下方 mirror）
   // mode: 'off'      = 不加载 Google Fonts，使用系统字体栈（首屏零字体请求，但中英混排效果随访客系统而变）
   // 取舍：前两者换来跨平台一致的混排效果，代价是首屏加载 webfont（其中 CJK 分片数百 KB）；
