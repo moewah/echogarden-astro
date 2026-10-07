@@ -44,7 +44,10 @@ const updatedAt = (() => {
             <h1 class="mt-4 text-[max(44px,min(7.5vw,96px,18cqw))] font-light leading-none tracking-[-0.01em]">
               {brandParts[0]}<span class="font-semibold">{brandParts.slice(1).join('')}</span>
             </h1>
-            <p class="mt-5 text-[clamp(15px,1.9vw,19px)] font-light tracking-[0.5em] text-[var(--soft)]">
+            <!-- 字距：全宽汉字自带约 0.1em 侧边距，相邻字可见空隙 ≈ 字距 + 0.1em。
+                 0.12em 时约占字宽 22%——刻意的留白，但词仍读成一个整体；
+                 到 0.2em（30%）汉字就开始被看成一个个的字了。 -->
+            <p class="mt-5 text-[clamp(15px,1.9vw,19px)] font-light tracking-[0.12em] text-[var(--soft)]">
               {siteConfig.site.tagline}
             </p>
             <p class="mt-6 inline-block font-mono text-xs tracking-[0.12em] border border-[var(--line)] bg-[var(--panel)] px-4 py-2">
