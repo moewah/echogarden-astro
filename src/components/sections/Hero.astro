@@ -36,9 +36,12 @@ const updatedAt = (() => {
         </div>
 
         <div class="grid grid-cols-1 min-[900px]:grid-cols-[7fr_5fr] gap-[clamp(28px,5vw,72px)] items-center py-[clamp(28px,6vh,72px)]">
-          <div class="min-w-0">
+          <!-- 左列作为字号容器：wrap 的内容宽在 1160px 后锁定，字号却按 vw 继续增长，
+               品牌名又是不可断行的单个长词——两者相遇时文字溢出列框、压进 gap，直至贴上右侧卡片。
+               故字号需同时受列宽（cqw）约束，任何品牌名长度都不越界。 -->
+          <div class="min-w-0 [container-type:inline-size]">
             <p class="font-mono text-xs tracking-[0.2em] text-[var(--faint)]">{i18n.hero.file}</p>
-            <h1 class="mt-4 text-[clamp(44px,7.5vw,96px)] font-light leading-none tracking-[-0.01em]">
+            <h1 class="mt-4 text-[max(44px,min(7.5vw,96px,17cqw))] font-light leading-none tracking-[-0.01em]">
               {brandParts[0]}<span class="font-semibold">{brandParts.slice(1).join('')}</span>
             </h1>
             <p class="mt-5 text-[clamp(15px,1.9vw,19px)] font-light tracking-[0.5em] text-[var(--soft)]">
