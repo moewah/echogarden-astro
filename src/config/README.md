@@ -6,7 +6,7 @@
 
 | 维度 | 文件 | 管什么 |
 |---|---|---|
-| 全站级 | `siteConfig.ts` | 嵌套分组：`site`（站点名/URL/描述/版权/ogImage）/ `profile`（名字/头像/身份/自述/邮箱）/ `notice`（防骗公告）/ `copyright`（周刊文末引用块的短句与条款）/ `background`（背景图开关/默认图/轮播间隔）/ `images`（压缩开关/格式/质量）/ `wechat`（全局二维码开关/二维码/展示信息）/ `fonts`（字体加载模式：官方源 / 镜像 / 系统栈） |
+| 全站级 | `siteConfig.ts` | 嵌套分组：`site`（站点名/URL/描述/版权/ogImage）/ `profile`（名字/头像/身份/自述/邮箱）/ `notice`（防骗公告）/ `copyright`（周刊文末引用块的短句与条款）/ `background`（背景图开关/默认图/轮播间隔）/ `images`（压缩开关/格式/质量）/ `wechat`（全局二维码开关/二维码/展示信息）/ `fonts`（字体加载模式：默认 `mirror` 镜像源 / `default` 官方源 / `off` 系统栈） |
 | | `routesConfig.ts` | 站点核心路由路径（首页/周刊/影辑/动态/留言/RSS/Sitemap） |
 | | `rssConfig.ts` | 站点自身 RSS（`/rss.xml`）的条目描述模式（摘要 / 全文） |
 | ③ 页面 | `albumsConfig.ts` | 影辑总开关 |
