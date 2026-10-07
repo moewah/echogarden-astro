@@ -67,9 +67,9 @@ const faviconType = `image/${siteConfig.profile.avatar.split('.').pop() ?? 'webp
 const { fonts } = siteConfig;
 // 字重集合 = 站内实际可达的字重（AGENTS 1.2：sans 300/400/500/600、mono 400/500/600）。
 // sans 的 500 用于 mono 语境中的中文回退（顶栏导航、Hero 元数据 dd）；
-// Archivo 900 与 Noto Sans SC 700 在 strong/b 显式声明 600 后已不可达，不再声明。
+// Plus Jakarta Sans 800 与 Noto Sans SC 700 在 strong/b 显式声明 600 后已不可达，不再声明。
 const FONT_FAMILIES = [
-  'Archivo:wght@300;400;600',
+  'Plus+Jakarta+Sans:wght@300;400;600',
   'Noto+Sans+SC:wght@300;400;500;600',
   'IBM+Plex+Mono:wght@400;500;600',
 ];
@@ -84,12 +84,12 @@ const googleFontsUrl =
     : `${googleFontsOrigin.replace(/\/$/, '')}/css2?family=${FONT_FAMILIES.join('&family=')}&display=swap`;
 const fontSansStack =
   fonts.mode === 'off'
-    ? `-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif`
-    : `'Archivo', 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif`;
+    ? `system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif`
+    : `'Plus Jakarta Sans', 'Noto Sans SC', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif`;
 const fontMonoStack =
   fonts.mode === 'off'
-    ? `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`
-    : `'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
+    ? `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'PingFang SC', 'Microsoft YaHei', monospace`
+    : `'IBM Plex Mono', 'Noto Sans SC', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'PingFang SC', 'Microsoft YaHei', monospace`;
 
 // 站点级结构化数据：WebSite + Person + WebPage
 // URL 统一带尾斜杠，避免 WebSite.url / WebPage.url 不一致

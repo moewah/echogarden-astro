@@ -160,7 +160,7 @@ export const siteConfig: SiteConfig = {
   },
 
   // ===== 字体配置 =====
-  // mode: 'default' = Google Fonts 官方源 + 默认字体（Archivo + Noto Sans SC + IBM Plex Mono）
+  // mode: 'default' = Google Fonts 官方源 + 默认字体（Plus Jakarta Sans + Noto Sans SC + IBM Plex Mono）
   // mode: 'mirror'  = 自定义镜像源 + 默认字体
   // mode: 'off'      = 不加载 Google Fonts，使用系统字体栈
   fonts: {
