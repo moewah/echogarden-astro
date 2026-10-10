@@ -113,9 +113,10 @@ export const GET: APIRoute = async () => {
 
   const posts = await getSortedWeekly();
 
-  const latestPosts = posts
-    .filter((p) => p.data.date)
-    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+  // date 是必填字段（content.config.ts），没有「无日期条目」可过滤；展开成副本是让 sort 不原地改 posts
+  const latestPosts = [...posts].sort(
+    (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  );
 
   const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
   const feedUrl = new URL('/rss.xml', siteUrl).toString();
