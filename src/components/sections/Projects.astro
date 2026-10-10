@@ -24,14 +24,6 @@ const projects = projectsConfig.enabled ? await getProjects() : [];
     <SecHead no={sectionNo.projects} title={i18n.sections.projects.title} en={i18n.sections.projects.en} />
 
     <div class="border-t border-[var(--hair)] border-x border-b border-[var(--line)] px-3 md:px-4 reveal [&>a:last-of-type]:border-b-0">
-      <div class="hidden md:grid md:grid-cols-[90px_1.2fr_1.6fr_40px] lg:grid-cols-[90px_1.2fr_130px_1.6fr_40px] gap-[clamp(10px,2.5vw,30px)] items-center py-5 border-b border-[var(--hair)] font-mono text-[10px] tracking-[0.26em] text-[var(--faint)] font-semibold uppercase">
-        <span>{i18n.projects.no}</span>
-        <span>{i18n.projects.project}</span>
-        <span class="max-lg:hidden">{i18n.projects.lang}</span>
-        <span>{i18n.projects.desc}</span>
-        <span></span>
-      </div>
-
       {
         projects === null ? (
           <EmptyState text={i18n.projects.loadFailed} compact />
@@ -41,21 +33,29 @@ const projects = projectsConfig.enabled ? await getProjects() : [];
             href={p.url}
             target="_blank"
             rel="noopener"
-            class="group grid grid-cols-[64px_1fr_40px] md:grid-cols-[90px_1.2fr_1.6fr_40px] lg:grid-cols-[90px_1.2fr_130px_1.6fr_40px] gap-[clamp(10px,2.5vw,30px)] items-center py-5 border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px]"
+            class="group block py-[18px] border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px] md:grid md:grid-cols-[96px_1fr_auto] md:gap-[clamp(16px,2.5vw,34px)] md:items-start md:py-5"
           >
-            <span class="font-mono text-[11.5px] text-[var(--accent)]">{p.id}</span>
-            <span class="flex items-baseline gap-2 min-w-0">
-              <Icon name="book" class="w-[14px] h-[14px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors self-center shrink-0" />
-              <span class="font-mono text-[14.5px] whitespace-nowrap text-[var(--ink)] group-hover:text-[var(--accent)] transition-colors truncate min-w-0">
-                {owner}/{p.name}
+            {/* 元数据：移动端「编号 · 语言 ↗」一行；md 起编号独占左列、语言落在编号下方 */}
+            <span class="flex items-baseline gap-2 font-mono text-[10px] tracking-[0.12em] text-[var(--faint)] md:block">
+              <span class="shrink-0 whitespace-nowrap text-[10.5px] font-semibold text-[var(--accent)]">{p.id}</span>
+              <span class="flex items-baseline gap-1.5 md:mt-2">
+                <span class="w-[6px] h-[6px] rounded-full bg-[var(--accent)] inline-block shrink-0"></span>
+                <span>{p.lang}</span>
               </span>
+              <span class="ml-auto font-mono text-[10.5px] transition-all group-hover:text-[var(--accent)] group-hover:translate-x-[3px] group-hover:-translate-y-[3px] md:hidden">↗</span>
             </span>
-            <span class="flex items-baseline gap-1.5 font-mono text-[11px] text-[var(--faint)] max-lg:hidden">
-              <span class="w-[6px] h-[6px] rounded-full bg-[var(--accent)] inline-block"></span>
-              <span>{p.lang}</span>
+
+            {/* 主内容块：名称 + 说明。移动端名称拿到整行宽度（不再被三列挤到截断），说明也第一次在移动端露出来 */}
+            <span class="block min-w-0">
+              <span class="mt-2 md:mt-0 flex items-baseline gap-2 text-[14.5px] md:text-[15px] font-medium leading-[1.5] transition-colors group-hover:text-[var(--accent)]">
+                <Icon name="book" class="w-[14px] h-[14px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors self-center shrink-0" />
+                <span class="[overflow-wrap:anywhere]">{owner}/{p.name}</span>
+              </span>
+              <span class="mt-1.5 md:mt-1 text-[12.5px] leading-[1.8] text-[var(--soft)] line-clamp-2">{p.description}</span>
             </span>
-            <span class="text-[13px] leading-[1.7] text-[var(--soft)] max-md:hidden">{p.description}</span>
-            <span class="font-mono text-[var(--faint)] transition-all group-hover:text-[var(--accent)] group-hover:translate-x-[3px] group-hover:-translate-y-[3px]">↗</span>
+
+            {/* 桌面 ↗：移动端那枚在元数据行尾 */}
+            <span class="hidden md:block font-mono text-[10.5px] text-[var(--faint)] transition-all group-hover:text-[var(--accent)] group-hover:translate-x-[3px] group-hover:-translate-y-[3px]">↗</span>
           </a>
         ))
         )

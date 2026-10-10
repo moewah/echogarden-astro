@@ -163,10 +163,6 @@ export const zh = {
 
   // 项目展示
   projects: {
-    no: 'No.',
-    project: 'Repository / 仓库',
-    lang: 'Lang / 语言',
-    desc: 'Description / 说明',
     total: 'TOTAL — {n} REPOS',
     more: '更多 →',
     loadFailed: '内容暂时无法加载，请稍后再试。',
