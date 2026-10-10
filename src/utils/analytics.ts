@@ -35,16 +35,39 @@ export function gaScript(config: GoogleAnalyticsConfig): string {
   ].join('\n');
 }
 
-/** 判断当前是否启用会话回放 */
-function useRecorder(config: UmamiConfig): boolean {
-  return Boolean(config.sessionReplay?.enabled && config.sessionReplay.recorderUrl);
+/**
+ * 会话回放标签：recorder.js 是与 tracker **并列**的独立脚本（官方文档：in addition to your
+ * existing tracker script）。它只读 `data-website-id` / `data-host-url`，**不采集 pageview、
+ * 自定义事件、性能，也不暴露 `window.umami`** —— 所以绝不能用它替换 tracker。
+ * 它同样不认 `data-domains`，所以域名约束只能在注入前自行判断，否则开发/预览环境会被录制。
+ */
+function recorderTag(config: UmamiConfig): string {
+  const replay = config.sessionReplay;
+  if (!replay?.enabled || !replay.recorderUrl) return '';
+
+  const lines = [`<script is:inline>`, `  (function () {`];
+  const domains = config.domains ?? [];
+  if (domains.length > 0) {
+    lines.push(`    if (${JSON.stringify(domains)}.indexOf(location.hostname) === -1) return;`);
+  }
+  lines.push(
+    `    var s = document.createElement('script');`,
+    `    s.defer = true;`,
+    `    s.src = ${JSON.stringify(replay.recorderUrl)};`,
+    `    s.setAttribute('data-website-id', ${JSON.stringify(config.websiteId)});`,
+  );
+  if (config.hostUrl) {
+    lines.push(`    s.setAttribute('data-host-url', ${JSON.stringify(config.hostUrl)});`);
+  }
+  lines.push(`    document.head.appendChild(s);`, `  })();`, `</script>`);
+  return lines.join('\n');
 }
 
-/** 生成 Umami tracker script 标签 */
+/** 生成 Umami tracker script 标签（含会话回放时的 recorder 标签） */
 export function umamiScript(config: UmamiConfig): string {
   if (!config.enabled || !config.websiteId) return '';
 
-  const src = useRecorder(config) ? config.sessionReplay!.recorderUrl : config.scriptUrl;
+  const src = config.scriptUrl;
   if (!src) return '';
 
   const attrs: Record<string, string> = {
@@ -55,17 +78,15 @@ export function umamiScript(config: UmamiConfig): string {
 
   if (config.hostUrl) attrs['data-host-url'] = config.hostUrl;
   if (config.autoTrack === false) attrs['data-auto-track'] = 'false';
-  if (config.cache) attrs['data-cache'] = 'true';
   if (config.domains && config.domains.length > 0) attrs['data-domains'] = config.domains.join(',');
   if (config.tag) attrs['data-tag'] = config.tag;
-  if (config.trackOutboundLinks === false) attrs['data-track-outbound'] = 'false';
   if (config.collectWebVitals) attrs['data-performance'] = 'true';
 
   const attrStr = Object.entries(attrs)
     .map(([key, value]) => (value === '' ? key : `${key}="${value}"`))
     .join(' ');
 
-  return `<script ${attrStr}></script>`;
+  return [`<script ${attrStr}></script>`, recorderTag(config)].filter(Boolean).join('\n');
 }
 
 /**

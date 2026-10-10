@@ -27,19 +27,18 @@ export const analyticsConfig: AnalyticsConfig = {
     hostUrl: '',
     // 自动初始化 pageview/click/performance 等跟踪
     autoTrack: true,
-    // 本地缓存事件
-    cache: false,
     // 只在指定域名运行，防止开发/预览环境污染数据
     domains: ['echogarden.example.com'],
     // 事件分组标签
     tag: '',
-    // 自动跟踪出站链接（Umami v3.x 默认已开启，显式控制）
-    trackOutboundLinks: true,
-    // 收集 Core Web Vitals（Umami v3.1.0+）
+    // 收集 Core Web Vitals：输出 data-performance="true"（tracker 以 type=performance 上报）
     collectWebVitals: true,
-    // 会话回放：开启时改用 recorder.js
+    // 会话回放：开启后与 tracker 并列加载 recorder.js（recorder 自身不采集 pageview/事件，
+    // 不能用它替换 tracker；它不认 data-domains，域名约束由 utils/analytics.ts 注入前判断）
     sessionReplay: {
+      // 模板默认关闭：录屏属隐私判断，开启前先确认实例侧已开 Replays
       enabled: false,
+      // recorder.js 地址，例：https://umami.example.com/recorder.js
       recorderUrl: '',
     },
   },

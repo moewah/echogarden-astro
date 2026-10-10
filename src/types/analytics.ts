@@ -29,17 +29,13 @@ export interface UmamiConfig {
   hostUrl?: string;
   /** 是否自动初始化跟踪（pageview、click、performance 等），默认 true */
   autoTrack?: boolean;
-  /** 是否本地缓存事件，默认 false */
-  cache?: boolean;
   /** 只在指定域名运行，例：['www.example.com'] */
   domains?: string[];
   /** 事件分组标签，用于过滤/A-B 测试 */
   tag?: string;
-  /** 是否自动跟踪出站链接，默认 true（Umami v3.x 支持） */
-  trackOutboundLinks?: boolean;
-  /** 是否收集 Core Web Vitals，默认 false（Umami v3.1.0+ 支持） */
+  /** 是否收集 Core Web Vitals：输出 data-performance="true"，tracker 以 type=performance 上报 TTFB/INP/时长 */
   collectWebVitals?: boolean;
-  /** 会话回放配置（Umami v3.1.0+ 支持） */
+  /** 会话回放配置：recorder.js 与 tracker 并列加载（需实例提供 recorder.js，且实例侧已开 Replays） */
   sessionReplay?: UmamiSessionReplayConfig;
 }
 
