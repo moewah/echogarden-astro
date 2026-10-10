@@ -87,15 +87,15 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       {
         !memosConfig.enabled ? (
           <EmptyState text={i18n.moments.disabled}>
-            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
           </EmptyState>
         ) : memosVersionStatus === 'mismatch' ? (
           <EmptyState text={i18n.moments.versionMismatch}>
-            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
           </EmptyState>
         ) : memosVersionStatus === 'unavailable' ? (
           <EmptyState text={i18n.moments.versionCheckFailed}>
-            <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
+            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
           </EmptyState>
         ) : memos === null ? (
           <EmptyState text={i18n.moments.loadFailed} />
@@ -163,7 +163,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
 <style>
   .memo-filter-btn {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 11.5px;
     letter-spacing: 0.1em;
     padding: 4px 12px;
     border: 1px solid var(--hair);
@@ -219,7 +219,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     top: 8px;
     right: 10px;
     font-family: var(--font-mono);
-    font-size: 9.5px;
+    font-size: 10px;
     letter-spacing: 0.14em;
     padding: 3px 8px;
     border: 1px solid var(--hair);

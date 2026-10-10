@@ -29,7 +29,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
   data-tags={JSON.stringify(m.tags ?? [])}
   data-time={m.createTime}
 >
-  <div class="flex flex-wrap gap-3 items-baseline font-mono text-[11px] tracking-[0.1em] text-[var(--faint)] mb-2.5">
+  <div class="flex flex-wrap gap-3 items-baseline font-mono text-[10.5px] tracking-[0.1em] text-[var(--faint)] mb-2.5">
     <span class="text-[var(--accent)] moment-no">{no}</span>
     <span>{m.date}</span>
     {
@@ -56,7 +56,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
                 <div class="aspect-square overflow-hidden bg-[var(--panel)] img-ph img-ph--memo">
                   <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
                 </div>
-                <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[9px] tracking-[0.06em] text-[var(--faint)]">
+                <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[10px] tracking-[0.06em] text-[var(--faint)]">
                   <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
                 </figcaption>
               </figure>
@@ -87,7 +87,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
                   class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
                 />
               </div>
-              <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[9px] tracking-[0.06em] text-[var(--faint)]">
+              <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[10px] tracking-[0.06em] text-[var(--faint)]">
                 <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
               </figcaption>
             </figure>
@@ -105,11 +105,11 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
             <video src={f.url} controls preload="metadata" class="w-full max-h-[420px] border border-[var(--hair)] bg-[var(--panel)]"></video>
           ) : f.type === 'audio' ? (
             <div class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2">
-              <span class="shrink-0 font-mono text-[9px] tracking-[0.06em] text-[var(--accent)]">AUDIO</span>
+              <span class="shrink-0 font-mono text-[10px] tracking-[0.06em] text-[var(--accent)]">AUDIO</span>
               <audio src={f.url} controls preload="metadata" class="w-full min-w-0"></audio>
             </div>
           ) : (
-            <a href={f.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2 font-mono text-[11px] tracking-[0.06em] text-[var(--accent)] transition-colors hover:border-[var(--accent)]">
+            <a href={f.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2 font-mono text-[11.5px] tracking-[0.06em] text-[var(--accent)] transition-colors hover:border-[var(--accent)]">
               <span class="shrink-0 text-[var(--faint)]">FILE</span>
               <span class="truncate">{f.filename}</span>
             </a>
@@ -121,7 +121,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
 
   {
     m.isLong && (
-      <button type="button" class="memo-toggle font-mono text-[11px] tracking-[0.12em] text-[var(--accent)] mt-2.5" data-toggle>
+      <button type="button" class="memo-toggle font-mono text-[11.5px] tracking-[0.12em] text-[var(--accent)] mt-2.5" data-toggle>
         {i18n.moments.expand}
       </button>
     )

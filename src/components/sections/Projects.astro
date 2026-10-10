@@ -63,7 +63,7 @@ const projects = projectsConfig.enabled ? await getProjects() : [];
 
     </div>
 
-    <div class="flex justify-between items-center mt-4 font-mono text-[11px] tracking-[0.12em] text-[var(--soft)] reveal">
+    <div class="flex justify-between items-center mt-4 font-mono text-[11.5px] tracking-[0.12em] text-[var(--soft)] reveal">
       <span>{i18n.projects.total.replace('{n}', String(projects?.length ?? 0))}</span>
       <a
         href={projectsConfig.github}

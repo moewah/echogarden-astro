@@ -28,7 +28,7 @@ const displayUrl = (url: string) =>
             rel={link.external ? 'noopener' : undefined}
             class="group flex items-baseline py-5 border-b border-[var(--hair)]"
           >
-            <span class="font-mono text-[13px] text-[var(--accent)] font-semibold min-w-[44px] transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">
+            <span class="font-mono text-[12px] tracking-[0.1em] text-[var(--accent)] font-semibold min-w-[44px] transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">
               {String(i + 1).padStart(3, '0')}
             </span>
             <Icon
@@ -37,7 +37,7 @@ const displayUrl = (url: string) =>
             />
             <span class="font-mono text-[15px] font-medium tracking-[0.08em] uppercase whitespace-nowrap">{link.name}</span>
             <span class="flex-1 mx-4 border-b border-dotted border-[var(--faint)] translate-y-[-4px]"></span>
-            <span class="font-mono text-[11px] text-[var(--faint)] transition-colors group-hover:text-[var(--accent)]">
+            <span class="font-mono text-[10.5px] tracking-[0.08em] text-[var(--faint)] transition-colors group-hover:text-[var(--accent)]">
               {displayUrl(link.url)}
             </span>
           </a>

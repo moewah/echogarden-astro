@@ -28,7 +28,7 @@ const artalkVersionStatus = await getArtalkVersionStatus();
       <div id="gb-side" class="flex flex-col gap-6 md:gap-8">
         <div class="border border-[var(--line)] bg-[var(--panel)] reveal">
           <div class="border-b border-[var(--line)] px-5 py-3">
-            <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.rules}</span>
+            <span class="font-mono text-[10.5px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.rules}</span>
           </div>
           <div class="px-5 py-4">
             <p class="text-[13.5px] leading-[1.85] text-[var(--soft)]">{guestbookConfig.notice}</p>
@@ -37,8 +37,8 @@ const artalkVersionStatus = await getArtalkVersionStatus();
 
         <div class="border border-[var(--accent)] bg-[var(--panel)] reveal" style="animation-delay: 80ms">
           <div class="flex justify-between items-center border-b border-[var(--accent)] px-5 py-3">
-            <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--accent)] uppercase">{i18n.guestbook.echo}</span>
-            <span class="font-mono text-[9px] tracking-[0.2em] text-[var(--accent)] opacity-70">◈</span>
+            <span class="font-mono text-[10.5px] tracking-[0.3em] text-[var(--accent)] uppercase">{i18n.guestbook.echo}</span>
+            <span class="font-mono text-[10px] tracking-[0.2em] text-[var(--accent)] opacity-70">◈</span>
           </div>
           <div class="px-5 py-4">
             <p class="text-[13.5px] leading-[1.85] text-[var(--soft)]">{guestbookConfig.echo}</p>
@@ -48,8 +48,8 @@ const artalkVersionStatus = await getArtalkVersionStatus();
 
       <div class="md:col-start-2 border border-[var(--line)] outline outline-1 outline-[var(--hair)] outline-offset-[5px] bg-[var(--panel)]">
         <div class="flex justify-between items-center px-6 py-3.5 border-b border-[var(--line)]">
-          <span class="font-mono text-[11px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.filing}</span>
-          <span class="font-mono text-[11px] text-[var(--accent)]">{i18n.guestbook.form}</span>
+          <span class="font-mono text-[10.5px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.filing}</span>
+          <span class="font-mono text-[10.5px] text-[var(--accent)]">{i18n.guestbook.form}</span>
         </div>
 
         <div class="p-6">
@@ -63,7 +63,7 @@ const artalkVersionStatus = await getArtalkVersionStatus();
                   : artalkVersionStatus === 'unavailable'
                     ? i18n.guestbook.versionCheckFailed
                     : i18n.guestbook.disabled}
-                <span class="block mt-2.5 font-mono text-[11px] tracking-[0.12em] text-[var(--faint)]">{i18n.guestbook.disabledVer.replace('{n}', artalkConfig.version)}</span>
+                <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.guestbook.disabledVer.replace('{n}', artalkConfig.version)}</span>
               </p>
             )
           }

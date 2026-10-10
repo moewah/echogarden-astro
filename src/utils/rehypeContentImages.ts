@@ -18,7 +18,7 @@ type ElementNode = {
   value?: string;
 };
 
-const captionClass = 'block w-full border-t border-[var(--hair)] bg-[var(--panel)] px-3 py-2 text-left font-mono text-[11px] tracking-[0.06em] leading-[1.7] text-[var(--faint)]';
+const captionClass = 'block w-full border-t border-[var(--hair)] bg-[var(--panel)] px-3 py-2 text-left font-mono text-[10.5px] tracking-[0.06em] leading-[1.7] text-[var(--faint)]';
 
 export function contentImagesHastPlugin() {
   return {
