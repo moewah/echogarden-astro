@@ -14,22 +14,22 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/markdown-satteri": "^0.3.5",
-    "@astrojs/node": "^11.0.3",
-    "astro": "7.2.0",
+    "@astrojs/markdown-satteri": "^0.4.3",
+    "@astrojs/node": "^11.1.7",
+    "astro": "7.3.8",
     "hast-util-to-html": "^9.0.5",
-    "marked": "^18.0.9",
-    "shiki": "^4.4.3"
+    "marked": "^18.1.0",
+    "shiki": "^4.5.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@tailwindcss/vite": "^4.0.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.5",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^6.0.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   },
   "license": "MIT",
   "repository": {

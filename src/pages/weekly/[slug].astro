@@ -1454,7 +1454,9 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
         void shareWithSystem();
         return;
       }
-      setMenuState(menu.hidden);
+      // setMenuState 的入参是「目标展开态」，而按钮点击的目标态 = 当前隐藏态；
+      // hidden 在 TS 6 的 DOM 类型里是 boolean | "until-found"，两者都算隐藏
+      setMenuState(menu.hidden !== false);
     });
 
     menu?.querySelectorAll<HTMLButtonElement>('[data-share-channel]').forEach((channelButton) => {
