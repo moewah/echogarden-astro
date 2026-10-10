@@ -57,12 +57,16 @@ const weeklyTotal = allPosts.length;
           ))}
         </div>
 
-        <a
-          href="/weekly/"
-          class="mt-6 inline-block border-b border-[var(--accent)] pb-1 font-mono text-[11.5px] tracking-[0.14em] text-[var(--accent)]"
-        >
-          {i18n.weekly.all.replace('{n}', String(weeklyTotal))}
-        </a>
+        {/* 尾部入口贴右：与 Highlights 的「全部影辑」同一形态（flex justify-end 包一层，
+            链接自己不背 mt-6 / inline-block——flex 子项不需要 inline-block）。 */}
+        <div class="flex justify-end mt-6">
+          <a
+            href="/weekly/"
+            class="font-mono text-[11.5px] tracking-[0.14em] text-[var(--accent)] border-b border-[var(--accent)] pb-1"
+          >
+            {i18n.weekly.all.replace('{n}', String(weeklyTotal))}
+          </a>
+        </div>
       </div>
     </section>
   )
