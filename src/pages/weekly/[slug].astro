@@ -1268,13 +1268,13 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
       dirToggle.addEventListener('click', () => {
         trackTocClick('panel-open');
         dirList.innerHTML = '';
-        tocItems.forEach(({ link, heading }, index) => {
+        tocItems.forEach(({ link, heading }) => {
           const li = document.createElement('li');
           li.className = 'weekly-dir-item';
           if (link.hasAttribute('aria-current')) li.classList.add('is-current');
           const a = document.createElement('a');
           a.href = link.getAttribute('href') || `#${heading.id}`;
-          a.textContent = `${String(index + 1).padStart(2, '0')} · ${link.getAttribute('aria-label') || ''}`;
+          a.textContent = link.getAttribute('aria-label') || '';
           a.dataset.level = link.dataset.level || '';
           li.append(a);
           dirList.append(li);
