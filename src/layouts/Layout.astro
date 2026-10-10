@@ -330,11 +330,17 @@ const jsonLd = {
         <div class="flex-1 flex items-center justify-end gap-2.5">
           <slot name="topbar-extra" />
           <ThemeToggle />
-          <button id="menu-toggle" type="button" aria-label={i18n.menu} aria-expanded="false" class="md:hidden w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-all hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-[1px]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="w-[15px] h-[15px]">
+          {/* 汉堡 ↔ 关闭：图标切换由 aria-expanded 驱动（JS 已经在维护它），
+              不另开一份 JS 状态——否则两处状态一旦不同步，图标就会骗人。 */}
+          <button id="menu-toggle" type="button" aria-label={i18n.menu} aria-expanded="false" class="group md:hidden w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-all hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-[1px]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="group-aria-expanded:hidden w-[15px] h-[15px]">
               <path d="M4 7h16"></path>
               <path d="M4 12h16"></path>
               <path d="M4 17h16"></path>
+            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="hidden group-aria-expanded:block w-[15px] h-[15px]">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6l-12 12"></path>
             </svg>
           </button>
         </div>
