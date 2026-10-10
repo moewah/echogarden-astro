@@ -256,9 +256,9 @@ img.is-broken {
   color: var(--ink);
   font-weight: 600;
 }
-:is(.markdown-body, .album-body) em {
-  color: var(--ink);
-}
+/* 斜体不改颜色：强调靠字形（italic），颜色随正文——正文容器是 --soft。
+   曾经写过 em { color: var(--ink) }，那会让斜体比同一段正文更重，读起来像另一种层级；
+   要升级到 --ink 的只有 strong / b（见上）。 */
 /* 正文链接：线走全站同一根发丝线（--hair），悬停才升级为 accent。
    静止态满饱和会把每条链接画成比全站分隔线重 5 倍的实心杆，正文里抢 accent 的指认职能。
    偏移 0.3em：浏览器语义是「线下沿距基线 = 偏移值」，而本项目的字体内容区在基线下只有 2px（下行极限），
