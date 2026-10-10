@@ -24,7 +24,7 @@ export { rssConfig } from './rssConfig'; // 站点自身 RSS 配置
 export { analyticsConfig } from './analyticsConfig'; // GA + Umami 统计配置
 
 // —— 阅读增强 ——
-export { readingConfig } from './readingConfig'; // 阅读增强：周刊/影辑详情页沉浸阅读（背景原始态）
+export { readingConfig } from './readingConfig'; // 阅读增强：周刊/影辑详情页与动态页沉浸阅读（背景原始态）
 
 // —— 外部链接处理 ——
 export { externalLinksConfig } from './externalLinksConfig'; // 外链 rel / target 统一处理
