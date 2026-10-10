@@ -913,7 +913,7 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
       display: none;
     }
   }
-  .weekly-reading-body :is(h2, h3, h4) {
+  .weekly-reading-body :is(h2, h3, h4, h5, h6) {
     scroll-margin-top: 100px;
   }
   .weekly-rss-mark {
@@ -1025,11 +1025,23 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
   .weekly-toc-link[data-level='h4'] .weekly-toc-bar {
     opacity: 0.55;
   }
+  .weekly-toc-link[data-level='h5'] .weekly-toc-bar {
+    opacity: 0.42;
+  }
+  .weekly-toc-link[data-level='h6'] .weekly-toc-bar {
+    opacity: 0.32;
+  }
   .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h3'] .weekly-toc-bar {
     opacity: 0.82;
   }
   .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h4'] .weekly-toc-bar {
     opacity: 0.7;
+  }
+  .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h5'] .weekly-toc-bar {
+    opacity: 0.62;
+  }
+  .weekly-toc[data-state='hover'] .weekly-toc-link[data-level='h6'] .weekly-toc-bar {
+    opacity: 0.55;
   }
   .weekly-toc-link[data-hovered='true'] .weekly-toc-bar {
     background: var(--accent);
@@ -1074,7 +1086,9 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
   .weekly-toc-link[data-hovered='true'][data-level='h3'] .weekly-toc-label {
     font-weight: 500;
   }
-  .weekly-toc-link[data-hovered='true'][data-level='h4'] .weekly-toc-label {
+  .weekly-toc-link[data-hovered='true'][data-level='h4'] .weekly-toc-label,
+  .weekly-toc-link[data-hovered='true'][data-level='h5'] .weekly-toc-label,
+  .weekly-toc-link[data-hovered='true'][data-level='h6'] .weekly-toc-label {
     font-weight: 400;
   }
   @media (min-width: 1024px) {
@@ -1105,7 +1119,7 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
   const weeklyToc = document.querySelector<HTMLElement>('.weekly-toc');
   const weeklyTocInner = weeklyToc?.querySelector<HTMLElement>('.weekly-toc-inner');
   const weeklyTocList = weeklyToc?.querySelector<HTMLOListElement>('.weekly-toc-list');
-  const weeklyHeadings = weeklyBody ? [...weeklyBody.querySelectorAll<HTMLElement>('h2, h3, h4')] : [];
+  const weeklyHeadings = weeklyBody ? [...weeklyBody.querySelectorAll<HTMLElement>('h2, h3, h4, h5, h6')] : [];
 
   if (weeklyToc && weeklyTocList && weeklyHeadings.length > 0) {
     const tocItems = weeklyHeadings.map((heading, index) => {
