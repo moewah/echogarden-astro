@@ -14,6 +14,13 @@
   --accent: #2e4fa3;
   --line: rgba(29, 31, 33, 0.8);
   --hair: rgba(29, 31, 33, 0.14);
+
+  /* ── 排版尺度（唯一事实）：Markdown 正文与动态卡片共用一条比例表 ──
+     --type-scale 是比例表标定时的尺度（改版前的正文 16px），标题由它乘比值派生、
+     不继承正文——所以改正文不会挪动标题，同一套标题规则也服务所有上下文。
+     --type-body 是正文实际字号。紧凑档（动态卡片）只换这两个锚点，比例表不动。 */
+  --type-scale: 16px;
+  --type-body: 15px;
 }
 
 [data-theme='dark'] {
@@ -188,8 +195,12 @@ img.is-broken {
   --ph-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3Cpath d='M8 13h8M8 17h8'/%3E%3C/svg%3E");
 }
 
-/* ── Markdown 正文：动态 memo 与周刊共用结构化样式 ───────── */
+/* ── Markdown 正文：动态 memo 与周刊/影辑共用结构化样式 ─────
+   字号全部从 :root 的排版尺度派生，本块不写绝对值：
+   正文取 --type-body，标题取 --type-scale × 1.6 / 1.4565 / 1.3258 / 1.207 / 1.0988 / 1。
+   标题不继承正文，所以同一套规则服务所有上下文，不需按页面分叉。 */
 :is(.markdown-body, .album-body) {
+  font-size: var(--type-body);
   color: var(--soft);
   line-height: 1.9;
 }
@@ -199,28 +210,43 @@ img.is-broken {
 :is(.markdown-body, .album-body) h1,
 :is(.markdown-body, .album-body) h2,
 :is(.markdown-body, .album-body) h3,
-:is(.markdown-body, .album-body) h4 {
+:is(.markdown-body, .album-body) h4,
+:is(.markdown-body, .album-body) h5,
+:is(.markdown-body, .album-body) h6 {
   color: var(--ink);
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: 0.02em;
   margin-bottom: 0.4em;
 }
+/* 标题梯度：以 h1 为基线、六级等比（作者定，2026-10-10）——
+   h1 = 1.6 × scale = 25.6px，h6 = 1.0 × scale = 16px，中间四级逐级 × (1.0/1.6)^(1/5) = 0.9103：
+   1.6 / 1.4565 / 1.3258 / 1.207 / 1.0988 / 1 → 25.6 / 23.3 / 21.21 / 19.31 / 17.58 / 16px。
+   比值写成数值而非 pow()：CSS 幂函数支持面窄，不支持时会静默退回继承。
+   两级标题同为 0.9103 的等比，所以 h6（= scale = 16px）天然高于正文 15px，符合「标题不得小于正文」。 */
 :is(.markdown-body, .album-body) h1 {
-  font-size: 1.6em;
+  font-size: calc(var(--type-scale) * 1.6);
   margin-top: 1.8em;
 }
 :is(.markdown-body, .album-body) h2 {
-  font-size: 1.33em;
+  font-size: calc(var(--type-scale) * 1.4565);
   margin-top: 2.2em;
 }
 :is(.markdown-body, .album-body) h3 {
-  font-size: 1.1em;
+  font-size: calc(var(--type-scale) * 1.3258);
   margin-top: 1.8em;
 }
 :is(.markdown-body, .album-body) h4 {
-  font-size: 1em;
+  font-size: calc(var(--type-scale) * 1.207);
   margin-top: 1.45em;
+}
+:is(.markdown-body, .album-body) h5 {
+  font-size: calc(var(--type-scale) * 1.0988);
+  margin-top: 1.35em;
+}
+:is(.markdown-body, .album-body) h6 {
+  font-size: var(--type-scale);
+  margin-top: 1.3em;
 }
 :is(.markdown-body, .album-body) p {
   margin: 1.1em 0;
@@ -272,11 +298,23 @@ img.is-broken {
   margin: 0 0.5em 0 0;
   accent-color: var(--accent);
 }
-:is(.markdown-body, .album-body) blockquote {
+/* 引文形态（唯一事实）：正文 blockquote 与周刊详情的引言共用一套——
+   两处角色相同（都是「被引出的那一段」），所以竖线 / 缩进 / 字号必须同源，
+   以前一处在 global.css、一处在页面内联，尺寸已经走岔（15px/16.5px vs 14px/20px）。
+   字号取 --type-body（= 与正文同号，作者定）；紧凑档（动态卡片）的 --type-body 是 13.5px，
+   变量作用域自动取它自己的档位，不需另写一套。
+   上下间距不属于形态，留在各自语境：正文引文用 blockquote 自己的 0.6em，
+   页面级引言由页面的节奏类（mt-7 等）决定。 */
+:is(.markdown-body, .album-body) blockquote,
+.quote-lead {
   border-left: 2px solid var(--accent);
-  padding-left: 1.1em;
-  margin: 0.6em 0;
+  padding-left: 1.4em;
+  font-size: var(--type-body);
+  line-height: 1.9;
   color: var(--soft);
+}
+:is(.markdown-body, .album-body) blockquote {
+  margin: 0.6em 0;
 }
 :is(.markdown-body, .album-body) hr {
   border: none;

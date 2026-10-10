@@ -40,7 +40,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
   </div>
 
   <div
-    class={`markdown-body memo-content text-[13.5px] leading-[1.85] text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
+    class={`markdown-body memo-content leading-[1.85] text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
     set:html={m.content}
   ></div>
 
@@ -174,6 +174,13 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
 </style>
 
 <style is:global>
+  /* 紧凑档：只换排版尺度锚点，比例表（六级等比）不动——正文 13.5px，
+     标题按同一组比值取 21.6 / 19.66 / 17.9 / 16.29 / 14.83 / 13.5px。
+     字号属于排版系统，由这里声明而不是组件模板里的工具类。 */
+  .memo-content {
+    --type-scale: 13.5px;
+    --type-body: 13.5px;
+  }
   .memo-content.memo-collapsed {
     display: -webkit-box;
     -webkit-box-orient: vertical;
