@@ -45,7 +45,7 @@ function newest(dates: string[]): string | undefined {
  * 整站共用一个构建日会让每次重建都把全部 URL 刷成当天，爬虫会判定该字段不可信
  * 从而整站忽略它（那等于没有）。首页是多个板块拼出来的、构建即重排，动态页内容由运行时
  * 增量刷新改写，留言板内容不在构建里——这三处用构建日兜底；影辑不拿照片级 time 再立一套
- * 规则，沿用 AlbumList / albums.ts 的既有口径（专辑日期只看 `date`，缺了就是没日期）。
+ * 规则，沿用 AlbumList / albums.ts 的既有口径（专辑日期只看 `date`，且该字段必填）。
  */
 export const GET: APIRoute = async () => {
   const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
@@ -55,7 +55,7 @@ export const GET: APIRoute = async () => {
   const albums = albumsConfig.enabled ? await getCollection('albums') : [];
 
   const postLastmods = posts.map((post) => isoDate(post.data.updated ?? post.data.date));
-  const albumLastmods = albums.map((album) => (album.data.date ? isoDate(album.data.date) : today));
+  const albumLastmods = albums.map((album) => isoDate(album.data.date));
 
   const urls: SitemapUrl[] = [
     { loc: `${siteUrl}`, priority: 1.0, changefreq: 'weekly', lastmod: today },

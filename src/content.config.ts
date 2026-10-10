@@ -9,6 +9,8 @@ import { glob } from 'astro/loaders';
 
 // 影辑：一个 md = 一个专辑，frontmatter 装 photos 数组。
 // 照片仅 title + src 必填，其余元数据可选，模板按行渲染（不填不占位）。
+// 日期（date）必填：索引页排序与 sitemap 的 lastmod 都依赖它，缺了会让该专辑页与
+// /photos/ 列表页的 lastmod 一起退化成构建日（每次重建都变），故不设可选。
 // src 双态：本地图（相对本 md 的路径，建议放同名单专辑目录）走构建压缩（siteConfig.images）；
 // 远程 URL 字符串原样引用，不下载不压缩。
 // 作者可选：照片级 → 专辑级 → 站点主人（siteConfig.profile.name）逐级回退，必有值。
@@ -20,7 +22,7 @@ const albums = defineCollection({
       title: z.string(),
       description: z.string().optional(),
       author: z.string().optional(),
-      date: z.coerce.date().optional(),
+      date: z.coerce.date(),
       tags: z.array(z.string()).optional(),
       photos: z
         .array(

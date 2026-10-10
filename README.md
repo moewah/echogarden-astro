@@ -144,7 +144,7 @@ server {
 | 内容 | 位置 | frontmatter 必填 |
 |---|---|---|
 | 周刊 | `src/content/weekly/{年月}-{slug}.md` | `title` / `issue` / `description` / `slug` / `cover` / `date` |
-| 影辑 | `src/content/albums/{slug}.md` | `title` + `photos[]`（每张照片 `title` + `src`） |
+| 影辑 | `src/content/albums/{slug}.md` | `title` / `date` + `photos[]`（每张照片 `title` + `src`） |
 
 示例文件内置了三种 frontmatter 形态（照抄即可）：
 

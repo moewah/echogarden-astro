@@ -54,7 +54,7 @@ const imageJsonLd = {
   name: title,
   description: description ?? siteConfig.site.description,
   contentUrl: ogImg,
-  datePublished: date ? new Date(date).toISOString().split('T')[0] : undefined,
+  datePublished: new Date(date).toISOString().split('T')[0],
   author: { '@id': personId },
   publisher: { '@id': websiteId },
 };
@@ -63,7 +63,7 @@ const imageJsonLd = {
 const tagline = [
   code,
   albumAuthor(album),
-  date ? formatDate(date) : null,
+  formatDate(date),
   i18n.photos.count.replace('{n}', String(photos.length)),
 ]
   .filter(Boolean)

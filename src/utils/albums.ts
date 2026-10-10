@@ -18,14 +18,14 @@ export function photoAuthor(photo: AlbumPhoto, album: Album): string {
   return photo.author ?? albumAuthor(album);
 }
 
-// 索引排序：date 倒序（无日期视为最旧），misc 散记固定置底
+// 索引排序：date 倒序（必填字段，无缺省分支），misc 散记固定置底
 export async function getSortedAlbums(): Promise<Album[]> {
   const albums = await getCollection('albums');
   return albums.sort((a, b) => {
     if (a.id === 'misc') return 1;
     if (b.id === 'misc') return -1;
-    const ta = a.data.date?.getTime() ?? 0;
-    const tb = b.data.date?.getTime() ?? 0;
+    const ta = a.data.date.getTime();
+    const tb = b.data.date.getTime();
     return tb - ta;
   });
 }
