@@ -97,26 +97,6 @@ body::after {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-
-  /* 断行纪律：标题末行孤字由浏览器重排均衡；正文长段 pretty 避免孤词。
-     两者都是浏览器渐进增强，不支持时回落原始断行，无副作用 */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    text-wrap: balance;
-  }
-  /* 截断区（line-clamp）不参与均衡：均衡为求两行等长会让首行提前收尾，
-     而中文可在任意两字间断行，结果切开语义单元（依赖 → 零依/赖，2026-10-10
-     作者截图）。截断区已有行数上限，不存在孤字问题，贪心填满首行更整齐 */
-  :is(.line-clamp-1, .line-clamp-2, .line-clamp-3, .line-clamp-4, .line-clamp-5, .line-clamp-6) {
-    text-wrap: wrap;
-  }
-  :is(.markdown-body, .album-body) p {
-    text-wrap: pretty;
-  }
 }
 
 /* 默认可见，保证禁用 JavaScript 时静态内容仍可读；JS 开启后再启用入场动画。 */
