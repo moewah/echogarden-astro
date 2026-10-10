@@ -8,7 +8,7 @@ import EmptyState from '@components/EmptyState.astro';
 import { remoteBlogConfig, type RemotePost } from '@config/index';
 import { i18n } from '@i18n';
 import { sectionNo } from '@/utils/sections';
-import { fetchRemotePosts } from '@/utils/remoteBlog';
+import { fetchRemotePosts, barcodeRects } from '@/utils/remoteBlog';
 
 // 外部博客 RSS 板块：独立开关(remoteBlogConfig.enabled)，与本地周刊并存互不干扰。
 // 拉取失败返回 null → 板块降级空态（方案 B，无兜底数据）。
@@ -20,6 +20,8 @@ const posts: RemotePost[] | null = remoteBlogConfig.enabled
 const initialIdx = new Set(
   (posts ?? []).map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, 4)
 );
+// 条码封签下的来源域名（从 config 取，不硬编码）
+const remoteBlogDomain = new URL(remoteBlogConfig.url).host;
 ---
 
 {
@@ -28,35 +30,51 @@ const initialIdx = new Set(
       <div class="wrap">
         <SecHead no={sectionNo.remoteBlog} title={i18n.sections.remoteBlog.title} en={i18n.sections.remoteBlog.en} />
 
+        <!-- 卡高构成：摘要 line-clamp-3 + min-h-[3lh] 钉 3 行保留区，
+             保留空行与卡底剩余空间连成一片，读作文字下方的空当；标题不配保留区（那会把空当
+             嵌进摘要顶部）。卡下限 256px = pt20 + meta16 + mb14 + 标题2行52.8 + mt10 +
+             摘要3行72.2 + 封签51.5 + pb16——盖住最坏构图后全版跨排等高；字号或行高改动需同步重算 -->
         <div id="remote-blog-grid" class="grid md:grid-cols-2 gap-[clamp(16px,2.5vw,28px)] reveal">
           {posts === null ? (
             <div class="md:col-span-2">
               <EmptyState text={i18n.remoteBlog.loadFailed} />
             </div>
           ) : (
-          posts.map((post, idx) => (
+          posts.map((post, idx) => {
+            const barcode = barcodeRects(post.code);
+            return (
             <a
               href={post.url}
               target="_blank"
               rel="noopener"
-              class="post-card group flex flex-col bg-[var(--panel)] border border-[var(--line)] transition-all duration-250 hover:border-[var(--accent)] hover:-translate-y-1"
+              class="post-card group flex flex-col min-h-[256px] bg-[var(--panel)] border border-[var(--line)] px-5 pt-5 pb-4 transition-all duration-250 hover:border-[var(--accent)] hover:-translate-y-1"
               data-post
               style={initialIdx.has(idx) ? undefined : 'display:none'}
             >
-              <div class="flex justify-between items-center border-b border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)]">
-                <span>{post.code}</span>
-                <span class="text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors">↗</span>
-              </div>
-              <div class="px-[18px] pt-5 pb-[22px] flex-1 md:min-h-[180px]">
-                <h3 class="text-[16.5px] font-semibold leading-[1.65] line-clamp-2">{post.title}</h3>
-                <p class="mt-2.5 text-[13px] leading-[1.85] text-[var(--soft)] line-clamp-3 min-h-[3lh]">{post.description}</p>
-              </div>
-              <div class="flex justify-between border-t border-dashed border-[var(--hair)] px-[18px] py-2.5 font-mono text-[10.5px] text-[var(--faint)] group-hover:text-[var(--accent)] transition-colors">
+              <div class="flex justify-between items-baseline font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)] mb-3.5">
+                <span class="text-[var(--accent)] font-semibold px-1 -ml-1 transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--bg)]">{post.code}</span>
                 <span>{post.date}</span>
-                <span>{i18n.remoteBlog.read}</span>
+              </div>
+              <h3 class="text-[16px] font-medium leading-[1.65] line-clamp-2 transition-colors group-hover:text-[var(--accent)]">
+                {post.title}
+                <span class="text-[11px] text-[var(--faint)] ml-1.5 transition-colors group-hover:text-[var(--accent)]" aria-hidden="true">↗</span>
+              </h3>
+              <p class="mt-2.5 text-[13px] leading-[1.85] text-[var(--soft)] line-clamp-3 min-h-[3lh]">{post.description}</p>
+              <div class="mt-auto pt-[18px] flex items-end justify-between gap-3">
+                <span class="font-mono text-[10px] tracking-[0.14em] text-[var(--faint)] transition-colors group-hover:text-[var(--accent)]" aria-hidden="true">{i18n.remoteBlog.read}</span>
+                <div class="flex flex-col items-end gap-1">
+                  <!-- 封签定尺 72×16：viewBox 宽随编号变（实测 30-34），默认 xMidYMid meet 会
+                       按 1:1 绘制、居中于 72px 框——条码便随编号漂宽且不与域名齐右；
+                       preserveAspectRatio="none" 让码面恒占满 72×16 -->
+                  <svg class="barcode" viewBox={`0 0 ${barcode.width} 16`} width="72" height="16" preserveAspectRatio="none" aria-hidden="true">
+                    {barcode.rects.map((r) => <rect x={r.x} y="0" width={r.w} height="16"></rect>)}
+                  </svg>
+                  <span class="font-mono text-[9px] tracking-[0.08em] text-[var(--faint)]">{remoteBlogDomain}</span>
+                </div>
               </div>
             </a>
-          ))
+            );
+          })
           )}
         </div>
 
@@ -66,7 +84,7 @@ const initialIdx = new Set(
               <button
                 type="button"
                 id="remote-blog-shuffle"
-                class="font-mono text-[11px] tracking-[0.14em] text-[var(--accent)] border border-[var(--accent)] px-4 py-2 transition-colors hover:bg-[var(--accent)] hover:text-[var(--bg)]"
+                class="font-mono text-[11px] tracking-[0.14em] text-[var(--accent)] border border-[var(--accent)] px-4 py-2 transition-all hover:bg-[var(--accent)] hover:text-[var(--bg)] active:translate-y-[1px]"
               >
                 {i18n.remoteBlog.shuffle}
               </button>
@@ -100,3 +118,14 @@ const initialIdx = new Set(
     shuffleBtn.style.display = 'none';
   }
 </script>
+
+<style>
+  /* 条码封签：faint 静默，卡片悬停时随编号一起升 accent（BARCODE 器件的状态语言） */
+  .barcode rect {
+    fill: var(--faint);
+    transition: fill 0.2s;
+  }
+  .post-card:hover .barcode rect {
+    fill: var(--accent);
+  }
+</style>

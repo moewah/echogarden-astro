@@ -54,7 +54,7 @@ export const zh = {
   sections: {
     about: { title: '关于我', en: 'Registration Card' },
     photos: { title: '高光定格', en: 'Exhibit — Selected Prints' },
-    remoteBlog: { title: '近期文章', en: 'Recent Posts' },
+    remoteBlog: { title: '近期文章', en: 'Barcode — Periodical' },
     weekly: { title: '近期周刊', en: 'Latest Weekly' },
     weeklyPage: { title: '周刊', en: 'Weekly — Dispatches' },
     projects: { title: '项目展示', en: 'Ledger — GitHub' },

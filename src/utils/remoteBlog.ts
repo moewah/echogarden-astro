@@ -52,7 +52,7 @@ function extractTag(block: string, tag: string): string {
   return m ? decodeEntities(m[1].trim()) : '';
 }
 
-/** "Fri, 07 Aug 2026 00:00:00 GMT" → "2026-08-07"，避免时区偏移 */
+/** "Fri, 07 Aug 2026 00:00:00 GMT" → "2026.08.07"，避免时区偏移，与周刊元数据格式统一 */
 function formatDate(pubDate: string): string {
   const m = pubDate.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
   if (!m) return '';
@@ -62,7 +62,22 @@ function formatDate(pubDate: string): string {
   };
   const mon = months[m[2]];
   if (!mon) return '';
-  return `${m[3]}-${mon}-${m[1].padStart(2, '0')}`;
+  return `${m[3]}.${mon}.${m[1].padStart(2, '0')}`;
+}
+
+/** 条码封签：按编号字符码点生成条宽序列（构建期纯计算，无运行时）。每字符产出一对「条 + 隙」，非奇偶位交替。
+   归属 BARCODE 器件（AGENTS §2.1）：外来刊物入库时贴的封签，由馆藏编号派生——同一编号永远生成同一张码 */
+export function barcodeRects(code: string): { rects: { x: number; w: number }[]; width: number } {
+  const rects: { x: number; w: number }[] = [];
+  let x = 0;
+  for (let i = 0; i < code.length; i++) {
+    const n = code.charCodeAt(i);
+    const bar = 1 + (n % 3);
+    const gap = 1 + (n % 2);
+    rects.push({ x, w: bar });
+    x += bar + gap;
+  }
+  return { rects, width: x };
 }
 
 /** 轻量解析 RSS：只取 title/link/pubDate/description，跳过 content:encoded 全文 */
