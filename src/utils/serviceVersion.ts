@@ -14,11 +14,11 @@ interface VersionResponse {
   version?: unknown;
 }
 
-const exactVersion = (version: string) => {
+/** 解析可比较版本：合法则返回 { major, minor }，否则 null。补丁号与预发布后缀不参与比较。 */
+const parseVersion = (version: string): { major: string; minor: string } | null => {
   const normalized = version.trim().replace(/^v/i, '');
-  return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(normalized)
-    ? normalized
-    : null;
+  const matched = /^(\d+)\.(\d+)(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.exec(normalized);
+  return matched ? { major: matched[1], minor: matched[2] } : null;
 };
 
 /** 只对明确的临时故障重试；配置错误和接口不存在不重复请求。 */
@@ -35,7 +35,7 @@ async function checkServiceVersionOnce(
   expected: string,
   headers?: HeadersInit,
 ): Promise<ServiceVersionStatus> {
-  const required = exactVersion(expected);
+  const required = parseVersion(expected);
   if (!required) return 'unavailable';
 
   let lastFailure = 'unknown';
@@ -56,8 +56,10 @@ async function checkServiceVersionOnce(
           lastFailure = 'invalid-json';
           data = {};
         }
-        const actual = typeof data.version === 'string' ? exactVersion(data.version) : null;
-        if (actual) return actual === required ? 'ready' : 'mismatch';
+        const actual = typeof data.version === 'string' ? parseVersion(data.version) : null;
+        if (actual) {
+          return actual.major === required.major && actual.minor === required.minor ? 'ready' : 'mismatch';
+        }
         lastFailure = 'invalid-version';
       }
     } catch (error) {
@@ -75,7 +77,8 @@ async function checkServiceVersionOnce(
 }
 
 /**
- * 检查外部服务版本：配置锚定完整版本，补丁版本不同也视为不匹配。
+ * 检查外部服务版本：配置锚定主次版本（`0.30` / `2.10`），补丁号与预发布后缀不参与比较——
+ * 锚点 `2.10` 放行 `2.10.1`…`2.10.10`，只拦主次版本漂移（真正的破坏性变更边界）。
  * Memos 与 Artalk 共用此策略：临时故障有限重试，成功/不匹配结果进程内复用，避免多页面重复探测。
  * 仅归一化版本前缀 v；请求失败、响应缺少可比较版本号、版本不匹配均不放行真实内容。
  */

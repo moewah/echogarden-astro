@@ -45,6 +45,7 @@ export const memosConfig: MemosConfig = {
     // 超过此纯文本字符数的动态默认折叠；0 表示关闭自动折叠（默认）。建议开启时使用 400–800，500 适合手机与桌面兼顾。
     collapseThreshold: 0,
   },
-  // 接口版本锚点：构建期通过 /api/v1/instance/profile 校验；不匹配时动态页显示空态。升级后端 Memos 时同步改这里。
-  version: '0.30.0',
+  // 接口版本锚点：构建期通过 /api/v1/instance/profile 校验；主次版本不符时动态页显示空态。
+  // 只锚定主次版本（`0.31` 放行 0.31.x，拦 0.32+），补丁号不进锚点；升级后端到新的主次版本才改这里。
+  version: '0.31',
 };

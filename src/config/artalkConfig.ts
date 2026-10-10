@@ -8,6 +8,7 @@ export const artalkConfig: Artalk = {
   server: (import.meta.env.ARTALK_SERVER || process.env.ARTALK_SERVER || '').replace(/\/+$/, ''),
   // Artalk 站点名（ARTALK_SITE）：多站点标识，Artalk 后台创建站点时设置，两处一致。
   site: import.meta.env.ARTALK_SITE || process.env.ARTALK_SITE || '',
-  // 接口版本锚点：构建期通过 /api/v2/version 校验；不匹配时评论区显示空态。升级后端 Artalk 时同步改这里。
-  version: '2.10.0',
+  // 接口版本锚点：构建期通过 /api/v2/version 校验；主次版本不符时评论区显示空态。
+  // 只锚定主次版本（`2.10` 放行 2.10.x，拦 2.11+），补丁号不进锚点；升级后端到新的主次版本才改这里。
+  version: '2.10',
 };

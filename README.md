@@ -50,12 +50,12 @@ site: 'https://your-domain.com/',
 
 **③ 环境变量**：复制 `.env.example` 为 `.env`，按需填写（Memos / Artalk / GitHub，均为可选，留空自动降级）。
 
-可选服务版本要求（构建期精确校验，必须与锚点一致，否则板块显示空态）：
+可选服务版本要求（构建期按主次版本校验，主次版本不符才显示空态；同一主次版本的补丁号自动放行）：
 
-| 服务 | 用途 | 要求版本 | 版本锚点（config） |
+| 服务 | 用途 | 要求版本（主次） | 版本锚点（config） |
 |---|---|---|---|
-| Memos | 动态板块 | **= 0.30.0** | `memosConfig.version` |
-| Artalk | 评论板块 | **= 2.10.0** | `artalkConfig.version` |
+| Memos | 动态板块 | **0.31**（放行 `0.31.x`） | `memosConfig.version` |
+| Artalk | 评论板块 | **2.10**（放行 `2.10.x`） | `artalkConfig.version` |
 
 ### 3. 本地预览
 
