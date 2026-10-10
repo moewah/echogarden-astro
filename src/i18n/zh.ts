@@ -142,7 +142,7 @@ export const zh = {
     shareMenuCount: '08',
     shareMenuAria: '分享渠道',
     shareSystem: '系统分享',
-    shareX: 'X',
+    shareX: 'X (Twitter)',
     shareTelegram: 'Telegram',
     shareLinkedIn: 'LinkedIn',
     shareBluesky: 'Bluesky',
