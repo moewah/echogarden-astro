@@ -81,6 +81,14 @@ import { i18n } from '@i18n';
     background: var(--accent);
     color: var(--bg);
   }
+  /* 按压态：下沉 1px（盖章手感）；press 期间用快过渡，抬起后回落交给基础 0.3s 的 transform 过渡 */
+  .back-to-top:active {
+    transform: translateY(1px);
+    transition:
+      transform 0.12s ease,
+      background-color 0.2s,
+      color 0.2s;
+  }
   @media (prefers-reduced-motion: reduce) {
     .back-to-top {
       transition: none;

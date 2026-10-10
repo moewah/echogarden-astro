@@ -102,7 +102,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
         ) : (
           <>
             <div class="flex justify-between items-center font-mono text-[10.5px] tracking-[0.24em] uppercase pb-3 border-b border-[var(--line)]">
-        <span class="text-[var(--faint)]"><span id="memo-count">{memos.length}</span> {i18n.moments.records}</span>
+        <span class="text-[var(--faint)]"><span id="memo-count" class="tabular-nums">{memos.length}</span> {i18n.moments.records}</span>
         <span class="flex items-center gap-3">
           {
             refreshOn && (

@@ -271,7 +271,7 @@ const jsonLd = {
         <nav class="topnav hidden md:flex justify-center items-center gap-2 font-mono text-[11px] tracking-[0.12em]">
           <a
             href="/"
-            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px] active:translate-y-0"
             {...umamiEvent('nav-click', { surface: 'topnav', to: '/' })}
           >
             {i18n.nav.home}
@@ -282,7 +282,7 @@ const jsonLd = {
               <>
                 <a
                   href="/weekly/"
-                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px] active:translate-y-0"
                   {...umamiEvent('nav-click', { surface: 'topnav', to: '/weekly/' })}
                 >
                   {i18n.sections.weeklyPage.title}
@@ -296,7 +296,7 @@ const jsonLd = {
               <>
                 <a
                   href="/photos/"
-                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px] active:translate-y-0"
                   {...umamiEvent('nav-click', { surface: 'topnav', to: '/photos/' })}
                 >
                   {i18n.sections.albums.title}
@@ -310,7 +310,7 @@ const jsonLd = {
               <>
                 <a
                   href="/moments/"
-                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+                  class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px] active:translate-y-0"
                   {...umamiEvent('nav-click', { surface: 'topnav', to: '/moments/' })}
                 >
                   {i18n.sections.moments.title}
@@ -321,7 +321,7 @@ const jsonLd = {
           }
           <a
             href="/guestbook/"
-            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px]"
+            class="h-[34px] inline-flex items-center text-[var(--ink)] font-medium px-2.5 hover:bg-[var(--accent)] hover:text-white transition-all hover:-translate-y-[2px] active:translate-y-0"
             {...umamiEvent('nav-click', { surface: 'topnav', to: '/guestbook/' })}
           >
             {i18n.sections.guestbook.title}
@@ -330,7 +330,7 @@ const jsonLd = {
         <div class="flex-1 flex items-center justify-end gap-2.5">
           <slot name="topbar-extra" />
           <ThemeToggle />
-          <button id="menu-toggle" type="button" aria-label={i18n.menu} aria-expanded="false" class="md:hidden w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
+          <button id="menu-toggle" type="button" aria-label={i18n.menu} aria-expanded="false" class="md:hidden w-[34px] h-[34px] border border-[var(--hair)] bg-transparent text-[var(--ink)] grid place-items-center transition-all hover:border-[var(--accent)] hover:text-[var(--accent)] active:translate-y-[1px]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="w-[15px] h-[15px]">
               <path d="M4 7h16"></path>
               <path d="M4 12h16"></path>
