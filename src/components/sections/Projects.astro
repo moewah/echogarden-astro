@@ -33,7 +33,7 @@ const projects = projectsConfig.enabled ? await getProjects() : [];
             href={p.url}
             target="_blank"
             rel="noopener"
-            class="group block py-[18px] border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px] md:grid md:grid-cols-[96px_1fr_auto] md:gap-[clamp(16px,2.5vw,34px)] md:items-start md:py-5"
+            class="group block py-[18px] border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px] md:grid md:grid-cols-[96px_1fr_auto] md:gap-[clamp(16px,2.5vw,34px)] md:items-baseline md:py-5"
           >
             {/* 元数据：移动端「编号 · 语言 ↗」一行；md 起编号独占左列、语言落在编号下方 */}
             <span class="flex items-baseline gap-2 font-mono text-[10px] tracking-[0.12em] text-[var(--faint)] md:block">
