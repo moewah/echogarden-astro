@@ -63,7 +63,6 @@ export interface Profile {
 
 /** 版权与引用声明 */
 export interface CopyrightNotice {
-  brief: string;
   terms: string;
 }
 

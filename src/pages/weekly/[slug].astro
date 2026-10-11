@@ -7,6 +7,7 @@ import { render } from 'astro:content';
 import Layout from '@layouts/Layout.astro';
 import SecHead from '@components/SecHead.astro';
 import PhotoImg from '@components/PhotoImg.astro';
+import Icon from '@components/Icon.astro';
 import Comments from '@components/Comments.astro';
 import Sponsor from '@components/sections/Sponsor.astro';
 import Notice from '@components/sections/Notice.astro';
@@ -65,8 +66,6 @@ const articleJsonLd = {
   publisher: { '@id': websiteId },
 };
 const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus() : 'unconfigured';
-// 文末引用块的引用行（标题 / 作者 / 原文链接），纯文本不依赖 Markdown，供读者一键复制
-const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
 ---
 
 <Layout title={post.data.title} description={post.data.description} image={ogImg} type="article" mainEntity={{ '@id': articleId }} keywords={post.data.tags}>
@@ -195,44 +194,36 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
             )
           }
 
-          <!-- 文末引用块：作者、标题、原文链接由当前文章动态生成，条款见 siteConfig.copyright；折叠用原生 details，无专属 JS -->
-          <details class="weekly-copyright">
-            <summary class="weekly-copyright-summary">
-              <span class="weekly-copyright-mark" aria-hidden="true"></span>
-              <span>{i18n.weekly.copyrightLabel}</span>
-              {siteConfig.copyright.brief && <span class="weekly-copyright-brief">{siteConfig.copyright.brief}</span>}
-            </summary>
-            <dl class="weekly-copyright-rows">
-              <div class="weekly-copyright-row">
-                <dt>{i18n.weekly.copyrightSource}</dt>
-                <dd><a href={articleUrl}>{articleUrl}</a></dd>
-              </div>
-              <div class="weekly-copyright-row">
-                <dt>{i18n.weekly.copyrightCitation}</dt>
-                <dd class="weekly-copyright-cite">
-                  <span class="weekly-copyright-quote"><span class="weekly-copyright-title">{post.data.title}</span> · {weeklyAuthor(post)} · {articleUrl}</span>
-                  <button
-                    type="button"
-                    class="weekly-copyright-copy"
-                    data-copy-value={citation}
-                    data-copy-label={i18n.weekly.copyrightCopy}
-                    data-copied-label={i18n.weekly.copyrightCopied}
-                    data-failed-label={i18n.weekly.copyrightCopyFailed}
-                  >
-                    <span class="weekly-copyright-copy-label">{i18n.weekly.copyrightCopy}</span>
-                  </button>
-                </dd>
-              </div>
-              {
-                siteConfig.copyright.terms && (
-                  <div class="weekly-copyright-row">
-                    <dt>{i18n.weekly.copyrightTerms}</dt>
-                    <dd>{siteConfig.copyright.terms}</dd>
-                  </div>
-                )
-              }
-            </dl>
-          </details>
+          <!-- 文末版权块：页边批注形态（页面左缘竖标目 + 标签 / 条款 / 元数据三行），常显、无复制按钮。
+               标签文案见 i18n.weekly.copyrightLabel，条款见 siteConfig.copyright.terms；
+               标题 / 作者 / 原文链接由当前文章动态生成；块内不画线、不铺底色，下线交给「上一期 / 下一期」的 --line 收口 -->
+          <div class="weekly-copyright">
+            <!-- CC 水印：640 viewBox 的填充字形（不是线条图标，故不进 Icon.astro），纯装饰 aria-hidden。
+                 viewBox 四周约 11% 留白是字形自带，裁到外圈紧边界会让圆环长到块高、顶到上边 hairline，勿裁 -->
+            <svg class="weekly-copyright-cc" viewBox="0 0 640 640" fill="currentColor" aria-hidden="true">
+              <path
+                d="m317.8 278.9l-33.2 17.3c-9.4-19.6-25.2-19.9-27.5-19.9c-22.1 0-33.2 14.6-33.2 43.8c0 23.6 9.2 43.8 33.2 43.8c14.5 0 24.6-7.1 30.6-21.3l30.6 15.5c-6.2 11.5-25.7 39-65.1 39c-22.6 0-74-10.3-74-77c0-58.7 43-77.1 72.6-77.1c30.7 0 52.7 11.9 66 35.9m143 0L428 296.2c-9.5-19.8-25.7-19.9-27.9-19.9c-22.1 0-33.2 14.6-33.2 43.8c0 23.5 9.2 43.8 33.2 43.8c14.4 0 24.6-7.1 30.5-21.3l31 15.5c-2.1 3.8-21.4 39-65.1 39c-22.7 0-74-9.9-74-77c0-58.7 43-77.1 72.6-77.1c30.7 0 52.6 11.9 65.6 35.9zM319.6 72C176.7 72 72 187.1 72 320.1c0 138.4 113.6 248 247.6 248c129.9 0 248.4-100.9 248.4-248C568 182.2 461.4 72 319.6 72m.9 450.8c-112.5 0-203.7-93-203.7-202.8c0-105.4 85.4-203.3 203.7-203.3c112.5 0 202.8 89.5 202.8 203.3c0 121.7-99.7 202.8-202.8 202.8"
+              ></path>
+            </svg>
+            <span class="weekly-copyright-rail" aria-hidden="true">
+              <span class="weekly-copyright-mark">©</span>
+              <span class="weekly-copyright-rail-label">COPYRIGHT</span>
+            </span>
+            <div class="weekly-copyright-body">
+              <p class="weekly-copyright-label">{i18n.weekly.copyrightLabel}</p>
+              {siteConfig.copyright.terms && <p class="weekly-copyright-notice">{siteConfig.copyright.terms}</p>}
+              <p class="weekly-copyright-meta">
+                <span class="weekly-copyright-fact">
+                  <span><Icon name="user" class="weekly-copyright-icon" />{weeklyAuthor(post)}</span>
+                  <span><Icon name="document" class="weekly-copyright-icon" />{post.data.title}</span>
+                </span>
+                <span class="weekly-copyright-urn">
+                  <Icon name="link" class="weekly-copyright-icon" />
+                  <a href={articleUrl}>{articleUrl}</a>
+                </span>
+              </p>
+            </div>
+          </div>
 
           <!-- 上一期 / 下一期 -->
           <nav class="mx-auto mt-10 grid max-w-[680px] grid-cols-2 items-center gap-3 border-t border-[var(--line)] pt-5 font-mono text-[11.5px] tracking-[0.12em]">
@@ -604,135 +595,162 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
       flex: none;
     }
   }
-  /* 文末引用块：收起态一条 mono，展开为 原文 / 引用 / 条款；折叠与 +− 标记均零 JS */
+  /* 文末版权块 · 页边批注形态：上一条 --hair 当横梁（复用，不新增线条），左侧竖批注线随内容高度收尾，
+     块底不画线——收口交给「上一期 / 下一期」自己的 --line。栅格：48px 标目栏 + 18px 间隙 + 正文栏。
+     块内无底色，水印定位靠容器 position/overflow */
   .weekly-copyright {
+    position: relative;
+    /* 水印按块宽比例收（42cqw），故这里是它的容器查询上下文 */
+    container-type: inline-size;
+    overflow: hidden; /* 水印贴出块框的部分裁掉 */
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 0 18px;
     max-width: 680px;
     margin-top: 40px;
     margin-inline: auto;
-    border-block: 1px solid var(--hair);
-  }
-  .weekly-copyright-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 11px;
-    padding: 13px 0;
-    color: var(--soft);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    list-style: none;
-  }
-  .weekly-copyright-summary::-webkit-details-marker {
-    display: none;
-  }
-  .weekly-copyright-summary:focus-visible {
-    outline: 1px solid var(--accent);
-    outline-offset: 3px;
-  }
-  .weekly-copyright-mark {
-    flex: none;
-    width: 12px;
-    color: var(--accent);
-    font-size: 12px;
-    line-height: 1;
-    text-align: center;
-  }
-  .weekly-copyright-mark::after {
-    content: '+';
-  }
-  .weekly-copyright[open] .weekly-copyright-mark::after {
-    content: '−';
-  }
-  .weekly-copyright-brief {
-    margin-right: 13px;
-    margin-left: auto;
-    color: var(--faint);
-  }
-  .weekly-copyright-rows {
-    margin: 0;
-    padding-bottom: 16px;
-  }
-  .weekly-copyright-row {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    align-items: baseline;
-    gap: 4px 18px;
-    padding: 8px 0;
-  }
-  .weekly-copyright-row + .weekly-copyright-row {
     border-top: 1px solid var(--hair);
   }
-  .weekly-copyright-row dt {
-    color: var(--faint);
+  /* 水印尺寸跟容器高度走：min(240px, 容器高, 块宽 42%)，方块比由 aspect-ratio 锁定——
+     块矮或变高时圆环跟着收放，不会像「height + max-width」那样被压成椭圆；
+     42cqw 是窄屏防线（350px 块 → 147px），cqw 约定同 Hero 标题。
+     颜色用 --ink 5%：水印要低于内容层，不抢读 */
+  .weekly-copyright-cc {
+    position: absolute;
+    top: 50%;
+    right: clamp(12px, 3vw, 24px);
+    transform: translateY(-50%);
+    height: min(240px, 100%, 42cqw);
+    aspect-ratio: 1;
+    width: auto;
+    color: color-mix(in srgb, var(--ink) 5%, transparent);
+    pointer-events: none;
+  }
+  /* 正文压在水印之上：SVG 是定位元素（DOM 在前），标目栏与正文栏同样定位，绘制顺序就落在它之后 */
+  .weekly-copyright-rail,
+  .weekly-copyright-body {
+    position: relative;
+  }
+  /* 标目栏：竖排只放拉丁（避开中文回退风险），© 与 COPYRIGHT 同色；border-right 就是那条竖批注线 */
+  .weekly-copyright-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding-top: 15px;
+    border-right: 1px solid var(--hair);
+    color: var(--accent);
+  }
+  /* © 的字形比字母矮（圆约 0.67em，mono 字母帽高 0.7em），故取高一档的 11.5px 让实际直径与 10.5px 的 COPYRIGHT 对齐 */
+  .weekly-copyright-mark {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    line-height: 1;
   }
-  .weekly-copyright-row dd {
+  .weekly-copyright-rail-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    writing-mode: vertical-rl;
+  }
+  /* 盒内上下同为 14px：跳层 18px 大于组内 9px，让层级跳变大于行内跳变 */
+  .weekly-copyright-body {
     min-width: 0;
+    padding: 14px 0;
+  }
+  /* 标签行是「架签」不是句子：表头档 mono 10.5 / --faint，与条款的 sans 12.5 / --soft 靠字族 + 颜色分开 */
+  .weekly-copyright-label {
     margin: 0;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.6;
+    letter-spacing: 0.14em;
+  }
+  /* 条款是块里唯一的句子，取描述档 sans 12.5 / --soft；不往下压到 --faint（元数据色承载句子灯下仅 2.38:1） */
+  .weekly-copyright-notice {
+    margin: 9px 0 0;
     color: var(--soft);
-    font-size: 13px;
+    font-size: 12.5px;
     line-height: 1.85;
     overflow-wrap: anywhere;
   }
-  .weekly-copyright-row a {
-    color: var(--accent);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    text-decoration: none;
-  }
-  .weekly-copyright-row a:hover {
-    text-decoration: underline;
-  }
-  .weekly-copyright-cite {
-    display: block;
-  }
-  .weekly-copyright-quote {
-    display: block;
-    min-width: 0;
+  /* 元数据：固定两行——① 作者图标 + 作者名 / 文章图标 + 标题；② 链接图标 + 原文 URL（不随断点换行）
+     顺序按引用惯例：责任者 → 作品 → 出处，与本页页头元数据行（作者在首）、条款里的「署名 → 原文链接」一致。
+     整行同档：作者名、标题、三枚图标全用 --faint，块内唯一着色是链接的 --accent */
+  .weekly-copyright-meta {
+    margin: 18px 0 0;
     color: var(--faint);
     font-family: var(--font-mono);
     font-size: 11.5px;
-    line-height: 1.85;
+    line-height: 1.75;
+    letter-spacing: 0.06em;
+  }
+  /* 第一行：作者与标题两组，图标与它的文字贴紧（6px），两组之间拉开（16px）；标题过长时整组换行 */
+  .weekly-copyright-fact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2px 16px;
+  }
+  .weekly-copyright-fact > span {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+  }
+  /* 第二行：链接图标 + URL，与第一行同属元数据档，只给 3px 行距 */
+  .weekly-copyright-urn {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    margin-top: 3px;
+  }
+  /* 三枚图标同色：它们是元数据 marker，随行着色会让链接图标抢走 URL 的 accent。
+     与文字第一行对齐靠 flex-start + 半个行盒留白（1.75 行距 − 13px 图标）/ 2——URL 或长标题换行时
+     图标不会跟着沉到两行中间，行距 / 字号调整时偏移量自动跟随。
+     13px 与本页页头元数据行的图标同尺寸（那边是 h-[13px] w-[13px]），同一种「图标 + 元数据」行不留两种尺寸 */
+  .weekly-copyright-icon {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-top: calc((1.75em - 13px) / 2);
+    color: var(--faint);
+  }
+  .weekly-copyright-urn a {
+    min-width: 0;
+    color: var(--accent);
+    text-decoration: none;
     overflow-wrap: anywhere;
   }
-  /* 标题是引用行里最重要的信息，用正文 sans 与大一号字号拉开层次（对照设计稿） */
-  .weekly-copyright-title {
-    color: var(--soft);
-    font-family: var(--font-sans);
-    font-size: 13px;
+  .weekly-copyright-urn a:hover,
+  .weekly-copyright-urn a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  .weekly-copyright-copy {
-    margin-top: 8px;
-    border: 1px solid var(--hair);
-    padding: 3px 10px;
-    color: var(--soft);
-    background: transparent;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .weekly-copyright-copy:hover,
-  .weekly-copyright-copy:focus-visible,
-  .weekly-copyright-copy.is-copied,
-  .weekly-copyright-copy.is-failed {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  /* 窄屏：标目行改横排，正文不再缩进、也不画左侧竖线——窄屏下块左缘与页边/页框贴得极近，
+     那条竖线会与页面左边线并排成双线（作者 2026-10-10 判定）。
+     标目行与「版权声明 / 引用协议」仍分两行（已试过并排成一行批注头，作者判定不如此形态，2026-10-10 回退）。断点沿用本站既有 640px 档 */
   @media (max-width: 640px) {
-    .weekly-copyright-brief {
-      flex-basis: 100%;
-      margin-left: 23px;
-    }
-    .weekly-copyright-row {
+    .weekly-copyright {
       grid-template-columns: minmax(0, 1fr);
-      gap: 3px;
+      gap: 0;
+    }
+    .weekly-copyright-rail {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0 0;
+      border-right: 0;
+    }
+    .weekly-copyright-rail-label {
+      writing-mode: horizontal-tb;
+    }
+    /* 不再叠 margin-top：标目行与标签的间距就是这 13px 上内边距（原先 11px margin + 13px padding = 24px，
+       比标目行自身高度还高，标注行读成了独立一段。作者 2026-10-10 判定「太大了」） */
+    .weekly-copyright-body {
+      padding: 13px 0;
     }
   }
 
@@ -1527,45 +1545,6 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
     window.setTimeout(() => {
       if (statusLabel) statusLabel.textContent = copyLabel;
       rssCopyButton.classList.remove('is-copied', 'is-failed');
-    }, 1500);
-  });
-
-  // 文末引用块：复制 Markdown 引用行（与 RSS 复制同款 clipboard + textarea 降级）
-  const citationCopyButton = document.querySelector<HTMLButtonElement>('[data-copy-value]');
-  citationCopyButton?.addEventListener('click', async () => {
-    const value = citationCopyButton.dataset.copyValue || '';
-    const copyLabel = citationCopyButton.dataset.copyLabel || '';
-    const copiedLabel = citationCopyButton.dataset.copiedLabel || '';
-    const failedLabel = citationCopyButton.dataset.failedLabel || '';
-    const statusLabel = citationCopyButton.querySelector<HTMLElement>('.weekly-copyright-copy-label');
-    let copied = false;
-
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-      await navigator.clipboard.writeText(value);
-      copied = true;
-    } catch {
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        copied = (document as any).execCommand('copy');
-        textarea.remove();
-      } catch {
-        copied = false;
-      }
-    }
-
-    if (statusLabel) statusLabel.textContent = copied ? copiedLabel : failedLabel;
-    citationCopyButton.classList.toggle('is-copied', copied);
-    citationCopyButton.classList.toggle('is-failed', !copied);
-    window.setTimeout(() => {
-      if (statusLabel) statusLabel.textContent = copyLabel;
-      citationCopyButton.classList.remove('is-copied', 'is-failed');
     }, 1500);
   });
 

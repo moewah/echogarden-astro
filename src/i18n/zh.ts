@@ -152,14 +152,8 @@ export const zh = {
     shareCopyLink: '复制链接',
     issue: '第{n}期',
     tocClose: 'CLOSE ×',
-    // 文末引用块（收起态标题 / 展开态行标签与复制按钮；条款文本在 siteConfig.copyright）
-    copyrightLabel: 'COPYRIGHT / 版权与引用',
-    copyrightSource: 'Source / 原文',
-    copyrightCitation: 'Citation / 引用',
-    copyrightTerms: 'Terms / 条款',
-    copyrightCopy: 'COPY',
-    copyrightCopied: 'COPIED',
-    copyrightCopyFailed: '复制失败',
+    // 文末版权块（左缘竖标目 COPYRIGHT 是档案器件词，直接写在模板里；这里只留正文标签。条款文本在 siteConfig.copyright）
+    copyrightLabel: '版权声明 / 引用协议',
   },
 
   // 项目展示
