@@ -110,6 +110,7 @@ export const zh = {
   // 周刊(技术 / 工具 / 学习 / 阅读)
   weekly: {
     all: '全部期刊 · 共 {n} 期 →',
+    leadLabel: 'SPEC / 摘要',
     prev: '上一期',
     next: '下一期',
     home: '周刊首页',

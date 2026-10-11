@@ -130,9 +130,10 @@ const citation = `${post.data.title} · ${weeklyAuthor(post)} · ${articleUrl}`;
             />
           </div>
 
-          <p class="quote-lead mx-auto mt-7 max-w-[680px]">
-            {post.data.description}
-          </p>
+          <div class="weekly-lead mx-auto mt-12 max-w-[680px] border-y border-[var(--hair)] pt-4 pb-5">
+            <span class="weekly-lead-label">{i18n.weekly.leadLabel}</span>
+            <p class="weekly-lead-copy">{post.data.description}</p>
+          </div>
 
           <div class="markdown-body post-body weekly-reading-body mx-auto mt-8 max-w-[680px]">
             <Content />

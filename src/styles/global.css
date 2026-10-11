@@ -298,23 +298,32 @@ img.is-broken {
   margin: 0 0.5em 0 0;
   accent-color: var(--accent);
 }
-/* 引文形态（唯一事实）：正文 blockquote 与周刊详情的引言共用一套——
-   两处角色相同（都是「被引出的那一段」），所以竖线 / 缩进 / 字号必须同源，
-   以前一处在 global.css、一处在页面内联，尺寸已经走岔（15px/16.5px vs 14px/20px）。
-   字号取 --type-body（= 与正文同号，作者定）；紧凑档（动态卡片）的 --type-body 是 13.5px，
-   变量作用域自动取它自己的档位，不需另写一套。
-   上下间距不属于形态，留在各自语境：正文引文用 blockquote 自己的 0.6em，
-   页面级引言由页面的节奏类（mt-7 等）决定。 */
-:is(.markdown-body, .album-body) blockquote,
-.quote-lead {
+/* 正文引用：周刊 / 影辑正文 / 动态共用；影辑日期与地点也沿用引用标记，因此统一斜体。 */
+:is(.markdown-body, .album-body) blockquote {
   border-left: 2px solid var(--accent);
   padding-left: 1.4em;
   font-size: var(--type-body);
   line-height: 1.9;
   color: var(--soft);
-}
-:is(.markdown-body, .album-body) blockquote {
+  font-style: italic;
   margin: 0.6em 0;
+}
+/* 周刊卷首提要：依靠题签、字号与 ink 色区分正文引用，不加边框或强调线。 */
+.weekly-lead-label {
+  display: block;
+  margin-bottom: 11px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+}
+.weekly-lead-copy {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body);
+  font-weight: 300;
+  line-height: 1.85;
+  letter-spacing: 0.015em;
 }
 :is(.markdown-body, .album-body) hr {
   border: none;
