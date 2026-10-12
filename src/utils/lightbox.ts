@@ -43,19 +43,155 @@ function enhanceTriggers() {
 }
 
 export function setupLightbox(root: HTMLElement): void {
+  const stage = root.querySelector<HTMLElement>('.site-lightbox-stage');
   const image = root.querySelector<HTMLImageElement>('[data-lightbox-image]');
   const closeButton = root.querySelector<HTMLButtonElement>('[data-lightbox-close]');
   const prevButton = root.querySelector<HTMLButtonElement>('[data-lightbox-prev]');
   const nextButton = root.querySelector<HTMLButtonElement>('[data-lightbox-next]');
+  const zoomButton = root.querySelector<HTMLButtonElement>('[data-lightbox-zoom]');
+  const zoomLabel = root.querySelector<HTMLElement>('[data-lightbox-zoom-label]');
   const number = root.querySelector<HTMLElement>('[data-lightbox-no]');
   const title = root.querySelector<HTMLElement>('[data-lightbox-title]');
   const count = root.querySelector<HTMLElement>('[data-lightbox-count]');
-  if (!image || !closeButton || !prevButton || !nextButton || !number || !title || !count) return;
+  if (!stage || !image || !closeButton || !prevButton || !nextButton || !zoomButton || !zoomLabel || !number || !title || !count) return;
 
   const digits = Number(root.dataset.figureDigits || 3);
   let items: LightboxItem[] = [];
   let index = 0;
   let activeTrigger: HTMLElement | null = null;
+
+  // ===== 缩放：FIT ⇄ 1:1 两态 + 滚轮/捏合连续缩放 + 放大后拖拽平移 =====
+  const MIN_SCALE = 1;
+  let scale = MIN_SCALE;
+  let panX = 0;
+  let panY = 0;
+
+  // 图按 contain 收进舞台后的宽度与自然像素之比，就是「1:1」需要的倍数；
+  // 图本来就小于舞台时返回 1（没有可放大的东西，按钮置灰）
+  const maxScale = () => (image.clientWidth > 0 ? Math.max(MIN_SCALE, image.naturalWidth / image.clientWidth) : MIN_SCALE);
+
+  const applyTransform = () => {
+    const moved = scale > MIN_SCALE || panX !== 0 || panY !== 0;
+    // 动态变换值：走 inline style（静态值一律在组件 CSS 里）
+    image.style.transform = moved ? `translate(${panX}px, ${panY}px) scale(${scale})` : '';
+    root.classList.toggle('is-zoomed', scale > MIN_SCALE);
+  };
+
+  const syncZoomButton = () => {
+    // 放大不到 20% 不值得一个键（1:1 与 FIT 几乎看不出差别），置灰
+    zoomButton.disabled = maxScale() < 1.2;
+    zoomButton.setAttribute('aria-pressed', String(scale > MIN_SCALE));
+    zoomLabel.textContent = (scale > MIN_SCALE ? zoomButton.dataset.labelActual : zoomButton.dataset.labelFit) ?? '';
+  };
+
+  // 平移边界：放大后的图不许被拖出视野（图比舞台小的方向不允许平移）
+  // 用 border-box 尺寸：边框也跟着缩放，它是看图时真实的可见边缘
+  const clampPan = () => {
+    const view = stage.getBoundingClientRect();
+    const limitX = Math.max(0, (image.offsetWidth * scale - view.width) / 2);
+    const limitY = Math.max(0, (image.offsetHeight * scale - view.height) / 2);
+    panX = Math.min(limitX, Math.max(-limitX, panX));
+    panY = Math.min(limitY, Math.max(-limitY, panY));
+  };
+
+  const resetZoom = () => {
+    scale = MIN_SCALE;
+    panX = 0;
+    panY = 0;
+    applyTransform();
+    syncZoomButton();
+  };
+
+  // 以某个视口坐标为锚缩放：该点下的图内容保持不动（按钮 / 滚轮 / 捏合 / 双击共用一条路径）
+  const zoomAt = (next: number, clientX: number, clientY: number) => {
+    const target = Math.min(Math.max(next, MIN_SCALE), maxScale());
+    if (Math.abs(target - scale) < 0.001) return;
+    const box = image.getBoundingClientRect();
+    // 变换后的矩形中心已知，减去当前平移即未变换的中心（缩放不改中心）
+    const offsetX = clientX - (box.left + box.width / 2 - panX);
+    const offsetY = clientY - (box.top + box.height / 2 - panY);
+    const ratio = target / scale;
+    panX = offsetX * (1 - ratio) + ratio * panX;
+    panY = offsetY * (1 - ratio) + ratio * panY;
+    scale = target;
+    clampPan();
+    applyTransform();
+    syncZoomButton();
+  };
+
+  const toggleZoom = (clientX: number, clientY: number) => {
+    if (zoomButton.disabled) return;
+    if (scale > MIN_SCALE) resetZoom();
+    else zoomAt(maxScale(), clientX, clientY);
+  };
+
+  image.addEventListener('load', syncZoomButton);
+  image.addEventListener('dblclick', (event) => {
+    if (!root.hidden) toggleZoom(event.clientX, event.clientY);
+  });
+  zoomButton.addEventListener('click', () => {
+    const box = image.getBoundingClientRect();
+    toggleZoom(box.left + box.width / 2, box.top + box.height / 2);
+  });
+  stage.addEventListener(
+    'wheel',
+    (event) => {
+      if (root.hidden || event.deltaY === 0) return;
+      event.preventDefault();
+      zoomAt(scale * Math.exp(-event.deltaY * 0.0015), event.clientX, event.clientY);
+    },
+    { passive: false },
+  );
+
+  // 指针：单指拖拽平移，双指捏合缩放（双指中点即锚点，所以捏合同时也能平移）
+  const pointers = new Map<number, { x: number; y: number }>();
+  let pinchDistance = 0;
+
+  const pinch = () => {
+    const [a, b] = [...pointers.values()];
+    return { distance: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+  };
+
+  image.addEventListener('pointerdown', (event) => {
+    if (root.hidden) return;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    // 捕获让拖拽在指针离开图之后仍收得到 move；指针已失效时浏览器会抛 NotFoundError，
+    // 这不该带走整段手势（后续 move 仍能从图上冒回来）
+    try {
+      image.setPointerCapture(event.pointerId);
+    } catch {
+      /* 无捕获继续 */
+    }
+    if (pointers.size === 1 && scale > MIN_SCALE) root.classList.add('is-dragging');
+    if (pointers.size === 2) pinchDistance = pinch().distance;
+  });
+
+  image.addEventListener('pointermove', (event) => {
+    const previous = pointers.get(event.pointerId);
+    if (!previous || root.hidden) return;
+    if (pointers.size >= 2) {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const { distance, mid } = pinch();
+      if (pinchDistance > 0 && distance > 0) zoomAt(scale * (distance / pinchDistance), mid.x, mid.y);
+      pinchDistance = distance;
+      return;
+    }
+    if (scale > MIN_SCALE) {
+      panX += event.clientX - previous.x;
+      panY += event.clientY - previous.y;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      clampPan();
+      applyTransform();
+    }
+  });
+
+  const releasePointer = (event: PointerEvent) => {
+    pointers.delete(event.pointerId);
+    if (pointers.size < 2) pinchDistance = 0;
+    if (pointers.size === 0) root.classList.remove('is-dragging');
+  };
+  image.addEventListener('pointerup', releasePointer);
+  image.addEventListener('pointercancel', releasePointer);
 
   const render = () => {
     const item = items[index];
@@ -71,6 +207,8 @@ export function setupLightbox(root: HTMLElement): void {
     const single = items.length <= 1;
     prevButton.hidden = single;
     nextButton.hidden = single;
+    // 换图必须归位：否则下一张会继承上一张的缩放与位移
+    resetZoom();
   };
 
   const open = (trigger: HTMLElement) => {
@@ -84,16 +222,15 @@ export function setupLightbox(root: HTMLElement): void {
     activeTrigger.setAttribute('aria-expanded', 'true');
     render();
     root.hidden = false;
+    // 取消失藏后尺寸才可测（缓存的图不会再触发 load，这里必须自己同步一次）
+    syncZoomButton();
     document.body.classList.add('lightbox-open');
     closeButton.focus({ preventScroll: true });
-    reveal();
   };
 
   const close = () => {
     root.hidden = true;
     document.body.classList.remove('lightbox-open');
-    root.classList.remove('is-idle');
-    window.clearTimeout(idleTimer);
     // 不删 src：保留已加载图，再次打开同图不重载（动态图不重播、不闪）
     activeTrigger?.removeAttribute('aria-expanded');
     activeTrigger?.focus({ preventScroll: true });
@@ -106,24 +243,7 @@ export function setupLightbox(root: HTMLElement): void {
     render();
   };
 
-  const focusableButtons = () => [closeButton, prevButton, nextButton].filter((button) => !button.hidden);
-
-  // ===== 闲置淡出：指针/触摸/焦点活动时显示，静止后淡出（reduced-motion 恒显示）=====
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const IDLE_MS = 1800;
-  let idleTimer = 0;
-
-  const reveal = () => {
-    root.classList.remove('is-idle');
-    window.clearTimeout(idleTimer);
-    if (reduceMotion) return;
-    idleTimer = window.setTimeout(() => {
-      // 键盘焦点停留在按钮上时不淡出（可访问性）；程序 focus（如打开时给关闭键的初始焦点）不算
-      const active = document.activeElement;
-      if (active instanceof Element && active.matches(':focus-visible')) return;
-      root.classList.add('is-idle');
-    }, IDLE_MS);
-  };
+  const focusableButtons = () => [closeButton, prevButton, zoomButton, nextButton].filter((button) => !button.hidden && !button.disabled);
 
   enhanceTriggers();
   new MutationObserver(enhanceTriggers).observe(document.body, { childList: true, subtree: true });
@@ -134,13 +254,6 @@ export function setupLightbox(root: HTMLElement): void {
   root.addEventListener('click', (event) => {
     if (event.target === root) close();
   });
-  // 活动即显示：指针移动 / 触摸 / 键盘 / 焦点进出
-  root.addEventListener('pointermove', reveal);
-  root.addEventListener('pointerdown', reveal);
-  root.addEventListener('touchstart', reveal);
-  root.addEventListener('focusin', reveal);
-  root.addEventListener('focusout', reveal);
-  document.addEventListener('keydown', reveal);
   document.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-lightbox-trigger]') : null;
     if (target) open(target);

@@ -24,15 +24,32 @@ const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
   hidden
 >
   <button type="button" class="site-lightbox-btn site-lightbox-close" data-lightbox-close aria-label={i18n.lightbox.close}>✕</button>
-  <button type="button" class="site-lightbox-btn site-lightbox-prev" data-lightbox-prev aria-label={i18n.lightbox.prev}>‹</button>
-  <figure class="site-lightbox-figure">
-    <img class="site-lightbox-img" data-lightbox-image alt="" />
-  </figure>
-  <button type="button" class="site-lightbox-btn site-lightbox-next" data-lightbox-next aria-label={i18n.lightbox.next}>›</button>
-  <div class="site-lightbox-caption">
-    <span class="site-lightbox-no" data-lightbox-no>FIG.001</span>
-    <span class="site-lightbox-title" data-lightbox-title></span>
-    <span class="site-lightbox-count" data-lightbox-count>1 / 1</span>
+  <div class="site-lightbox-stage">
+    <figure class="site-lightbox-figure">
+      <img class="site-lightbox-img" data-lightbox-image alt="" draggable="false" />
+    </figure>
+  </div>
+  <!-- 横档：导航 + 元数据 + 缩放。它是图片舞台的下沿，占布局空间，控件不吃图 -->
+  <div class="site-lightbox-rail">
+    <button type="button" class="site-lightbox-btn" data-lightbox-prev aria-label={i18n.lightbox.prev}>‹</button>
+    <div class="site-lightbox-caption">
+      <span class="site-lightbox-no" data-lightbox-no>FIG.001</span>
+      <span class="site-lightbox-title" data-lightbox-title></span>
+      <span class="site-lightbox-count" data-lightbox-count>1 / 1</span>
+    </div>
+    <button
+      type="button"
+      class="site-lightbox-btn site-lightbox-zoom"
+      data-lightbox-zoom
+      data-label-fit={i18n.lightbox.zoomFit}
+      data-label-actual={i18n.lightbox.zoomActual}
+      aria-label={i18n.lightbox.zoom}
+      aria-pressed="false"
+      disabled
+    >
+      <span data-lightbox-zoom-label>{i18n.lightbox.zoomFit}</span>
+    </button>
+    <button type="button" class="site-lightbox-btn" data-lightbox-next aria-label={i18n.lightbox.next}>›</button>
   </div>
 </div>
 
@@ -41,35 +58,101 @@ const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
     cursor: pointer;
   }
   .site-lightbox {
+    /* 横档高度；图片舞台按它扣减可用高度 */
+    --lb-rail: 56px;
+    /* 框内左内缩：舞台、横档、关闭键共用同一条，关闭键永远与右下角按钮右对齐 */
+    --lb-inset: clamp(16px, 4vw, 56px);
     position: fixed;
-    inset: 0;
+    top: 0;
+    right: 0;
+    left: 0;
+    /* 移动端浏览器工具条会给 100vh 多算一段高度，横档会被顶到可视区外：
+       先给 vh 兜底，再用 dvh（可视高度）覆盖，桌面两者相等 */
+    height: 100vh;
+    height: 100dvh;
     z-index: 70;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 60px clamp(16px, 4vw, 56px);
+    flex-direction: column;
     background: var(--bg);
   }
   .site-lightbox[hidden] {
     display: none;
   }
+  .site-lightbox-stage {
+    display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
+    place-items: center;
+    /* 上留白 = 关闭键（20 + 34）再加一段可见间隙；下留白 = 图片不贴横档边线 */
+    padding: 76px var(--lb-inset) 30px;
+    /* 放大后的图不许漫上顶栏或压进横档 */
+    overflow: hidden;
+  }
   .site-lightbox-figure {
     display: grid;
     max-width: 100%;
-    max-height: 80vh;
     place-items: center;
     margin: 0;
   }
   .site-lightbox-img {
     max-width: 100%;
-    max-height: 78vh;
+    /* 舞台可用高度 = 可视高度 − 横档 − 上下留白（108 = 76 + 30 + 边框 2）；
+       再受 78vh 封顶保持既有观感 */
+    max-height: min(78vh, calc(100vh - var(--lb-rail) - 108px));
+    max-height: min(78dvh, calc(100dvh - var(--lb-rail) - 108px));
     border: 1px solid var(--line);
     background: var(--panel);
     object-fit: contain;
+    /* 缩放/平移全部走 pointer 事件，不许浏览器抢捏合与滚动 */
+    touch-action: none;
+    transition: transform 0.2s;
+  }
+  .site-lightbox.is-zoomed .site-lightbox-img {
+    cursor: grab;
+  }
+  .site-lightbox.is-dragging .site-lightbox-img {
+    cursor: grabbing;
+    transition: none;
+  }
+  .site-lightbox-rail {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 14px;
+    height: var(--lb-rail);
+    padding: 0 var(--lb-inset);
+    border-top: 1px solid var(--hair);
+  }
+  .site-lightbox-caption {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  .site-lightbox-no {
+    flex: none;
+    color: var(--accent);
+  }
+  .site-lightbox-count {
+    flex: none;
+  }
+  /* 标题可能很长（正文图 alt）：由它自己让位截断，编号与计数不许被挤走 */
+  .site-lightbox-title {
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
   }
   .site-lightbox-btn {
-    position: absolute;
+    position: relative;
     display: grid;
+    flex: none;
     width: 34px;
     height: 34px;
     place-items: center;
@@ -80,56 +163,56 @@ const { id = 'site-lightbox', figureDigits = 3 } = Astro.props;
     font-family: var(--font-mono);
     font-size: 16px;
     line-height: 1;
-    transition: color 0.2s, border-color 0.2s, opacity 0.35s;
+    transition: color 0.2s, border-color 0.2s;
   }
-  /* 闲置态：按钮淡出（JS 控制，焦点/移动时恢复；reduced-motion 恒显示） */
-  .site-lightbox.is-idle .site-lightbox-btn {
-    opacity: 0;
-  }
-  .site-lightbox-btn:hover,
+  .site-lightbox-btn:hover:not(:disabled),
   .site-lightbox-btn:focus-visible {
     border-color: var(--accent);
     color: var(--accent);
   }
+  .site-lightbox-btn:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
   .site-lightbox-close {
-    top: 20px;
-    right: 24px;
-  }
-  .site-lightbox-prev {
-    top: 50%;
-    left: 20px;
-    transform: translateY(-50%);
-  }
-  .site-lightbox-next {
-    top: 50%;
-    right: 20px;
-    transform: translateY(-50%);
-  }
-  .site-lightbox-caption {
     position: absolute;
-    bottom: 20px;
-    left: 50%;
-    display: flex;
-    gap: 14px;
-    color: var(--faint);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.1em;
-    white-space: nowrap;
-    transform: translateX(-50%);
+    top: 20px;
+    right: var(--lb-inset);
   }
-  .site-lightbox-no {
+  .site-lightbox-zoom {
+    width: auto;
+    min-width: 44px;
+    padding: 0 9px;
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
+  }
+  /* 放大态即当前模式，用强调色标出（与 hover 同一档，不派生中间态） */
+  .site-lightbox-zoom[aria-pressed='true'] {
+    border-color: var(--accent);
     color: var(--accent);
   }
   .lightbox-open {
     overflow: hidden;
   }
-  @media (prefers-reduced-motion: reduce) {
-    .site-lightbox-btn {
-      transition: none;
+  @media (max-width: 768px) {
+    /* 窄屏只收紧间距：横档维持一行（两行会把横档切成两条，视觉上碎） */
+    .site-lightbox-rail {
+      gap: 10px;
     }
-    .site-lightbox.is-idle .site-lightbox-btn {
-      opacity: 1;
+    /* 触控热区 44（视觉尺寸不变），与右下悬浮链同口径 */
+    .site-lightbox-btn::after {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      content: '';
+      transform: translate(-50%, -50%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .site-lightbox-img {
+      transition: none;
     }
   }
 </style>

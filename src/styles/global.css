@@ -439,8 +439,8 @@ pre.astro-code::-webkit-scrollbar-track,
 :is(.markdown-body, .album-body) tr:last-child td {
   border-bottom: 1px solid var(--line);
 }
-/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位；可点开灯箱。
-   边界与底色挂在 img 上（容器是通栏块，小图会被通栏边框裹成空档）：图片按自身尺寸出框，
+/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供破图占位；可点开灯箱。
+   不挂边框与底色（作者定，2026-10-10）：卡片里的图一律不加框，图片按自身尺寸出图，
    尺寸只受 .markdown-body img 的 max-width 约束，不再拉满列宽放大。 */
 .memo-content-img {
   display: block;
@@ -452,8 +452,6 @@ pre.astro-code::-webkit-scrollbar-track,
   min-height: 0;
 }
 .memo-content-img img {
-  border: 1px solid var(--hair);
-  background: var(--panel);
   cursor: pointer;
 }
 /* 被转义的手写 HTML（utils/memos 的 renderer.html 输出）：当源码展示——

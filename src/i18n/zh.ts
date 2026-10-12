@@ -182,12 +182,16 @@ export const zh = {
     loadFailed: '内容暂时无法加载，请稍后再试。',
   },
 
-  // 灯箱（通用：动态 / 影辑）
+  // 灯箱（通用：动态 / 影辑 / 周刊正文）
   lightbox: {
     prev: '上一张',
     next: '下一张',
     close: '关闭',
     view: '图片查看',
+    // 缩放键：aria-label 是固定名称（状态交给 aria-pressed），键面文字是当前模式
+    zoom: '缩放图片',
+    zoomFit: 'FIT',
+    zoomActual: '1:1',
   },
 
   // 留言

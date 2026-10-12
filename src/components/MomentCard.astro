@@ -53,13 +53,10 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
           <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
           <div class="memo-track flex gap-3 overflow-x-hidden" data-track>
             {images.map((src, i) => (
-              <figure class="memo-slide shrink-0 w-[calc((100%-24px)/3)] border border-[var(--hair)]" data-slide>
-                <div class="aspect-square overflow-hidden bg-[var(--panel)] img-ph img-ph--memo">
+              <figure class="memo-slide shrink-0 w-[calc((100%-24px)/3)]" data-slide>
+                <div class="aspect-square overflow-hidden img-ph img-ph--memo">
                   <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
                 </div>
-                <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[10px] tracking-[0.06em] text-[var(--faint)]">
-                  <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
-                </figcaption>
               </figure>
             ))}
           </div>
@@ -71,9 +68,9 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
           }`}
         >
           {images.map((src, i) => (
-            <figure class="border border-[var(--hair)]">
+            <figure>
               <div
-                class={`overflow-hidden bg-[var(--panel)] img-ph img-ph--memo ${
+                class={`overflow-hidden img-ph img-ph--memo ${
                   images.length === 1 ? '' : 'aspect-square'
                 }`}
               >
@@ -88,9 +85,6 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
                   class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
                 />
               </div>
-              <figcaption class="px-2 py-1 border-t border-[var(--hair)] bg-[var(--panel)] font-mono text-[10px] tracking-[0.06em] text-[var(--faint)]">
-                <span class="text-[var(--accent)]">FIG.{String(i + 1).padStart(2, '0')}</span>
-              </figcaption>
             </figure>
           ))}
         </div>
