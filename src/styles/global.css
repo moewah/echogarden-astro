@@ -494,62 +494,67 @@ pre.astro-code::-webkit-scrollbar-track,
   --astro-code-token-link: var(--accent);
 }
 pre.astro-code {
+  /* 标签栏高度：语言名与复制按钮共用一条基线尺 */
+  --code-bar-height: 34px;
   position: relative;
   border: 1px solid var(--hair);
-  padding: 16px 18px 16px 48px;
+  padding: calc(var(--code-bar-height) + 14px) 18px 16px;
   font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.85;
   margin: 1.75em 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  counter-reset: line;
 }
-pre.astro-code .line {
-  position: relative;
-}
-pre.astro-code .line::before {
-  content: counter(line);
-  counter-increment: line;
+/* 代码块标签栏：语言名由 data-language 渲染，是无 DOM 的结构件（JS 缺失也照常显示）。
+   底色取 --bg：与代码正文的 --panel 形成档案纸面的深浅两档，不另造色。
+   语言名保持小写——它是语言自己的写法（bash / ts），不是档案术语，不做大写化。 */
+pre.astro-code::before {
+  content: attr(data-language);
   position: absolute;
-  left: -36px;
-  width: 24px;
-  text-align: right;
+  inset: 0 0 auto 0;
+  height: var(--code-bar-height);
+  padding: 0 18px;
+  line-height: var(--code-bar-height);
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
   color: var(--faint);
   font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: inherit;
-  user-select: none;
+  font-size: 10.5px; /* 内容级元数据档（作者定）：语言名是代码的内容元数据，不是 PHOTO 那种微标记 */
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  overflow: hidden;
 }
-/* 代码块复制按钮(由页面脚本注入) */
+/* 无语言标注的代码块（plaintext / text）：标签栏留白但仍作分隔与按钮承载，
+   不把 plaintext 这种伪语言名当标签显示 */
+pre.astro-code:is([data-language='plaintext'], [data-language='text'], [data-language=''])::before {
+  content: '';
+}
+/* 代码块复制按钮：常驻标签栏右端，由 CodeCopy 组件注入（template + 全局委托） */
 .code-copy {
   position: absolute;
-  top: 8px;
-  right: 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--code-bar-height);
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
   color: var(--faint);
-  background: var(--panel);
-  border: 1px solid var(--hair);
-  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; /* 与语言名同档：同一条标签栏里两侧字号不一致会像错版 */
+  letter-spacing: 0.14em;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.2s;
 }
 .code-copy:hover,
+.code-copy:focus-visible,
 .code-copy.is-copied {
   color: var(--accent);
-  border-color: var(--accent);
 }
-
-/* 代码块复制按钮：hover 设备上默认隐藏，悬停代码块时显示 */
-@media (hover: hover) {
-  pre.astro-code .code-copy {
-    opacity: 0;
-    transition: opacity 0.2s, color 0.2s, border-color 0.2s;
-  }
-  pre.astro-code:hover .code-copy,
-  pre.astro-code .code-copy:focus-visible {
-    opacity: 1;
-  }
+.code-copy-icon {
+  width: 12px;
+  height: 12px;
 }

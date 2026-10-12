@@ -1131,8 +1131,7 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
   }
 </style>
 
-<!-- 代码块复制按钮(文案经 data 属性从 i18n 注入) -->
-<div id="code-copy-i18n" data-copy={i18n.weekly.copy} data-copied={i18n.weekly.copied} hidden></div>
+<!-- 代码块复制按钮由 Layout 挂载的 CodeCopy 统一注入 -->
 <script>
   const weeklyBody = document.querySelector<HTMLElement>('.weekly-reading-body');
   const weeklyToc = document.querySelector<HTMLElement>('.weekly-toc');
@@ -1546,37 +1545,6 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
       if (statusLabel) statusLabel.textContent = copyLabel;
       rssCopyButton.classList.remove('is-copied', 'is-failed');
     }, 1500);
-  });
-
-  const i18nEl = document.getElementById('code-copy-i18n');
-  const labelCopy = i18nEl?.dataset.copy || 'COPY';
-  const labelCopied = i18nEl?.dataset.copied || 'COPIED';
-  document.querySelectorAll<HTMLElement>('.post-body pre.astro-code').forEach((pre) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'code-copy';
-    btn.textContent = labelCopy;
-    btn.addEventListener('click', async () => {
-      const code = pre.querySelector('code')?.innerText ?? '';
-      try {
-        await navigator.clipboard.writeText(code);
-      } catch {
-        // 非安全上下文(localhost 除外) clipboard 不可用,走 textarea 兼容
-        const ta = document.createElement('textarea');
-        ta.value = code;
-        document.body.appendChild(ta);
-        ta.select();
-        (document as any).execCommand('copy');
-        ta.remove();
-      }
-      btn.textContent = labelCopied;
-      btn.classList.add('is-copied');
-      setTimeout(() => {
-        btn.textContent = labelCopy;
-        btn.classList.remove('is-copied');
-      }, 1500);
-    });
-    pre.appendChild(btn);
   });
 </script>
 

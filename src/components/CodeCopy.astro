@@ -1,0 +1,78 @@
+---
+// 代码块标签栏的复制动作：按钮模板 + 全局委托，Layout 挂载一次即覆盖全站 pre.astro-code
+// （周刊 / 影辑正文、动态卡片、增量同步插入的卡片）。
+// 标签栏本体（语言名）由 global.css 的 pre.astro-code::before 渲染，不需要 DOM。
+// 按钮文案留在模板里而不是 JS 字符串里：文案与图标都走既有出口（i18n / Icon），JS 只负责克隆。
+import { i18n } from '@i18n';
+import Icon from '@components/Icon.astro';
+---
+
+<template id="code-copy-template">
+  <button type="button" class="code-copy" data-copied-label={i18n.codeCopied}>
+    <Icon name="copy" class="code-copy-icon" />
+    <span class="code-copy-label">{i18n.codeCopy}</span>
+  </button>
+</template>
+
+<script is:inline>
+  (function () {
+    var tpl = document.getElementById('code-copy-template');
+    if (!tpl || !tpl.content) return;
+
+    function ensure(pre) {
+      if (pre.querySelector('.code-copy')) return;
+      var btn = tpl.content.firstElementChild.cloneNode(true);
+      var label = btn.querySelector('.code-copy-label');
+      var copyLabel = label.textContent;
+      var copiedLabel = btn.getAttribute('data-copied-label') || copyLabel;
+
+      btn.addEventListener('click', function () {
+        var code = pre.querySelector('code');
+        var text = (code ? code.textContent : pre.textContent) || '';
+        var done = function () {
+          label.textContent = copiedLabel;
+          btn.classList.add('is-copied');
+          setTimeout(function () {
+            label.textContent = copyLabel;
+            btn.classList.remove('is-copied');
+          }, 1500);
+        };
+        // 非安全上下文(localhost 除外) clipboard 不可用,走 textarea 兼容
+        var fallback = function () {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          done();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, fallback);
+        } else {
+          fallback();
+        }
+      });
+
+      pre.appendChild(btn);
+    }
+
+    function scan(root) {
+      if (!root || root.nodeType !== 1) return;
+      if (root.matches('pre.astro-code')) ensure(root);
+      var found = root.querySelectorAll('pre.astro-code');
+      for (var i = 0; i < found.length; i++) ensure(found[i]);
+    }
+
+    scan(document.body);
+    // 增量插入的代码块（动态增量同步、分页追加）也要挂上按钮
+    new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var added = mutations[i].addedNodes;
+        for (var j = 0; j < added.length; j++) scan(added[j]);
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  })();
+</script>

@@ -148,7 +148,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
   </div>
 
   <Lightbox figureDigits={2} />
-  <span id="memo-i18n" data-copy={i18n.moments.copy} data-copied={i18n.moments.copied} data-refresh={i18n.moments.refresh} data-refreshing={i18n.moments.refreshing} data-noupdates={i18n.moments.noUpdates} data-syncfailed={i18n.moments.syncFailed} hidden></span>
+  <span id="memo-i18n" data-refresh={i18n.moments.refresh} data-refreshing={i18n.moments.refreshing} data-noupdates={i18n.moments.noUpdates} data-syncfailed={i18n.moments.syncFailed} hidden></span>
   {
     refreshOn && (
       // 构建时快照：增量同步的 prev 基准（uid → updateTime，RFC3339）
@@ -213,44 +213,9 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
   }
 </style>
 
-<style is:global>
-  .memo-copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    padding: 3px 8px;
-    border: 1px solid var(--hair);
-    background: var(--panel);
-    color: var(--soft);
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .memo-copy-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  /* hover 设备上默认隐藏，悬停代码块或聚焦按钮时显示 */
-  @media (hover: hover) {
-    .memo-content pre .memo-copy-btn {
-      opacity: 0;
-      transition: opacity 0.2s, color 0.2s, border-color 0.2s;
-    }
-    .memo-content pre:hover .memo-copy-btn,
-    .memo-content pre .memo-copy-btn:focus-visible {
-      opacity: 1;
-    }
-  }
-  /* 内联 code 的样式不能污染 Shiki 生成的代码块内部 code。 */
-</style>
-
 <script>
   // i18n 文案经 data 属性传入（bundled script 不支持 define:vars）
   const memoI18n = document.getElementById('memo-i18n');
-  const copyLabel = memoI18n?.dataset.copy || 'COPY';
-  const copiedLabel = memoI18n?.dataset.copied || 'COPIED';
   const refreshLabel = memoI18n?.dataset.refresh || '刷新';
   const refreshingLabel = memoI18n?.dataset.refreshing || '同步中…';
   const noUpdatesLabel = memoI18n?.dataset.noupdates || '已是最新';
@@ -304,51 +269,6 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       .sort((a, b) => (b.dataset.time || '').localeCompare(a.dataset.time || ''))
       .forEach((el) => listEl.appendChild(el));
   }
-  // ===== 复制按钮：ensure + MutationObserver（覆盖增量插入的代码块）=====
-  function ensureCopyBtn(pre: HTMLPreElement) {
-    if (!pre || pre.querySelector('.memo-copy-btn')) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'memo-copy-btn';
-    btn.textContent = copyLabel;
-    btn.addEventListener('click', async () => {
-      const code = pre.querySelector('code');
-      const text = (code ? code.textContent : pre.textContent) || '';
-      const done = () => {
-        btn.textContent = copiedLabel;
-        setTimeout(() => { btn.textContent = copyLabel; }, 1500);
-      };
-      try {
-        await navigator.clipboard.writeText(text);
-        done();
-      } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        (document as any).execCommand('copy');
-        ta.remove();
-        done();
-      }
-    });
-    pre.appendChild(btn);
-  }
-  document.querySelectorAll<HTMLPreElement>('.memo-content pre').forEach(ensureCopyBtn);
-  if (listEl) {
-    const copyObserver = new MutationObserver((mutations) => {
-      for (const mut of mutations) {
-        for (const node of mut.addedNodes) {
-          if (!(node instanceof Element)) continue;
-          if (node instanceof HTMLPreElement && node.matches('.memo-content pre')) ensureCopyBtn(node);
-          node.querySelectorAll<HTMLPreElement>('.memo-content pre').forEach(ensureCopyBtn);
-        }
-      }
-    });
-    copyObserver.observe(listEl, { childList: true, subtree: true });
-  }
-
   // ===== 事件委托（覆盖加载时与增量插入的所有卡片）=====
   document.addEventListener('click', (e) => {
     const target = e.target instanceof Element ? e.target : null;

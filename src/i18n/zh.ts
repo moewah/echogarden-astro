@@ -7,6 +7,9 @@ export const zh = {
     system: '跟随系统',
   },
   backToTop: '返回顶部',
+  // 代码块标签栏的复制动作（周刊 / 影辑 / 动态的代码块共用，不属单一板块）
+  codeCopy: 'COPY',
+  codeCopied: 'COPIED',
   wechatQr: {
     button: '打开微信公众号二维码',
   },
@@ -128,8 +131,6 @@ export const zh = {
     rssCopy: '复制地址',
     rssCopied: '已复制',
     rssCopyFailed: '复制失败',
-    copy: 'COPY',
-    copied: 'COPIED',
     aiReading: 'AI 辅助阅读',
     aiReadingCopied: '请粘贴给 AI',
     aiReadingCopyFailed: '复制失败',
@@ -170,8 +171,6 @@ export const zh = {
     lastSynced: 'LAST SYNCED',
     synced: 'SYNCED',
     all: '全部',
-    copy: 'COPY',
-    copied: 'COPIED',
     refresh: '刷新',
     refreshing: '同步中…',
     noUpdates: '已是最新',

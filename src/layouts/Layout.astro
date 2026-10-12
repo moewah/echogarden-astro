@@ -15,6 +15,7 @@ import BackToTop from '@components/BackToTop.astro';
 import WechatQr from '@components/WechatQr.astro';
 import ExternalLinks from '@components/ExternalLinks.astro';
 import Analytics from '@components/Analytics.astro';
+import CodeCopy from '@components/CodeCopy.astro';
 
 interface Props {
   title?: string;
@@ -404,6 +405,7 @@ const jsonLd = {
     <BackToTop />
     <ExternalLinks />
     <Analytics />
+    <CodeCopy />
 
     <script>
       const mt = document.getElementById('menu-toggle');
