@@ -19,7 +19,8 @@ interface Props {
   priority?: boolean;
 }
 const { memo: m, idx, priority = false } = Astro.props;
-const images = m.images ?? [];
+// 图墙只渲染正文没有内联引用的图片附件（正文里已展示的不重复，见 utils/memos 的 gallery）
+const images = m.gallery ?? [];
 const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
 ---
 

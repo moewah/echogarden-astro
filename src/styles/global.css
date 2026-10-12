@@ -430,7 +430,7 @@ pre.astro-code::-webkit-scrollbar-track,
 :is(.markdown-body, .album-body) tr:last-child td {
   border-bottom: 1px solid var(--line);
 }
-/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位。 */
+/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位；可点开灯箱。 */
 .memo-content-img {
   display: block;
   margin: 1.75em 0;
@@ -439,6 +439,7 @@ pre.astro-code::-webkit-scrollbar-track,
 }
 .memo-content-img img {
   width: 100%;
+  cursor: pointer;
 }
 /* Markdown 正文图（周刊 / 影辑正文共用）：rehypeContentImages 构建期包装容器，正文只统一图片尺寸。 */
 .post-content-img {

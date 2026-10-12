@@ -51,56 +51,87 @@ async function highlightCode(code: string, language = ''): Promise<string> {
   return toHtml({ type: 'root', children: codeNode.children });
 }
 
-const markdown = new Marked({
-  async: true,
-  renderer: {
-    // 纵深防御：marked v5+ 的 escapeHTML 选项已失效，raw HTML 默认透传；
-    // 覆盖 renderer.html 把作者手写的原始 HTML 转义为文本，防止外部服务
-    // 被入侵时向本站注入可执行内容（同源 innerHTML 执行面）。
-    html(token) {
-      const text = typeof token === 'string' ? token : token.text || '';
-      return escapeHtml(text);
+/**
+ * 每条 memo 的渲染上下文。
+ * 渲染器按 memo 现建（而不是共用单例）：灯箱分组与「首图优先」都是这一条 memo 的属性，
+ * 而 Marked 的 renderer.options 是共享可变状态，并发渲染会串味。
+ */
+interface MemoRenderContext {
+  /** 灯箱分组：正文内联图与附件图墙同组，翻页不跨卡片 */
+  uid: string;
+  /** 这条 memo 的首张正文图优先加载（列表首图 LCP，判定见 renderMemoItems） */
+  priority: boolean;
+}
+
+/**
+ * Memos 资源路径（`/file/...`，Memos 新版编辑器插图产出 `/file/attachments/{uid}`）
+ * 在站内是死链，补实例域名才是可访问的附件地址。
+ * 只认 `/file/` 前缀：本站无该路由，而站内绝对路径（如作者在正文里写的 `/weekly/xxx/`）
+ * 是作者的本站链接，不能改写到实例域名下；外链原样返回。
+ */
+const absolutizeMemosFileUrl = (href: string): string =>
+  href.startsWith('/file/') && memosConfig.auth.siteUrl
+    ? `${memosConfig.auth.siteUrl}${href}`
+    : href;
+
+function createMarkdown(ctx: MemoRenderContext): Marked {
+  let imageCount = 0;
+  return new Marked({
+    async: true,
+    renderer: {
+      // 纵深防御：marked v5+ 的 escapeHTML 选项已失效，raw HTML 默认透传；
+      // 覆盖 renderer.html 把作者手写的原始 HTML 转义为文本，防止外部服务
+      // 被入侵时向本站注入可执行内容（同源 innerHTML 执行面）。
+      html(token) {
+        const text = typeof token === 'string' ? token : token.text || '';
+        return escapeHtml(text);
+      },
+      link(token) {
+        const text = this.parser.parseInline(token.tokens);
+        const target = absolutizeMemosFileUrl(token.href);
+        let href: string;
+        try {
+          href = encodeURI(target).replace(/%25/g, '%');
+        } catch {
+          return text;
+        }
+        const attrs = externalLinkAttrs(target, siteConfig.site.url, externalLinksConfig);
+        const attrText = Object.entries(attrs)
+          .map(([name, value]) => ` ${name}="${escapeHtml(value)}"`)
+          .join('');
+        const title = token.title ? ` title="${escapeHtml(token.title)}"` : '';
+        return `<a href="${href}"${title}${attrText}>${text}</a>`;
+      },
+      image(token) {
+        let href: string;
+        try {
+          href = escapeHtml(encodeURI(absolutizeMemosFileUrl(token.href)).replace(/%25/g, '%'));
+        } catch {
+          return escapeHtml(token.text || '');
+        }
+        const alt = escapeHtml(token.text || '');
+        const title = token.title ? ` title="${escapeHtml(token.title)}"` : '';
+        // 首图优先：只给这条 memo 的第一张正文图（与附件图墙首图同一口径）
+        const eager = ctx.priority && imageCount++ === 0;
+        const loading = eager ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"';
+        const group = ctx.uid ? ` data-lightbox-group="${escapeHtml(ctx.uid)}"` : '';
+        return `<span class="memo-content-img img-ph img-ph--memo"><img src="${href}" alt="${alt}"${loading} decoding="async" data-lightbox-trigger${group}${title}></span>`;
+      },
+      code(token) {
+        const language = token.lang || 'plaintext';
+        const dataLanguage = language.replace(/[^a-zA-Z0-9_+-]/g, '');
+        return `<pre class="astro-code css-variables" style="background-color:var(--astro-code-background);color:var(--astro-code-foreground); overflow-x: auto;" tabindex="0" data-language="${dataLanguage}"><code>${token.text}\n</code></pre>`;
+      },
     },
-    link(token) {
-      const text = this.parser.parseInline(token.tokens);
-      let href: string;
-      try {
-        href = encodeURI(token.href).replace(/%25/g, '%');
-      } catch {
-        return text;
-      }
-      const attrs = externalLinkAttrs(token.href, siteConfig.site.url, externalLinksConfig);
-      const attrText = Object.entries(attrs)
-        .map(([name, value]) => ` ${name}="${escapeHtml(value)}"`)
-        .join('');
-      const title = token.title ? ` title="${escapeHtml(token.title)}"` : '';
-      return `<a href="${href}"${title}${attrText}>${text}</a>`;
+    walkTokens(token) {
+      if (token.type !== 'code') return;
+      return highlightCode(token.text, token.lang).then((highlighted) => {
+        token.text = highlighted;
+        token.escaped = true;
+      });
     },
-    image(token) {
-      let href: string;
-      try {
-        href = escapeHtml(encodeURI(token.href).replace(/%25/g, '%'));
-      } catch {
-        return escapeHtml(token.text || '');
-      }
-      const alt = escapeHtml(token.text || '');
-      const title = token.title ? ` title="${escapeHtml(token.title)}"` : '';
-      return `<span class="memo-content-img img-ph img-ph--memo"><img src="${href}" alt="${alt}" loading="lazy" decoding="async"${title}></span>`;
-    },
-    code(token) {
-      const language = token.lang || 'plaintext';
-      const dataLanguage = language.replace(/[^a-zA-Z0-9_+-]/g, '');
-      return `<pre class="astro-code css-variables" style="background-color:var(--astro-code-background);color:var(--astro-code-foreground); overflow-x: auto;" tabindex="0" data-language="${dataLanguage}"><code>${token.text}\n</code></pre>`;
-    },
-  },
-  walkTokens(token) {
-    if (token.type !== 'code') return;
-    return highlightCode(token.text, token.lang).then((highlighted) => {
-      token.text = highlighted;
-      token.escaped = true;
-    });
-  },
-});
+  });
+}
 
 export interface Memo {
   /** 唯一标识（同步 diff / 卡片 data-uid 用，不渲染） */
@@ -113,7 +144,10 @@ export interface Memo {
   tags: string[];
   content: string;
   isLong: boolean;
+  /** 图片附件全集（正文内联引用的也在内）：结构化数据 image 与首图优先加载的判定口径 */
   images?: string[];
+  /** 附件图墙渲染列表：正文已内联展示的图片按 uid 剔除，同一张图不出现两次 */
+  gallery?: string[];
   /** 非图片附件（视频/音频/文件），展示层降级渲染，不再静默丢弃 */
   media?: MemoMedia[];
   /** 创建时间 RFC3339（卡片 data-time 排序用，不渲染） */
@@ -181,8 +215,8 @@ const stripTags = (md: string) =>
     .replace(/\n{3,}/g, '\n\n');
 
 // 渲染 Markdown → HTML（构建时，内容来自自有 Memos）
-const renderMarkdown = (md: string): Promise<string> =>
-  markdown.parse(md) as Promise<string>;
+const renderMarkdown = (md: string, ctx: MemoRenderContext): Promise<string> =>
+  createMarkdown(ctx).parse(md) as Promise<string>;
 
 /** ListMemos 单页响应（含分页游标） */
 interface MemoPage {
@@ -252,6 +286,20 @@ async function fetchAllMemos(siteUrl: string, token: string): Promise<RawMemo[]>
   return all;
 }
 
+/** 附件 uid：attachment.name 形如 "attachments/xxx" */
+const attachmentUid = (a: NonNullable<RawMemo['attachments']>[number]) =>
+  a.name.replace('attachments/', '');
+
+/** 附件 URL 契约：GET /file/attachments/{uid}/{filename} */
+const attachmentUrl = (a: NonNullable<RawMemo['attachments']>[number], siteUrl: string) =>
+  `${siteUrl}/file/attachments/${attachmentUid(a)}/${a.filename}`;
+
+/** 一条 memo 的图片附件（uid + 绝对 URL） */
+const imageAttachments = (m: RawMemo, siteUrl: string) =>
+  (m.attachments || [])
+    .filter((a) => (a.type || '').startsWith('image/'))
+    .map((a) => ({ uid: attachmentUid(a), url: attachmentUrl(a, siteUrl) }));
+
 /**
  * 原始 memo → 展示条目：白名单 tag 过滤、截断、渲染、附件 URL 拼装。
  * 附件 URL 契约：GET /file/attachments/{uid}/{filename}（uid 取自 attachment.name）。
@@ -264,48 +312,62 @@ export async function renderMemoItems(
     truncate: number;
     collapseThreshold: number;
     siteUrl: string;
+    /** 列表首图优先加载（静态页 LCP）：只给首个含图的 memo；增量同步追加的卡片保持 lazy，不传 */
+    prioritize?: boolean;
   }
 ): Promise<Memo[]> {
-  const { tags, limit, truncate, collapseThreshold, siteUrl } = opts;
+  const { tags, limit, truncate, collapseThreshold, siteUrl, prioritize = false } = opts;
   const trim = (s: string) =>
     truncate > 0 && s.length > truncate ? s.slice(0, truncate) + '…' : s;
 
-  const items = raws
+  const selected = raws
     .filter((m) => (m.tags || []).some((t) => tags.includes(t)))
-    .slice(0, limit)
-    .map(async (m) => {
-      const content = await renderMarkdown(trim(stripTags(m.content)));
-      // 保留全部命中白名单的 tag（一条 memo 可多分类），去重保序；不再降维成单个
-      const matchedTags = [...new Set((m.tags || []).filter((t) => tags.includes(t)))];
-      const attachmentUrl = (a: NonNullable<RawMemo['attachments']>[number]) =>
-        `${siteUrl}/file/attachments/${a.name.replace('attachments/', '')}/${a.filename}`;
-      const images = (m.attachments || [])
-        .filter((a) => (a.type || '').startsWith('image/'))
-        .map(attachmentUrl);
-      // 非图片附件（视频/音频/文件）不再静默丢弃，按 MIME 前缀归类降级渲染
-      const media: MemoMedia[] = (m.attachments || [])
-        .filter((a) => !(a.type || '').startsWith('image/'))
-        .map((a) => ({
-          type: (a.type || '').startsWith('video/')
-            ? 'video'
-            : (a.type || '').startsWith('audio/')
-              ? 'audio'
-              : 'file',
-          url: attachmentUrl(a),
-          filename: a.filename,
-        }));
-      return {
-        uid: m.uid,
-        updateTime: m.updateTime,
-        createTime: m.createTime,
-        date: formatMemoDate(m.createTime),
-        tags: matchedTags,
-        content,
-        isLong: collapseThreshold > 0 && plainLength(content) > collapseThreshold,
-        images: images.length ? images : undefined,
-        media: media.length ? media : undefined,
-      };
+    .slice(0, limit);
+  // 图片附件全集（含正文内联引用的）：结构化数据与首图判定口径
+  const imagesByMemo = selected.map((m) => imageAttachments(m, siteUrl));
+  // 首图优先加载：列表里第一个含图的 memo（与 Moments.astro 取 priorityMemoUid 同一口径）
+  const priorityIndex = prioritize ? imagesByMemo.findIndex((imgs) => imgs.length > 0) : -1;
+
+  const items = selected.map(async (m, i) => {
+    const images = imagesByMemo[i];
+    const content = await renderMarkdown(trim(stripTags(m.content)), {
+      uid: m.uid,
+      priority: i === priorityIndex,
     });
+    // 保留全部命中白名单的 tag（一条 memo 可多分类），去重保序；不再降维成单个
+    const matchedTags = [...new Set((m.tags || []).filter((t) => tags.includes(t)))];
+    // 正文内联引用的图片附件（Memos 新版编辑器插图产出 ![](/file/attachments/{uid})）
+    // 已随正文展示，图墙只渲染正文没引用的那些。uid 从渲染结果里取——
+    // 代码块里的同名字符串不会被渲染成图片，也就不会被误判。
+    const inlineUids = new Set(
+      [...content.matchAll(/\/file\/attachments\/([^/"'\s]+)/g)].map((match) => match[1])
+    );
+    const gallery = images.filter((a) => !inlineUids.has(a.uid)).map((a) => a.url);
+    // 非图片附件（视频/音频/文件）不再静默丢弃，按 MIME 前缀归类降级渲染
+    const media: MemoMedia[] = (m.attachments || [])
+      .filter((a) => !(a.type || '').startsWith('image/'))
+      .map((a) => ({
+        type: (a.type || '').startsWith('video/')
+          ? 'video'
+          : (a.type || '').startsWith('audio/')
+            ? 'audio'
+            : 'file',
+        url: attachmentUrl(a, siteUrl),
+        filename: a.filename,
+      }));
+    return {
+      uid: m.uid,
+      updateTime: m.updateTime,
+      createTime: m.createTime,
+      date: formatMemoDate(m.createTime),
+      tags: matchedTags,
+      content,
+      isLong: collapseThreshold > 0 && plainLength(content) > collapseThreshold,
+      images: images.length ? images.map((a) => a.url) : undefined,
+      gallery: gallery.length ? gallery : undefined,
+      media: media.length ? media : undefined,
+    };
+  });
 
   return Promise.all(items);
 }
@@ -345,6 +407,8 @@ export async function getMemos(
       truncate,
       collapseThreshold,
       siteUrl: memosConfig.auth.siteUrl,
+      // 静态渲染：列表首图（含正文内联图）优先加载，与 MomentCard 的 priority 口径一致
+      prioritize: true,
     });
   } catch (err) {
     console.warn('[memos] fetch failed:', err);
@@ -428,7 +492,8 @@ export async function syncMemos(
       .sort((a, b) => b.createTime.localeCompare(a.createTime))
       .slice(0, limit);
     const { added, updated, removed } = diffMemos(prev, tagged);
-    // 合并渲染以复用单次 marked/shiki 管线；Promise.all 保序，added 在前 updated 在后
+    // 合并渲染以复用单次 marked/shiki 管线；Promise.all 保序，added 在前 updated 在后。
+    // 不传 prioritize：增量追加的卡片不是首屏，保持 lazy（同 MomentCard 的增量路径）。
     const items = await renderMemoItems([...added, ...updated], {
       tags: memosConfig.tags,
       limit: added.length + updated.length,
