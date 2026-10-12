@@ -442,6 +442,21 @@ const jsonLd = {
           },
           true
         );
+
+        // 图片加载完成统一标记:容器占位保底(.img-ph 的 min-height)据此撤销
+        // (成对机制:失败走 is-broken 留在占位态,成功走 is-loaded 让位给真实尺寸)
+        document.addEventListener(
+          'load',
+          function (e) {
+            var t = e.target;
+            if (t && t.tagName === 'IMG') t.classList.add('is-loaded');
+          },
+          true
+        );
+        // 本脚本执行前已完成加载的图(缓存命中)不会再触发 load,补一次标记
+        document.querySelectorAll('img').forEach(function (img) {
+          if (img.complete && img.naturalWidth > 0) img.classList.add('is-loaded');
+        });
       })();
     </script>
 

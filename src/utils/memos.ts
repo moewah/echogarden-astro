@@ -74,21 +74,39 @@ const absolutizeMemosFileUrl = (href: string): string =>
     ? `${memosConfig.auth.siteUrl}${href}`
     : href;
 
+/**
+ * 只把「真实链接」渲染成 <a>：带 scheme（http/https/mailto…）/ 站内绝对路径 / 页内锚点。
+ * 其余（相对路径）在站内必然是 404：marked 会把引用定义 `[^1]: 内容` 解析成
+ * href="内容"，一条谁也点不到的死链。这类目标退化为纯文本。
+ */
+const isRealLink = (href: string): boolean =>
+  href.startsWith('/') || href.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(href);
+
 function createMarkdown(ctx: MemoRenderContext): Marked {
   let imageCount = 0;
   return new Marked({
     async: true,
+    // 单换行 = <br>（GFM 语义）。Memos 上游为此专门加了 remark-breaks
+    // （usememos/memos 5a16f80），作者在编辑器里看到的断行必须与站内一致；
+    // 不开这个开关，两行文本会被当作软换行合并成一句。
+    breaks: true,
     renderer: {
       // 纵深防御：marked v5+ 的 escapeHTML 选项已失效，raw HTML 默认透传；
       // 覆盖 renderer.html 把作者手写的原始 HTML 转义为文本，防止外部服务
       // 被入侵时向本站注入可执行内容（同源 innerHTML 执行面）。
+      // 转义后的产物仍是「源码」：包一层 .memo-raw（见 global.css）。
+      // 不包的话它是匿名文本节点，命不中 `> * + *` 的段距节奏，间距忽宽忽窄。
       html(token) {
-        const text = typeof token === 'string' ? token : token.text || '';
-        return escapeHtml(text);
+        const isBlock = typeof token !== 'string' && token.block === true;
+        const raw = typeof token === 'string' ? token : token.text || '';
+        // 块级 token 的 raw 带尾随换行，pre-wrap 下会多出一行高度
+        const text = escapeHtml(isBlock ? raw.trim() : raw);
+        return isBlock ? `<p class="memo-raw">${text}</p>` : `<span class="memo-raw">${text}</span>`;
       },
       link(token) {
         const text = this.parser.parseInline(token.tokens);
         const target = absolutizeMemosFileUrl(token.href);
+        if (!isRealLink(target)) return text;
         let href: string;
         try {
           href = encodeURI(target).replace(/%25/g, '%');
@@ -207,12 +225,23 @@ export function memoStructuredText(html: string): string {
     .trim();
 }
 
+/**
+ * 正文 tag 清理规则：只认「行首或空白之后 + 白名单 tag + 后接非词字符」的完整 token。
+ * 旧实现是无差别全局替换 `#[^\s#]+`，会吃掉代码块里的 `#!/usr/bin/env bash`、
+ * 行内代码里的 `#fff` / `#pragma once`、以及链接里的 `#anchor`。
+ * 未知局限：代码块内出现的白名单 tag 仍会被删（不做围栏状态机，收益不抵复杂度）。
+ */
+const memoTagPattern = (tags: readonly string[]): RegExp =>
+  new RegExp(
+    `(?<=^|\\s)#(?:${tags
+      .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|')})(?![\\p{L}\\p{N}_#])`,
+    'gmu'
+  );
+
 // 移除正文中的 #标签（标签已在正文上方单独展示，避免重复）
-const stripTags = (md: string) =>
-  md
-    .replace(/#[^\s#]+/g, '')
-    .replace(/[ \t]+$/gm, '')
-    .replace(/\n{3,}/g, '\n\n');
+const stripMemoTags = (md: string, tagPattern: RegExp): string =>
+  md.replace(tagPattern, '').replace(/\n{3,}/g, '\n\n');
 
 // 渲染 Markdown → HTML（构建时，内容来自自有 Memos）
 const renderMarkdown = (md: string, ctx: MemoRenderContext): Promise<string> =>
@@ -320,6 +349,8 @@ export async function renderMemoItems(
   const trim = (s: string) =>
     truncate > 0 && s.length > truncate ? s.slice(0, truncate) + '…' : s;
 
+  // tag 清理规则只依赖白名单，整批共用一条正则
+  const tagPattern = memoTagPattern(tags);
   const selected = raws
     .filter((m) => (m.tags || []).some((t) => tags.includes(t)))
     .slice(0, limit);
@@ -330,7 +361,7 @@ export async function renderMemoItems(
 
   const items = selected.map(async (m, i) => {
     const images = imagesByMemo[i];
-    const content = await renderMarkdown(trim(stripTags(m.content)), {
+    const content = await renderMarkdown(trim(stripMemoTags(m.content, tagPattern)), {
       uid: m.uid,
       priority: i === priorityIndex,
     });

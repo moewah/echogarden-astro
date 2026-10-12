@@ -308,6 +308,10 @@ img.is-broken {
   font-style: italic;
   margin: 0.6em 0;
 }
+/* 引用整体斜体，但等宽内容不倾斜：代码斜体是彻底的排版错误（等宽 + 倾斜双重降可读性）。 */
+:is(.markdown-body, .album-body) blockquote :is(pre.astro-code, code, kbd) {
+  font-style: normal;
+}
 /* 周刊卷首提要：依靠题签、字号与 ink 色区分正文引用，不加边框或强调线。 */
 .weekly-lead-label {
   display: block;
@@ -409,12 +413,18 @@ pre.astro-code::-webkit-scrollbar-track,
   font-size: 0.92em;
   line-height: 1.7;
 }
+:is(.markdown-body, .album-body) th:not([align]) {
+  /* 无 align 属性时才是左对齐：th 的 UA 默认是居中，直接写 text-align 会同时
+     压平 marked 为对齐表格输出的 align 属性（th 全左、td 跟属性，表头与单元格错位）。
+     加 :not([align]) 守卫后两边各归各位：无属性 → 左（与 td 的 start 一致），
+     有属性 → presentational hint 生效。 */
+  text-align: left;
+}
 :is(.markdown-body, .album-body) th {
   font-family: var(--font-mono);
   font-size: 0.86em;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-align: left;
   color: var(--faint);
   padding: 8px 12px;
   border-bottom: 1px solid var(--line);
@@ -430,16 +440,33 @@ pre.astro-code::-webkit-scrollbar-track,
 :is(.markdown-body, .album-body) tr:last-child td {
   border-bottom: 1px solid var(--line);
 }
-/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位；可点开灯箱。 */
+/* 动态 Markdown 内联图：远程图片无法走 Astro 压缩，仍提供纸面边界与破图占位；可点开灯箱。
+   边界与底色挂在 img 上（容器是通栏块，小图会被通栏边框裹成空档）：图片按自身尺寸出框，
+   尺寸只受 .markdown-body img 的 max-width 约束，不再拉满列宽放大。 */
 .memo-content-img {
   display: block;
   margin: 1.75em 0;
-  border: 1px solid var(--hair);
-  background: var(--panel);
+  /* 载入中/加载失败时保底高度：占位图标才有着落（载入完成后由 img.is-loaded 撤销） */
+  min-height: 10rem;
+}
+.memo-content-img:has(> img.is-loaded) {
+  min-height: 0;
 }
 .memo-content-img img {
-  width: 100%;
+  border: 1px solid var(--hair);
+  background: var(--panel);
   cursor: pointer;
+}
+/* 被转义的手写 HTML（utils/memos 的 renderer.html 输出）：当源码展示——
+   等宽 0.86em（与行内 code 同档）、faint 色，块级保留原换行。 */
+:is(.markdown-body, .album-body) .memo-raw {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  color: var(--faint);
+}
+:is(.markdown-body, .album-body) p.memo-raw {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 /* Markdown 正文图（周刊 / 影辑正文共用）：rehypeContentImages 构建期包装容器，正文只统一图片尺寸。 */
 .post-content-img {

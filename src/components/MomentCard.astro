@@ -41,7 +41,7 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
   </div>
 
   <div
-    class={`markdown-body memo-content leading-[1.85] text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
+    class={`markdown-body memo-content text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
     set:html={m.content}
   ></div>
 
@@ -181,6 +181,23 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
   .memo-content {
     --type-scale: 13.5px;
     --type-body: 13.5px;
+  }
+  /* 卡片上下留白由 .moment 的 py-[26px] 承担：首尾元素自带的外边距不再叠上去。
+     不钉的话顶部间距随首元素类型漂移（h1 首行 38.9px vs p 首行 14.8px，实测），
+     卡尾同样随末元素在 37-48px 之间漂。 */
+  .memo-content > :first-child {
+    margin-top: 0;
+  }
+  .memo-content > :last-child {
+    margin-bottom: 0;
+  }
+  /* 单图档：图片载入前无固有尺寸，容器会塌成 0 高（占位图标无处可见）。
+     载入后由 img.is-loaded 撤销。多图档有 aspect-square，不需要。 */
+  .memo-images.grid-cols-1 .img-ph {
+    min-height: 10rem;
+  }
+  .memo-images.grid-cols-1 .img-ph:has(> img.is-loaded) {
+    min-height: 0;
   }
   .memo-content.memo-collapsed {
     display: -webkit-box;
