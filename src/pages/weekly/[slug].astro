@@ -196,10 +196,11 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
 
           <!-- 文末版权块：页边批注形态（页面左缘竖标目 + 标签 / 条款 / 元数据三行），常显、无复制按钮。
                标签文案见 i18n.weekly.copyrightLabel，条款见 siteConfig.copyright.terms；
-               标题 / 作者 / 原文链接由当前文章动态生成；块内不画线、不铺底色，下线交给「上一期 / 下一期」的 --line 收口 -->
+               标题 / 作者 / 原文链接由当前文章动态生成；块面走档案卡片语言（--panel 底 + --line 实线框），
+               块内只留 --hair 竖批注线，与「上一期 / 下一期」的 --line 上框差一档 -->
           <div class="weekly-copyright">
             <!-- CC 水印：640 viewBox 的填充字形（不是线条图标，故不进 Icon.astro），纯装饰 aria-hidden。
-                 viewBox 四周约 11% 留白是字形自带，裁到外圈紧边界会让圆环长到块高、顶到上边 hairline，勿裁 -->
+                 viewBox 四周约 11% 留白是字形自带，裁到外圈紧边界会让圆环长到块高、顶到上边框，勿裁 -->
             <svg class="weekly-copyright-cc" viewBox="0 0 640 640" fill="currentColor" aria-hidden="true">
               <path
                 d="m317.8 278.9l-33.2 17.3c-9.4-19.6-25.2-19.9-27.5-19.9c-22.1 0-33.2 14.6-33.2 43.8c0 23.6 9.2 43.8 33.2 43.8c14.5 0 24.6-7.1 30.6-21.3l30.6 15.5c-6.2 11.5-25.7 39-65.1 39c-22.6 0-74-10.3-74-77c0-58.7 43-77.1 72.6-77.1c30.7 0 52.7 11.9 66 35.9m143 0L428 296.2c-9.5-19.8-25.7-19.9-27.9-19.9c-22.1 0-33.2 14.6-33.2 43.8c0 23.5 9.2 43.8 33.2 43.8c14.4 0 24.6-7.1 30.5-21.3l31 15.5c-2.1 3.8-21.4 39-65.1 39c-22.7 0-74-9.9-74-77c0-58.7 43-77.1 72.6-77.1c30.7 0 52.6 11.9 65.6 35.9zM319.6 72C176.7 72 72 187.1 72 320.1c0 138.4 113.6 248 247.6 248c129.9 0 248.4-100.9 248.4-248C568 182.2 461.4 72 319.6 72m.9 450.8c-112.5 0-203.7-93-203.7-202.8c0-105.4 85.4-203.3 203.7-203.3c112.5 0 202.8 89.5 202.8 203.3c0 121.7-99.7 202.8-202.8 202.8"
@@ -595,9 +596,12 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
       flex: none;
     }
   }
-  /* 文末版权块 · 页边批注形态：上一条 --hair 当横梁（复用，不新增线条），左侧竖批注线随内容高度收尾，
-     块底不画线——收口交给「上一期 / 下一期」自己的 --line。栅格：48px 标目栏 + 18px 间隙 + 正文栏。
-     块内无底色，水印定位靠容器 position/overflow */
+  /* 文末版权块 · 页边批注形态：块面是档案卡片（--panel 底 + --line 实线框，同 Sponsor / 留言框），
+     框内左侧竖批注线随内容高度收尾，只取一档 --hair，不与外框抢线。
+     栅格：48px 标目栏 + 18px 间隙 + 正文栏；左右内边距刻意不对称——左侧为 0，
+     让 48px 标目栏正好等于「左框线 → 竖批注线」整格，栏内居中即「在左格里居中」（作者 2026-10-12 定）；
+     右侧 20px 让正文与右框脱开。上下留白由批注栏 / 正文栏自己的 padding 承担，不叠第二层。
+     水印定位靠容器 position/overflow */
   .weekly-copyright {
     position: relative;
     /* 水印按块宽比例收（42cqw），故这里是它的容器查询上下文 */
@@ -609,7 +613,9 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     max-width: 680px;
     margin-top: 40px;
     margin-inline: auto;
-    border-top: 1px solid var(--hair);
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 0 20px 0 0;
   }
   /* 水印尺寸跟容器高度走：min(240px, 容器高, 块宽 42%)，方块比由 aspect-ratio 锁定——
      块矮或变高时圆环跟着收放，不会像「height + max-width」那样被压成椭圆；
@@ -736,6 +742,8 @@ const artalkVersionStatus = weeklyConfig.comments ? await getArtalkVersionStatus
     .weekly-copyright {
       grid-template-columns: minmax(0, 1fr);
       gap: 0;
+      /* 竖排那侧的左内边距为 0（见基规则）；横排标目行需要左内边距，否则贴到左框线 */
+      padding-inline: 20px;
     }
     .weekly-copyright-rail {
       flex-direction: row;
