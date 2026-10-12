@@ -298,19 +298,18 @@ img.is-broken {
   margin: 0 0.5em 0 0;
   accent-color: var(--accent);
 }
-/* 正文引用：周刊 / 影辑正文 / 动态共用；影辑日期与地点也沿用引用标记，因此统一斜体。 */
+/* 正文引用：周刊 / 影辑正文 / 动态共用；影辑正文末尾的日期与地点也沿用引用标记。
+   识别靠 2px accent 左边线 + soft 色，不加斜体（2026-10-12 取消）——
+   字族只声明了 wght 轴（Mulish / Noto Sans SC / IBM Plex Mono 都没有 ital），
+   斜体全靠浏览器合成倾斜：中文是伪斜体，等宽代码更是等宽 + 倾斜双重降可读性。
+   取消后「引用里的等宽内容不倾斜」那条反制规则一并删掉：没有斜体可反制，留着是空壳。 */
 :is(.markdown-body, .album-body) blockquote {
   border-left: 2px solid var(--accent);
   padding-left: 1.4em;
   font-size: var(--type-body);
   line-height: 1.9;
   color: var(--soft);
-  font-style: italic;
   margin: 0.6em 0;
-}
-/* 引用整体斜体，但等宽内容不倾斜：代码斜体是彻底的排版错误（等宽 + 倾斜双重降可读性）。 */
-:is(.markdown-body, .album-body) blockquote :is(pre.astro-code, code, kbd) {
-  font-style: normal;
 }
 /* 周刊卷首提要：依靠题签、字号与 ink 色区分正文引用，不加边框或强调线。 */
 .weekly-lead-label {
