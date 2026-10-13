@@ -28,9 +28,14 @@ const locationDisplay = [locationCity, locationRegion]
         <span class="hole hole-3"></span>
       </span>
 
-      <div class="flex justify-between items-center border-b border-[var(--line)] pb-3.5 mb-2">
+      {/* 卡头：窄屏（实测 393px 下卡片内容宽仅 283px）放不下「标签 153px + 戳记 165px」，
+          两个 span 会各自折行、戳记被挤成两行——盖扁的戳记就不像戳记了。
+          故窄屏改竖排（标签一行、戳记贴右下），md 起恢复同行左右分开。
+          戳记恒 shrink-0 whitespace-nowrap：它是单行印章，折行即失去语义。 */}
+      <div class="flex flex-col items-start gap-2.5 md:flex-row md:items-center md:justify-between border-b border-[var(--line)] pb-3.5 mb-2">
         <span class="font-mono text-[10.5px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.about.record}</span>
-        <span class="border-[1.5px] border-[var(--accent)] text-[var(--accent)] font-mono text-[11.5px] tracking-[0.3em] pt-[4px] pr-[10px] pb-[4px] pl-[14px] -rotate-3">{i18n.about.verified}</span>
+        {/* 字号 11.5px → 10.5px：戳记属微标记而非字段行，与旁边标签同档，靠边框与旋转拉开层次 */}
+        <span class="self-end md:self-auto shrink-0 whitespace-nowrap border-[1.5px] border-[var(--accent)] text-[var(--accent)] font-mono text-[10.5px] tracking-[0.3em] pt-[4px] pr-[10px] pb-[4px] pl-[14px] -rotate-3">{i18n.about.verified}</span>
       </div>
 
       <dl>

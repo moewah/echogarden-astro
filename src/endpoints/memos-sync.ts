@@ -43,8 +43,8 @@ export const POST: APIRoute = async ({ request }) => {
     prev = {};
   }
 
-  // limit 与动态页 Moments 组件保持一致（30 条）；截断与折叠读取 memosConfig.display
-  const result = await syncMemos(prev, 30);
+  // 展示集合口径（条数）只来自 memosConfig.display：动态页与端点必须同集合，不能各写一份数字。
+  const result = await syncMemos(prev);
   if (!result) {
     return new Response(JSON.stringify({ error: 'sync unavailable' }), {
       status: 503,

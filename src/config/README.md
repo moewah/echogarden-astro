@@ -16,12 +16,12 @@
 | | `donationConfig.ts` | 赞助文案 + 方式(二维码/链接) |
 | | `guestbookConfig.ts` | 留言须知文案 |
 | ④ 接口 | `remoteBlogConfig.ts` | 外部博客 RSS 地址 / 开关 |
-| | `memosConfig.ts` | 动态 tag 白名单 / 页面开关 / 折叠与截断 / 凭据读取 / 版本要求 |
+| | `memosConfig.ts` | 动态 tag 白名单 / 页面开关 / 展示条数 / 凭据读取 / 版本要求 |
 | | `artalkConfig.ts` | Artalk 地址与站点名（凭据走 .env） |
 | | `externalLinksConfig.ts` | 外链 rel / target 统一处理 + 赞助链接清单 + 站内域名判定 |
 | ⑤ 扩展 | `analyticsConfig.ts` | Umami / GA / Clarity provider 开关与配置 |
 | | `llmsConfig.ts` | `/llms.txt` 生成配置：总开关、近期周刊/影辑数量 + 可选语义扩展（身份路由 / 精选区块 / 读取规则 / 实体信息） |
-| | `readingConfig.ts` | 周刊/影辑详情页与动态页沉浸阅读：背景原始态开关 |
+| | `readingConfig.ts` | 周刊/影辑详情页沉浸阅读：背景原始态开关 |
 
 ## 三条铁律
 
@@ -34,7 +34,7 @@
 1. 复制 `.env.example` 为 `.env`,填 `MEMOS_SITE_URL` / `MEMOS_ACCESS_TOKEN` / `ARTALK_SERVER` / `ARTALK_SITE`(不需要的功能留空即可,对应板块自动降级为占位提示)。
 2. 改 `siteConfig.ts` 的 `site` / `profile` 组,换成你的站点与身份。
 3. 按需开关:影辑 `albumsConfig.ts`、周刊 `weeklyConfig.ts`、背景 `siteConfig.ts` 的 `background` 组;开关联动导航与 SEC 编号,自动回收顺延。
-4. 外部数据（RSS / Memos / GitHub）拉取失败时板块降级为空态（「内容暂时无法加载」），无兜底数据；接口可用即自动恢复。动态正文的折叠与截断字符数在 `memosConfig.ts` 的 `display` 组调整，按字段注释选择适合首页或详情页的值。
+4. 外部数据（RSS / Memos / GitHub）拉取失败时板块降级为空态（「内容暂时无法加载」），无兜底数据；接口可用即自动恢复。动态列表的展示条数在 `memosConfig.ts` 的 `display` 组调整：`limit` 默认 30（展示条数上限，同一值同时决定增量同步端点的比对集合，所以页面与端点只能读这一处），按字段注释取值。
 5. 内容数据（文章/影辑）在 `src/content/`，不在这里。
 6. `llmsConfig.semantic` 是可选的机器读取语义层：默认关闭，零配置即可用；开启后只填站点自己的路由、精选区块与读取边界。引用已有页面优先用 `route` / `elsewhere` / `weeklySlug` / `albumSlug`，不要重复维护标题、日期与 URL。
 

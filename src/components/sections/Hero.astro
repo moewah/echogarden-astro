@@ -30,10 +30,10 @@ const updatedAt = (() => {
 
     <div class="flex flex-col justify-between pl-[clamp(22px,3.5vw,52px)] max-sm:pl-0 pt-[clamp(20px,4vh,44px)]">
       <div class="reveal">
-        <div class="flex justify-between gap-3 flex-wrap font-mono text-[11.5px] tracking-[0.14em] text-[var(--soft)]">
-          <span>{i18n.hero.fileNo} {pageCode}</span>
-          <span class="border-[1.5px] border-[var(--accent)] text-[var(--accent)] px-3 py-1 tracking-[0.3em] font-semibold">{i18n.hero.online}</span>
-        </div>
+        {/* 档案编号一行：原先右侧还有一枚「在 线」戳记，与站点卡片的 ● ONLINE 重复，已移除 */}
+        <p class="font-mono text-[11.5px] tracking-[0.14em] text-[var(--soft)]">
+          {i18n.hero.fileNo} {pageCode}
+        </p>
 
         <div class="grid grid-cols-1 min-[900px]:grid-cols-[7fr_5fr] gap-[clamp(28px,5vw,72px)] items-center py-[clamp(28px,6vh,72px)]">
           <!-- 左列作为字号容器：wrap 的内容宽在 1160px 后锁定，字号却按 vw 继续增长，

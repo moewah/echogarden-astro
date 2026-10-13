@@ -4,6 +4,7 @@
 // Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
 // Licensed under MIT
 import { i18n } from '@i18n';
+import { siteConfig } from '@config/index';
 import type { Memo } from '@/utils/memos';
 
 // 动态卡片组件 —— 卡片结构与样式的单一事实源。
@@ -22,117 +23,140 @@ const { memo: m, idx, priority = false } = Astro.props;
 // 图墙只渲染正文没有内联引用的图片附件（正文里已展示的不重复，见 utils/memos 的 gallery）
 const images = m.gallery ?? [];
 const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
+// 作者：Memos 用户表查不到时（未配置 / 查用户失败 / 作者未设头像）回退站主身份，卡片头不留空位。
+const authorName = m.author?.name || siteConfig.profile.name;
+const authorAvatar = m.author?.avatar || siteConfig.profile.avatar;
+// 卡片日期就是日历索引的键：取展示日期本身（本地时区），不直接用 createTime——
+// createTime 是 UTC，跨零点时切出来的日子会比卡片上印的日期差一天。
+const dateIso = m.date.replace(/\./g, '-');
 ---
 
 <div
-  class="moment relative py-[26px] border-b border-[var(--hair)]"
+  class="moment border border-[var(--hair)] bg-[var(--panel)] transition-colors hover:border-[var(--accent)]"
   data-uid={m.uid}
   data-tags={JSON.stringify(m.tags ?? [])}
   data-time={m.createTime}
 >
-  <div class="flex flex-wrap gap-3 items-baseline font-mono text-[10.5px] tracking-[0.1em] text-[var(--faint)] mb-2.5">
-    <span class="text-[var(--accent)] moment-no">{no}</span>
-    <span>{m.date}</span>
+  {/* 卡片三带：头（身份 + 分类）/ 正文 / 底（档案元数据）。
+      分类胶囊跟身份同层靠右（参照 动态卡片-C-索引网格 的 head），编号与日期下沉到封底条——
+      窄屏时头行要么装得下、要么只给胶囊换行，不再把元数据那行拆开。 */}
+  <header class="flex flex-wrap items-center gap-x-2.5 gap-y-2 px-[15px] py-3 border-b border-[var(--hair)] font-mono text-[10.5px] tracking-[0.07em] text-[var(--faint)]">
+    <img
+      class="w-[30px] h-[30px] shrink-0 border border-[var(--hair)] object-cover"
+      src={authorAvatar}
+      alt=""
+      width="30"
+      height="30"
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="font-sans text-[13px] font-medium tracking-[0.01em] text-[var(--ink)]">{authorName}</span>
     {
-      (m.tags ?? []).map((t) => (
-        <span class="border border-[var(--accent)] rounded-full px-2.5 py-0.5 text-[var(--accent)]">{t}</span>
-      ))
+      (m.tags ?? []).length > 0 && (
+        // 胶囊 11.5px mono（AGENTS 1.2 的字段行与交互档），与影辑详情页 `dl` 里那枚同一款
+        // （`px-2.5 py-0.5` + accent 描边）——故意比同排 10.5px 的元数据高一档：它是分类，不是元数据。
+        <span class="ml-auto flex flex-wrap justify-end gap-1.5">
+          {(m.tags ?? []).map((t) => (
+            <span class="whitespace-nowrap rounded-full border border-[var(--accent)] px-2.5 py-0.5 text-[11.5px] tracking-[0.04em] text-[var(--accent)]">{t}</span>
+          ))}
+        </span>
+      )
     }
-  </div>
+  </header>
 
-  <div
-    class={`markdown-body memo-content text-[var(--soft)]${m.isLong ? ' memo-collapsed' : ''}`}
-    set:html={m.content}
-  ></div>
+  {/* 正文区整块负责内衬：正文 / 图墙 / 附件同在一个内容块里，
+      不再各自算一份 margin-inline——它们同属一个区，内衬是该区的事。 */}
+  <div class="memo-body">
+    <div
+      class="markdown-body memo-content text-[var(--soft)]"
+      set:html={m.content}
+    ></div>
 
-  {
-    images.length > 0 && (
-      images.length > 3 ? (
-        <div class="memo-images mt-3 relative" data-carousel>
-          <button type="button" class="memo-nav memo-prev" data-dir="-1" aria-label={i18n.lightbox.prev}>‹</button>
-          <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
-          <div class="memo-track flex gap-3 overflow-x-hidden" data-track>
+    {
+      images.length > 0 && (
+        images.length > 3 ? (
+          <div class="memo-images mt-3 relative" data-carousel>
+            <button type="button" class="memo-nav memo-prev" data-dir="-1" aria-label={i18n.lightbox.prev}>‹</button>
+            <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
+            <div class="memo-track flex gap-3 overflow-x-hidden" data-track>
+              {images.map((src, i) => (
+                <figure class="shrink-0 w-[calc((100%-24px)/3)]">
+                  <div class="aspect-square overflow-hidden img-ph img-ph--memo">
+                    <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
+                  </div>
+                </figure>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div
+            class={`memo-images mt-3 grid gap-3 ${
+              images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+            }`}
+          >
             {images.map((src, i) => (
-              <figure class="memo-slide shrink-0 w-[calc((100%-24px)/3)]" data-slide>
-                <div class="aspect-square overflow-hidden img-ph img-ph--memo">
-                  <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
+              <figure>
+                <div
+                  class={`overflow-hidden img-ph img-ph--memo ${
+                    images.length === 1 ? '' : 'aspect-square'
+                  }`}
+                >
+                  <img
+                    src={src}
+                    loading={priority && i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={priority && i === 0 ? 'high' : undefined}
+                    decoding="async"
+                    alt={src.split('/').pop()}
+                    data-lightbox-trigger
+                    data-lightbox-group={m.uid}
+                    class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
+                  />
                 </div>
               </figure>
             ))}
           </div>
-        </div>
-      ) : (
-        <div
-          class={`memo-images mt-3 grid gap-3 ${
-            images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
-          }`}
-        >
-          {images.map((src, i) => (
-            <figure>
-              <div
-                class={`overflow-hidden img-ph img-ph--memo ${
-                  images.length === 1 ? '' : 'aspect-square'
-                }`}
-              >
-                <img
-                  src={src}
-                  loading={priority && i === 0 ? 'eager' : 'lazy'}
-                  fetchpriority={priority && i === 0 ? 'high' : undefined}
-                  decoding="async"
-                  alt={src.split('/').pop()}
-                  data-lightbox-trigger
-                  data-lightbox-group={m.uid}
-                  class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
-                />
+        )
+      )
+    }
+
+    {
+      m.media && m.media.length > 0 && (
+        <div class="memo-media mt-3 grid gap-2">
+          {m.media.map((f) => (
+            f.type === 'video' ? (
+              <video src={f.url} controls preload="metadata" class="w-full max-h-[420px] border border-[var(--hair)] bg-[var(--panel)]"></video>
+            ) : f.type === 'audio' ? (
+              <div class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2">
+                <span class="shrink-0 font-mono text-[10px] tracking-[0.06em] text-[var(--accent)]">AUDIO</span>
+                <audio src={f.url} controls preload="metadata" class="w-full min-w-0"></audio>
               </div>
-            </figure>
+            ) : (
+              <a href={f.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2 font-mono text-[11.5px] tracking-[0.06em] text-[var(--accent)] transition-colors hover:border-[var(--accent)]">
+                <span class="shrink-0 text-[var(--faint)]">FILE</span>
+                <span class="truncate">{f.filename}</span>
+              </a>
+            )
           ))}
         </div>
       )
-    )
-  }
+    }
 
-  {
-    m.media && m.media.length > 0 && (
-      <div class="memo-media mt-3 grid gap-2">
-        {m.media.map((f) => (
-          f.type === 'video' ? (
-            <video src={f.url} controls preload="metadata" class="w-full max-h-[420px] border border-[var(--hair)] bg-[var(--panel)]"></video>
-          ) : f.type === 'audio' ? (
-            <div class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2">
-              <span class="shrink-0 font-mono text-[10px] tracking-[0.06em] text-[var(--accent)]">AUDIO</span>
-              <audio src={f.url} controls preload="metadata" class="w-full min-w-0"></audio>
-            </div>
-          ) : (
-            <a href={f.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 border border-[var(--hair)] bg-[var(--panel)] px-3 py-2 font-mono text-[11.5px] tracking-[0.06em] text-[var(--accent)] transition-colors hover:border-[var(--accent)]">
-              <span class="shrink-0 text-[var(--faint)]">FILE</span>
-              <span class="truncate">{f.filename}</span>
-            </a>
-          )
-        ))}
-      </div>
-    )
-  }
+  </div>
 
-  {
-    m.isLong && (
-      <button type="button" class="memo-toggle font-mono text-[11.5px] tracking-[0.12em] text-[var(--accent)] mt-2.5" data-toggle>
-        {i18n.moments.expand}
-      </button>
-    )
-  }
+  {/* 封底条：档案编号 + 日期（元数据就这两位，术语不重复占位）。
+      内衬与卡片头同档（上边线 + py-3），颜色更弱一档（faint）——头肩尾三个带，头重、尾轻。 */}
+  <div class="memo-foot flex items-center gap-x-2.5 px-[15px] py-3 border-t border-[var(--hair)] font-mono text-[10.5px] tracking-[0.07em] text-[var(--faint)]">
+    <span class="moment-no font-semibold tracking-[0.13em] text-[var(--accent)]">{no}</span>
+    <time datetime={dateIso}>{m.date}</time>
+  </div>
 </div>
 
 <style>
   /* ===== 组件 scoped：作用于组件 JSX 元素（静态页 head 已含本组件 CSS，增量 HTML 自动匹配） ===== */
-  .moment::before {
-    content: '';
-    position: absolute;
-    left: calc(-1 * clamp(20px, 4vw, 48px) - 5px);
-    top: 36px;
-    width: 9px;
-    height: 9px;
-    background: var(--accent);
+  /* 正文区内衬：正文 / 图墙 / 附件同属这一区，内衬在这里给一次。
+     底部 20px 比顶部 15px 宽一拍：正文末行到封底条之间需要比段间多一点余量。 */
+  .memo-body {
+    padding: 15px 15px 20px;
   }
   /* 图片可点开灯箱的光标提示 */
   .memo-images img {
@@ -176,9 +200,9 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
     --type-scale: 13.5px;
     --type-body: 13.5px;
   }
-  /* 卡片上下留白由 .moment 的 py-[26px] 承担：首尾元素自带的外边距不再叠上去。
-     不钉的话顶部间距随首元素类型漂移（h1 首行 38.9px vs p 首行 14.8px，实测），
-     卡尾同样随末元素在 37-48px 之间漂。 */
+  /* 卡片上下留白由容器内衬承担（.memo-body 的 15px / 卡片根不再另给底部内衬）：
+     首尾元素自带的外边距不再叠上去。不钉的话顶部间距随首元素类型漂移
+     （h1 首行 38.9px vs p 首行 14.8px，实测），卡尾同样随末元素在 37-48px 之间漂。 */
   .memo-content > :first-child {
     margin-top: 0;
   }
@@ -192,16 +216,5 @@ const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
   }
   .memo-images.grid-cols-1 .img-ph:has(> img.is-loaded) {
     min-height: 0;
-  }
-  .memo-content.memo-collapsed {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 13;
-    overflow: hidden;
-  }
-  .memo-content.memo-expanded {
-    display: block;
-    -webkit-line-clamp: unset;
-    overflow: visible;
   }
 </style>

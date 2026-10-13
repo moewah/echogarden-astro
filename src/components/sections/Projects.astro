@@ -35,11 +35,15 @@ const projects = projectsConfig.enabled ? await getProjects() : [];
             rel="noopener"
             class="group block py-[18px] border-b border-[var(--hair)] transition-all duration-250 hover:border-b-[var(--accent)] hover:translate-x-[2px] md:grid md:grid-cols-[96px_1fr_auto] md:gap-[clamp(16px,2.5vw,34px)] md:items-baseline md:py-5"
           >
-            {/* 元数据：移动端「编号 · 语言 ↗」一行；md 起编号独占左列、语言落在编号下方 */}
-            <span class="flex items-baseline gap-2 font-mono text-[10px] tracking-[0.12em] text-[var(--faint)] md:block">
+            {/* 元数据：移动端「编号 · 语言 ↗」一行；md 起编号独占左列、语言落在编号下方。
+                gap-3 只管移动端同行时的间距（md 改 block 后失效）——编号是 accent + semibold，
+                与 faint 的语言贴到 8px 时会被读成一串。 */}
+            <span class="flex items-baseline gap-3 font-mono text-[10px] tracking-[0.12em] text-[var(--faint)] md:block">
               <span class="shrink-0 whitespace-nowrap text-[10.5px] font-semibold text-[var(--accent)]">{p.id}</span>
+              {/* 语言标记圆点用 --faint 而非 --accent：同一行里 accent 只能有一枚，
+                  编号是强调色载体（档案编号惯例），圆点只是分隔标记，两枚同色会互相稀释 */}
               <span class="flex items-baseline gap-1.5 md:mt-2">
-                <span class="w-[6px] h-[6px] rounded-full bg-[var(--accent)] inline-block shrink-0"></span>
+                <span class="w-[6px] h-[6px] rounded-full bg-[var(--faint)] inline-block shrink-0"></span>
                 <span>{p.lang}</span>
               </span>
               <span class="ml-auto font-mono text-[10.5px] transition-all group-hover:text-[var(--accent)] group-hover:translate-x-[3px] group-hover:-translate-y-[3px] md:hidden">↗</span>

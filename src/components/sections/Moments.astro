@@ -3,49 +3,65 @@
 // Repository: https://github.com/moewah/echogarden-astro.git
 // Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
 // Licensed under MIT
-import SecHead from '@components/SecHead.astro';
 import EmptyState from '@components/EmptyState.astro';
 import MomentCard from '@components/MomentCard.astro';
 import Lightbox from '@components/Lightbox.astro';
+import Icon from '@components/Icon.astro';
 import { getMemos, getMemosVersionStatus, memoStructuredText, formatMemoDate } from '@/utils/memos';
 import { memosConfig, siteConfig } from '@config/index';
 import { i18n } from '@i18n';
 
 interface Props {
+  /** 展示条数上限：默认取 memosConfig.display.limit——增量端点按同一个值比对，调用点不要写数字 */
   limit?: number;
-  truncate?: number;
-  showHead?: boolean;
-  /** 动态页专用：渲染增量刷新 UI（刷新按钮/快照/同步状态）；首页板块不传 */
+  /** 动态页专用：渲染增量刷新 UI（刷新按钮/快照/同步状态）；唯一消费方 /moments/ 恒传 */
   refreshable?: boolean;
 }
-const { limit = 4, truncate = memosConfig.display.truncate, showHead = true, refreshable = false } = Astro.props;
-// 版本未通过时不拉取内容，直接复用空态占位。
+const { limit = memosConfig.display.limit, refreshable = false } = Astro.props;
+// 版本未通过时不拉取内容，直接落到空态（文案按状态分派，见 stateText）。
 const memosVersionStatus = await getMemosVersionStatus();
-const memos =
-  memosVersionStatus === 'ready'
-    ? await getMemos(limit, truncate)
-    : memosVersionStatus === 'unconfigured'
-      ? []
-      : null;
+const fetched = memosVersionStatus === 'ready' ? await getMemos(limit) : [];
+// 可渲染列表 = 版本就绪 + 拉取成功（getMemos 用 null 表示拉取失败，空数组表示确实没有内容）
+const hasList = memosVersionStatus === 'ready' && fetched !== null;
+const list = fetched ?? [];
+const stateText =
+  memosVersionStatus === 'unconfigured'
+    ? i18n.moments.disabled
+    : memosVersionStatus === 'mismatch'
+      ? i18n.moments.versionMismatch
+      : memosVersionStatus === 'unavailable'
+        ? i18n.moments.versionCheckFailed
+        : i18n.moments.loadFailed;
+// 版本提示行只在「服务未配 / 版本不符 / 版本无法确认」三种状态下出现
+const showVersionHint = memosVersionStatus !== 'ready';
+const totalCount = list.length;
+// 空集合：拉取成功、版本就绪，但白名单下一条都没有。与拉取失败分开处理——
+// 前者不是故障（文案不借用 loadFailed），但索引栏会退化成空壳（无可筛标签、空日历、
+// 失效的 ‹ ›），所以同样走空态面板，不渲染索引栏与记录栏。
+const emptyList = hasList && list.length === 0;
+// 标签索引：顺序由 config 白名单决定，零记录的 tag 不列（列出来是个点了没结果的死筛选项）
+const tagCounts = memosConfig.tags
+  .map((tag) => ({ tag, count: list.filter((m) => m.tags.includes(tag)).length }))
+  .filter((item) => item.count > 0);
+const pad2 = (n: number) => String(n).padStart(2, '0');
 // 页面首个实际图片优先加载，不把无图动态误判为首图。
-const priorityMemoUid = memos?.find((m) => m.images && m.images.length > 0)?.uid;
+const priorityMemoUid = list.find((m) => m.images && m.images.length > 0)?.uid;
 // 增量刷新生效条件：动态页 + 开关开启 + 服务已配置且数据可用
-const refreshOn = refreshable && memosConfig.refresh.enabled && memosConfig.enabled && memos !== null;
+const refreshOn = refreshable && memosConfig.refresh.enabled && hasList;
 // 构建时展示集合快照 {uid: updateTime}（增量同步的 prev 基准，随构建刷新）
 const snapshot: Record<string, string> = {};
-for (const m of memos ?? []) snapshot[m.uid] = m.updateTime;
+for (const m of list) snapshot[m.uid] = m.updateTime;
 // 展示集合最新变化时间（LAST SYNCED 展示；空列表回退构建日期）
-const latestTime =
-  memos && memos.length
-    ? memos.reduce((a, b) => (a.updateTime > b.updateTime ? a : b)).updateTime
-    : '';
+const latestTime = list.length
+  ? list.reduce((a, b) => (a.updateTime > b.updateTime ? a : b)).updateTime
+  : '';
 // 构建时数据快照日期（统计戳记的同步时间；本地时区，格式化复用 utils 的 formatMemoDate）
 const buildDate = formatMemoDate(new Date().toISOString());
 const syncedDate = latestTime ? formatMemoDate(latestTime) : buildDate;
 const siteUrl = siteConfig.site.url.replace(/\/?$/, '/');
 const momentsUrl = new URL('/moments/', siteUrl).toString();
 const momentsJsonLd =
-  memos && memos.length > 0
+  list.length > 0
     ? {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
@@ -56,8 +72,8 @@ const momentsJsonLd =
         isPartOf: { '@id': `${siteUrl}#website` },
         mainEntity: {
           '@type': 'ItemList',
-          numberOfItems: memos.length,
-          itemListElement: memos.map((memo, index) => ({
+          numberOfItems: list.length,
+          itemListElement: list.map((memo, index) => ({
             '@type': 'ListItem',
             position: index + 1,
             item: {
@@ -75,80 +91,145 @@ const momentsJsonLd =
 const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(/</g, '\\u003c') : '';
 ---
 
-<section id="moments" class={showHead ? 'pt-[clamp(70px,11vh,130px)]' : ''}>
+<section id="moments">
   <div class="wrap">
     {
-      showHead && (
-        <SecHead no="LOG" title={i18n.sections.moments.title} en={i18n.sections.moments.en} />
+      !hasList || emptyList ? (
+        <div class="max-w-[720px] mx-auto reveal">
+          <EmptyState text={emptyList ? i18n.moments.empty : stateText}>
+            {showVersionHint && (
+              <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">
+                {i18n.moments.disabledVer.replace('{n}', memosConfig.version)}
+              </span>
+            )}
+          </EmptyState>
+        </div>
+      ) : (
+        <div class="memo-archive reveal">
+          <aside class="memo-rail">
+            <section class="memo-rail-section">
+              <h2 class="memo-rail-title">{i18n.moments.railTags}</h2>
+              <div class="memo-rail-list" role="group" aria-label={i18n.moments.tagsLabel}>
+                <button type="button" class="memo-filter-btn" data-tag="" aria-pressed="true">
+                  {i18n.moments.all} <small data-count="all">{pad2(totalCount)}</small>
+                </button>
+                {tagCounts.map((item) => (
+                  <button type="button" class="memo-filter-btn" data-tag={item.tag} aria-pressed="false">
+                    {item.tag} <small data-count={item.tag}>{pad2(item.count)}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section class="memo-rail-section">
+              <h2 class="memo-rail-title">{i18n.moments.railCalendar}</h2>
+              <div class="memo-cal-nav">
+                <button class="memo-cal-step" id="memo-cal-prev" type="button" aria-label={i18n.moments.calendarPrev}>‹</button>
+                <time class="memo-cal-month" id="memo-cal-month"></time>
+                <button class="memo-cal-step" id="memo-cal-next" type="button" aria-label={i18n.moments.calendarNext}>›</button>
+              </div>
+              <div class="memo-cal-weekdays" aria-hidden="true">
+                {i18n.moments.calendarWeekdays.map((weekday) => <span>{weekday}</span>)}
+              </div>
+              {/* 无 role：格子是脚本现造的 <button>（其余格子是 aria-hidden 的 span），没有
+                  row / gridcell 结构，写 grid 角色是无效 ARIA。可访问名靠 aria-label。 */}
+              <div class="memo-cal-grid" id="memo-cal-grid" aria-label={i18n.moments.calendarLabel}></div>
+            </section>
+
+            <section class="memo-rail-section">
+              <h2 class="memo-rail-title">{i18n.moments.railCollection}</h2>
+              <div class="memo-rail-count">
+                <strong data-count-total>{totalCount}</strong>
+                <span>{i18n.moments.publicRecords}</span>
+              </div>
+              <p class="memo-rail-note">{i18n.moments.collectionNote}</p>
+            </section>
+          </aside>
+
+          <div class="memo-records">
+            {/* 记录栏头行只放控件：左侧刷新（图标按钮 + 状态文本），右侧展示方式切换。
+                计数与同步日期已并到列表尾注（同一条信息不拆两处）。 */}
+            <div class="memo-feed-head">
+              <div class="memo-feed-tools">
+                {
+                  refreshOn && (
+                    <button
+                      type="button"
+                      id="memo-sync-btn"
+                      class="memo-refresh-btn"
+                      aria-label={i18n.moments.refresh}
+                      title={i18n.moments.refresh}>
+                      <Icon name="refresh" class="w-[16px] h-[16px]" />
+                    </button>
+                  )
+                }
+                <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
+              </div>
+              <div class="memo-view-switch" role="group" aria-label={i18n.moments.viewLabel}>
+                <button
+                  type="button"
+                  class="memo-view-btn"
+                  data-layout="stream"
+                  aria-pressed="true"
+                  aria-label={i18n.moments.viewStream}
+                  title={i18n.moments.viewStream}>▤</button>
+                <button
+                  type="button"
+                  class="memo-view-btn"
+                  data-layout="masonry"
+                  aria-pressed="false"
+                  aria-label={i18n.moments.viewMasonry}
+                  title={i18n.moments.viewMasonry}>◫</button>
+              </div>
+            </div>
+
+            <div class="memo-feed" id="memo-list" data-layout="stream">
+              {/* 展示方式的记忆：必须在这一屏内容绘制前落地，否则记的是瀑布流也要先闪一帧卡片栏
+                  （同 Layout 里主题预置的做法：读 localStorage 的行内脚本不进打包流程）。
+                  位置是这条保证的一半：脚本排在卡片之前解析，属性在首张卡片进 DOM 前就落地；
+                  排在卡片之后（哪怕还在同一个容器里）要等整批卡片全解析完才生效。
+                  它只管卡片排布——右侧两枚视图按钮的 aria-pressed 由打包脚本在 DOM 就绪后对齐，
+                  仍可能晚一帧；要一并提前须把这段上提到 head。 */}
+              <script is:inline>
+                (function () {
+                  try {
+                    var layout = localStorage.getItem('mh-moments-layout');
+                    if (layout === 'stream' || layout === 'masonry') {
+                      document.getElementById('memo-list').setAttribute('data-layout', layout);
+                    }
+                  } catch (e) {}
+                })();
+              </script>
+              {
+                // 卡片结构单一事实源：MomentCard 组件（静态渲染与增量端点经 Container API 共用）
+                list.map((m, idx) => (
+                  <MomentCard memo={m} idx={idx} priority={m.uid === priorityMemoUid} />
+                ))
+              }
+            </div>
+
+            {/* 列表尾注：左端计数、右端同步日期——与头行同一套两端对齐（头行左刷新右展示方式）。
+                计数原先在头行，移到底部后同一件事不再读两遍。 */}
+            <div class="memo-feed-foot">
+              <p><strong id="memo-count">{totalCount}</strong> {i18n.moments.records}</p>
+              {/* 这行必须同源码行：JSX 会剥掉跨行的纯空白，写成多行会变成 LASTSYNCED */}
+              <p>{i18n.moments.lastSynced} <span id="memo-synced">{syncedDate}</span></p>
+            </div>
+          </div>
+        </div>
       )
     }
-
-    <div class="max-w-[720px] mx-auto reveal">
-      {
-        !memosConfig.enabled ? (
-          <EmptyState text={i18n.moments.disabled}>
-            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
-          </EmptyState>
-        ) : memosVersionStatus === 'mismatch' ? (
-          <EmptyState text={i18n.moments.versionMismatch}>
-            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
-          </EmptyState>
-        ) : memosVersionStatus === 'unavailable' ? (
-          <EmptyState text={i18n.moments.versionCheckFailed}>
-            <span class="block mt-2.5 font-mono text-[10.5px] tracking-[0.12em] text-[var(--faint)]">{i18n.moments.disabledVer.replace('{n}', memosConfig.version)}</span>
-          </EmptyState>
-        ) : memos === null ? (
-          <EmptyState text={i18n.moments.loadFailed} />
-        ) : (
-          <>
-            <div class="flex justify-between items-center font-mono text-[10.5px] tracking-[0.24em] uppercase pb-3 border-b border-[var(--line)]">
-        <span class="text-[var(--faint)]"><span id="memo-count" class="tabular-nums">{memos.length}</span> {i18n.moments.records}</span>
-        <span class="flex items-center gap-3">
-          {
-            refreshOn && (
-              <>
-                <button type="button" id="memo-sync-btn" class="memo-refresh-btn">{i18n.moments.refresh}</button>
-                <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
-              </>
-            )
-          }
-          <span class="text-[var(--accent)]">● {i18n.moments.synced}</span>
-        </span>
-      </div>
-
-      <div class="flex flex-wrap gap-2 mt-5" id="memo-filter">
-        <button type="button" class="memo-filter-btn is-active" data-tag="">{i18n.moments.all}</button>
-        {
-          memosConfig.tags.map((t) => (
-            <button type="button" class="memo-filter-btn" data-tag={t}>{t}</button>
-          ))
-        }
-      </div>
-
-      <div class="border-l border-[var(--line)] pl-[clamp(20px,4vw,48px)] mt-5" id="memo-list">
-        {
-          memos.map((m, idx) => (
-            // 卡片结构单一事实源：MomentCard 组件（静态渲染与增量端点经 Container API 共用）
-            <MomentCard memo={m} idx={idx} priority={m.uid === priorityMemoUid} />
-          ))
-        }
-      </div>
-      {
-        memos !== null && (
-          <div class="mt-6 flex justify-end items-center gap-2 font-mono text-[10.5px] tracking-[0.14em] text-[var(--faint)]">
-            <span>{i18n.moments.lastSynced}</span>
-            <span id="memo-synced">{syncedDate}</span>
-          </div>
-        )
-      }
-          </>
-        )
-      }
-    </div>
   </div>
 
   <Lightbox figureDigits={2} />
-  <span id="memo-i18n" data-refresh={i18n.moments.refresh} data-refreshing={i18n.moments.refreshing} data-noupdates={i18n.moments.noUpdates} data-syncfailed={i18n.moments.syncFailed} hidden></span>
+  <span
+    id="memo-i18n"
+    data-refreshing={i18n.moments.refreshing}
+    data-noupdates={i18n.moments.noUpdates}
+    data-syncfailed={i18n.moments.syncFailed}
+    data-calnone={i18n.moments.calendarNone}
+    data-calrecords={i18n.moments.calendarRecords}
+    hidden></span>
   {
     refreshOn && (
       // 构建时快照：增量同步的 prev 基准（uid → updateTime，RFC3339）
@@ -161,39 +242,203 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
 </section>
 
 <style>
-  .memo-filter-btn {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+  /* ===== 动态页版面：左索引栏 / 右记录栏 =====
+     索引栏 174px 是「索引卡片」的宽度，不是第二条容器宽度——容器仍是唯一的 wrap。 */
+  .memo-archive {
+    display: grid;
+    grid-template-columns: 174px minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(28px, 4vw, 56px);
+  }
+  /* 顶栏实测底边 78px（12px 顶距 + 66px 高），落在 96px 留 18px 呼吸位 */
+  .memo-rail {
+    position: sticky;
+    top: 96px;
+  }
+  .memo-rail-section {
+    margin: 0 0 20px;
+    padding: 0 0 19px;
+    border-bottom: 1px solid var(--hair);
+  }
+  /* 末段（COLLECTION）不带收尾线：它是索引栏的最后一块，下方没有下一段需要分隔 */
+  .memo-rail-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+  .memo-rail-title {
+    margin: 0 0 12px;
+    color: var(--faint);
+    font: 10.5px var(--font-mono);
+    letter-spacing: 0.16em;
+  }
+  .memo-rail-list {
+    display: grid;
+    gap: 7px;
+  }
+  /* 索引行：一行「标签 + 条数」，两侧对齐便于竖着扫条数 */
+  .memo-rail-list .memo-filter-btn {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 0;
+    border: 0;
+    background: transparent;
+    color: var(--soft);
+    text-align: left;
+    font: 11.5px var(--font-mono);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .memo-rail-list .memo-filter-btn:hover,
+  .memo-rail-list .memo-filter-btn[aria-pressed='true'] {
+    color: var(--accent);
+  }
+  .memo-rail-list small {
+    color: var(--faint);
+    font: 10.5px var(--font-mono);
+  }
+  .memo-rail-count {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--soft);
+    font: 10.5px var(--font-mono);
     letter-spacing: 0.1em;
-    padding: 4px 12px;
+  }
+  .memo-rail-count strong {
+    color: var(--ink);
+    font: 400 24px var(--font-sans);
+  }
+  .memo-rail-note {
+    margin: 8px 0 0;
+    color: var(--faint);
+    font-size: 11.5px;
+    line-height: 1.8;
+  }
+  /* ===== 日期索引（日历）：跨年可用，只让「有记录的那天」成为可点项 ===== */
+  .memo-cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .memo-cal-step {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
     border: 1px solid var(--hair);
-    color: var(--soft);
     background: transparent;
+    color: var(--soft);
+    font: 18px/1 var(--font-sans);
     cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, border-color 0.2s, transform 0.12s;
   }
-  .memo-filter-btn:hover {
-    border-color: var(--accent);
+  .memo-cal-step:hover {
     color: var(--accent);
-  }
-  .memo-filter-btn.is-active {
     border-color: var(--accent);
-    color: var(--accent);
   }
-  .memo-refresh-btn {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
+  .memo-cal-step:active {
+    transform: translateY(1px);
+  }
+  .memo-cal-month {
+    flex: 1;
+    color: var(--ink);
+    text-align: center;
+    font: 10.5px var(--font-mono);
+    white-space: nowrap;
+  }
+  .memo-cal-weekdays,
+  .memo-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .memo-cal-weekdays {
+    margin: 9px 0 3px;
+    color: var(--faint);
+    text-align: center;
+    font: 10.5px var(--font-mono);
+  }
+  /* ===== 记录栏头行：统计 + 刷新 + 展示方式 ===== */
+  /* 记录栏头行：只划一根发丝线。这里用 --line（实线档）会把「控件区的下边界」
+     画成整幅图里最重的一根线——它分隔的卡片本身只是 --hair 外框，分隔线比
+     被分隔的东西重 5.7 倍，而且离卡片顶边只有 16px，一粗一细两条平行线贴在一起
+     像错位。--line 是板块边界与表头的档位（PageHeader / SecHead），
+     记录流自己开合的两根线属于「行分隔」，归 --hair。 */
+  .memo-feed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .memo-feed-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* 列表尾注（计数 + LAST SYNCED）：两端对齐，与记录栏头行同构——
+     头行用下边线开列表，尾注用上边线收列表，两端对称，线同为发丝线。 */
+  .memo-feed-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hair);
+    color: var(--faint);
+    font: 10.5px var(--font-mono);
     letter-spacing: 0.14em;
-    padding: 3px 12px;
-    border: 1px solid var(--hair);
-    color: var(--soft);
-    background: transparent;
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
   }
+  .memo-feed-foot p {
+    margin: 0;
+  }
+  .memo-feed-foot strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  /* 字形图标（▤ / ◫）与线描图标（刷新 ↻）同排：两者都按图标取值，不受 mono 字号四档约束。
+     刷新与两枚展示方式按钮共用同一份几何（34×34 + hairline 描边）——
+     它们同属一排控件，尺寸不一致会读成两种控件。刷新是图标按钮，状态文本在它右侧。 */
+  .memo-view-btn,
+  .memo-refresh-btn {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--hair);
+    background: transparent;
+    color: var(--faint);
+    font: 17px/1 var(--font-mono);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.12s;
+  }
+  .memo-view-btn:hover,
   .memo-refresh-btn:hover {
-    border-color: var(--accent);
     color: var(--accent);
+    border-color: var(--accent);
+  }
+  .memo-view-btn:active,
+  .memo-refresh-btn:active {
+    transform: translateY(1px);
+  }
+  /* 展示方式是二选一开关，两枚各带自己的描边、中间留 6px 间隙——
+     它们不是一个连体控件的两半，贴在一起会读错。 */
+  .memo-view-switch {
+    display: inline-flex;
+    flex: none;
+    gap: 6px;
+  }
+  .memo-view-btn[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+  }
+  /* 已选中那枚是实心反白：按压落回基线，不再下沉 */
+  .memo-view-btn[aria-pressed='true']:active {
+    transform: none;
   }
   .memo-refresh-btn:disabled {
     opacity: 0.45;
@@ -203,7 +448,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
   }
   .memo-sync-status {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     letter-spacing: 0.12em;
     color: var(--faint);
     white-space: nowrap;
@@ -211,39 +456,160 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
   .memo-sync-status:not([hidden]) {
     display: inline-block;
   }
+  @media (max-width: 1023px) {
+    .memo-archive {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 26px;
+    }
+    /* 索引栏收到记录栏上方：三段并排，横向摊开 */
+    .memo-rail {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+    }
+    .memo-rail-section {
+      margin: 0;
+      padding: 0;
+      border-bottom: 0;
+    }
+  }
+  @media (max-width: 767px) {
+    .memo-rail {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    /* COLLECTION 收起：记录数已在记录流尾注（#memo-count）出现，窄屏不必重复一块 */
+    .memo-rail-section:last-child {
+      display: none;
+    }
+  }
+  @media (max-width: 639px) {
+    .memo-rail {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+    .memo-rail-section + .memo-rail-section {
+      padding-top: 18px;
+      border-top: 1px solid var(--hair);
+    }
+  }
+</style>
+
+<style is:global>
+  /* 日期格必须写在全局块：格子是脚本用 createElement 造的，没有 Astro 的作用域属性，
+     作用域选择器一个也命中不了（踩过一次：格子全部退回 UA 按钮样式，日期圆点不显示）。 */
+  /* 日期格用固定行高而不是 aspect-ratio: 1：正方格在 174px 索引栏里会撑到 25px 一行，
+     日历比上方密集的标签列表松一圈；压到 21px 后两块重量相当。 */
+  .memo-cal-day {
+    width: 100%;
+    height: 21px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--soft);
+    font: 10.5px var(--font-mono);
+  }
+  button.memo-cal-day {
+    cursor: pointer;
+  }
+  .memo-cal-day:disabled {
+    color: var(--faint);
+    opacity: 0.65;
+  }
+  /* 有记录的那天只靠 accent 色 + 加粗区分，不另加圆点标记
+     （标记层与文字层叠在一起时，下沿的点只是噪音） */
+  .memo-cal-day.has-record {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .memo-cal-day.is-today {
+    outline: 1px solid var(--hair);
+    outline-offset: -3px;
+  }
+
+  /* 记录流的两种排布：卡片栏（默认，单列）/ 瀑布流（两列）。两者只改排布，卡片本身完全一样——
+     切一下展示方式就换一副卡片长相，等于把「排布」偷偷变成了第二种设计语言。
+     必须 is:global：.moment 属于 MomentCard 的作用域，且增量同步插入的卡片要立刻吃到同一排布。 */
+  .memo-feed[data-layout='stream'] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .memo-feed[data-layout='masonry'] {
+    display: block;
+    columns: 2;
+    column-gap: 16px;
+    margin-top: 16px;
+  }
+  .memo-feed[data-layout='masonry'] .moment {
+    /* 必须 block，不能 inline-block（实测）：内联块是原子内联级、挂在行盒上，
+       多列平衡器算不准——只剩两张卡片时会把两张都塞进左列，右列空着。
+       block + break-inside: avoid 才是多列布局下块级内容不拆的正确写法。 */
+    display: block;
+    margin: 0 0 16px;
+    break-inside: avoid;
+  }
+  @media (max-width: 639px) {
+    .memo-feed[data-layout='masonry'] {
+      columns: 1;
+    }
+  }
 </style>
 
 <script>
-  // i18n 文案经 data 属性传入（bundled script 不支持 define:vars）
+  // i18n 文案经 data 属性传入（bundled script 不支持 define:vars）；#memo-i18n 恒渲染，
+  // 这里不写文案兜底——脚本里复制一份中文就会变成第二份事实源（AGENTS §3 #2 / §5.1）。
   const memoI18n = document.getElementById('memo-i18n');
-  const refreshLabel = memoI18n?.dataset.refresh || '刷新';
-  const refreshingLabel = memoI18n?.dataset.refreshing || '同步中…';
-  const noUpdatesLabel = memoI18n?.dataset.noupdates || '已是最新';
-  const syncFailedLabel = memoI18n?.dataset.syncfailed || '同步失败，请稍后再试。';
+  const refreshingLabel = memoI18n?.dataset.refreshing ?? '';
+  const noUpdatesLabel = memoI18n?.dataset.noupdates ?? '';
+  const syncFailedLabel = memoI18n?.dataset.syncfailed ?? '';
 
+  // 记录流容器（同时是列表容器与排布容器：瀑布流用 CSS columns，容器必须就是它本身）
   const listEl = document.getElementById('memo-list');
   const countEl = document.getElementById('memo-count');
   const syncedEl = document.getElementById('memo-synced');
 
   // ===== 工具 =====
   const pad = (n: number) => String(n).padStart(3, '0');
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  // 平滑滚动要自己查 reduced-motion（AGENTS 1.4）：全局 CSS 兜底只管 scroll-behavior，
+  // 脚本传的 behavior 逃得过它。按调用时刻取值，用户中途改系统设置也能马上生效。
+  const scrollBehavior = (): ScrollBehavior =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   const parseCard = (html: string): HTMLElement | null => {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
     return tpl.content.firstElementChild instanceof HTMLElement ? tpl.content.firstElementChild : null;
   };
-
-  // ===== 过滤（抽函数：filter 点击与增量同步共用）=====
-  let activeFilter = '';
   const moments = (): HTMLElement[] => (listEl ? [...listEl.querySelectorAll<HTMLElement>('.moment')] : []);
   // 卡片 data-tags 存 JSON 数组（一条 memo 可多分类）
   const cardTags = (el: HTMLElement): string[] => {
     try { return JSON.parse(el.dataset.tags || '[]') as string[]; } catch { return []; }
   };
+
+  // ===== 索引计数（标签条数 / COLLECTION 总数）=====
+  // 计数一律从当前 DOM 现算：增量同步会增删卡片，构建时算好的数字会过期。
+  const countEls = [...document.querySelectorAll<HTMLElement>('[data-count]')];
+  const totalEl = document.querySelector<HTMLElement>('[data-count-total]');
+  function updateStats() {
+    const cards = moments();
+    const byTag = new Map<string, number>();
+    cards.forEach((card) => cardTags(card).forEach((tag) => byTag.set(tag, (byTag.get(tag) || 0) + 1)));
+    countEls.forEach((el) => {
+      const key = el.dataset.count || '';
+      el.textContent = pad2(key === 'all' ? cards.length : byTag.get(key) || 0);
+    });
+    if (totalEl) totalEl.textContent = String(cards.length);
+  }
+
+  // ===== 过滤（抽函数：filter 点击 / 日历跳转 / 增量同步共用）=====
+  let activeFilter = '';
   function applyFilter(tag: string) {
     activeFilter = tag;
     document.querySelectorAll<HTMLElement>('.memo-filter-btn').forEach((b) => {
-      b.classList.toggle('is-active', b.dataset.tag === tag);
+      b.setAttribute('aria-pressed', String(b.dataset.tag === tag));
     });
     let visible = 0;
     moments().forEach((m) => {
@@ -269,22 +635,116 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       .sort((a, b) => (b.dataset.time || '').localeCompare(a.dataset.time || ''))
       .forEach((el) => listEl.appendChild(el));
   }
+
+  // ===== 展示方式切换（卡片栏 / 瀑布流）：选择写 localStorage，下次访问沿用 =====
+  const layoutBtns = [...document.querySelectorAll<HTMLElement>('.memo-view-btn')];
+  const syncLayoutButtons = () => {
+    const current = listEl?.dataset.layout || 'stream';
+    layoutBtns.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.layout === current)));
+  };
+  layoutBtns.forEach((btn) => btn.addEventListener('click', () => {
+    if (!listEl) return;
+    const next = btn.dataset.layout === 'masonry' ? 'masonry' : 'stream';
+    listEl.dataset.layout = next;
+    syncLayoutButtons();
+    // 无痕模式等场景 localStorage 不可用：记忆失效不该让切换本身也失效
+    try { localStorage.setItem('mh-moments-layout', next); } catch (e) {}
+  }));
+  // 首屏排布已由行内脚本按记忆落地，这里只把按钮状态对齐到实际排布
+  syncLayoutButtons();
+
+  // ===== 日期索引（日历）：起始月 = 最新一条记录所在的月，可前后跨年翻 =====
+  let renderCalendar: (() => void) | null = null;
+  const calGrid = document.getElementById('memo-cal-grid');
+  const calMonth = document.getElementById('memo-cal-month');
+  if (calGrid && calMonth && listEl) {
+    const monthFmt = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long' });
+    const dayFmt = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+    const noneLabel = memoI18n?.dataset.calnone ?? '';
+    const recordsLabel = memoI18n?.dataset.calrecords ?? '';
+    const today = new Date();
+    // 日期 → 卡片：键取卡片展示的本地日期（time[datetime]，见 MomentCard），与格子上的日子同源
+    const byDate = (): Map<string, HTMLElement[]> => {
+      const map = new Map<string, HTMLElement[]>();
+      moments().forEach((card) => {
+        const date = card.querySelector('time[datetime]')?.getAttribute('datetime') || '';
+        if (!date) return;
+        const bucket = map.get(date) || [];
+        bucket.push(card);
+        map.set(date, bucket);
+      });
+      return map;
+    };
+    const latestDate = [...byDate().keys()].sort().at(-1) || '';
+    let view = latestDate
+      ? new Date(Number(latestDate.slice(0, 4)), Number(latestDate.slice(5, 7)) - 1, 1)
+      : null;
+
+    renderCalendar = () => {
+      if (!view) return;
+      const year = view.getFullYear();
+      const month = view.getMonth();
+      const records = byDate();
+      calMonth.textContent = monthFmt.format(view);
+      calMonth.setAttribute('datetime', `${year}-${pad2(month + 1)}`);
+      const frag = document.createDocumentFragment();
+      // 周一起排（中文日历惯例）：getDay() 里周日是 0，平移到周一为 0
+      const lead = (new Date(year, month, 1).getDay() + 6) % 7;
+      for (let i = 0; i < lead; i += 1) {
+        const blank = document.createElement('span');
+        blank.setAttribute('aria-hidden', 'true');
+        frag.append(blank);
+      }
+      const days = new Date(year, month + 1, 0).getDate();
+      for (let day = 1; day <= days; day += 1) {
+        const key = `${year}-${pad2(month + 1)}-${pad2(day)}`;
+        const hits = records.get(key) || [];
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'memo-cal-day';
+        cell.textContent = String(day);
+        // 没有记录的那天不可点：避免点下去毫无反应
+        cell.disabled = hits.length === 0;
+        const dateText = dayFmt.format(new Date(year, month, day));
+        cell.setAttribute(
+          'aria-label',
+          hits.length ? `${dateText}，${recordsLabel.replace('{n}', String(hits.length))}` : `${dateText}，${noneLabel}`
+        );
+        if (hits.length) {
+          cell.classList.add('has-record');
+          cell.addEventListener('click', () => {
+            // 目标卡片可能被当前标签筛选藏着：先放行，再滚过去
+            const target = hits.find((card) => card.style.display !== 'none') || hits[0];
+            if (target.style.display === 'none') applyFilter('');
+            target.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+          });
+        }
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+          cell.classList.add('is-today');
+          cell.setAttribute('aria-current', 'date');
+        }
+        frag.append(cell);
+      }
+      calGrid.replaceChildren(frag);
+    };
+    document.getElementById('memo-cal-prev')?.addEventListener('click', () => {
+      if (!view) return;
+      view = new Date(view.getFullYear(), view.getMonth() - 1, 1);
+      renderCalendar?.();
+    });
+    document.getElementById('memo-cal-next')?.addEventListener('click', () => {
+      if (!view) return;
+      view = new Date(view.getFullYear(), view.getMonth() + 1, 1);
+      renderCalendar?.();
+    });
+    renderCalendar();
+  }
+  updateStats();
+
   // ===== 事件委托（覆盖加载时与增量插入的所有卡片）=====
   document.addEventListener('click', (e) => {
     const target = e.target instanceof Element ? e.target : null;
     if (!target) return;
-
-    // 展开长 memo
-    const toggle = target.closest<HTMLElement>('.memo-toggle');
-    if (toggle) {
-      const content = toggle.closest('.moment')?.querySelector('.memo-content');
-      if (content) {
-        content.classList.remove('memo-collapsed');
-        content.classList.add('memo-expanded');
-      }
-      toggle.remove();
-      return;
-    }
 
     // tag 过滤
     const filterBtn = target.closest<HTMLElement>('.memo-filter-btn');
@@ -299,7 +759,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       const carousel = nav.closest<HTMLElement>('[data-carousel]');
       const track = carousel?.querySelector<HTMLElement>('[data-track]');
       if (carousel && track) {
-        track.scrollBy({ left: Number(nav.dataset.dir || 0) * carousel.clientWidth, behavior: 'smooth' });
+        track.scrollBy({ left: Number(nav.dataset.dir || 0) * carousel.clientWidth, behavior: scrollBehavior() });
       }
       return;
     }
@@ -318,7 +778,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     if (next) next.style.opacity = track.scrollLeft >= max - 1 ? '0.35' : '';
   }, { capture: true, passive: true });
 
-  // ===== 增量同步（仅动态页：存在刷新按钮与快照时启用；首页板块自动跳过）=====
+  // ===== 增量同步（仅动态页：存在刷新按钮与快照时启用；未渲染刷新 UI 时自动跳过）=====
   interface SyncResponse {
     added?: string[];
     updated?: string[];
@@ -339,11 +799,13 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     let syncing = false;
     let statusTimer = 0;
 
-    const showStatus = (text: string) => {
-      statusEl.textContent = text;
-      statusEl.hidden = false;
+    // 状态文本显示在刷新按钮右侧（按钮本身只有图标，不换文字）；
+    // 同步中常显（可能要等十几秒），结果状态 2.5s 后收起。
+    const showStatus = (text: string, autoHide = true) => {
       clearTimeout(statusTimer);
-      statusTimer = window.setTimeout(() => { statusEl.hidden = true; }, 2500);
+      statusEl.textContent = text;
+      statusEl.hidden = !text;
+      if (text && autoHide) statusTimer = window.setTimeout(() => { statusEl.hidden = true; }, 2500);
     };
 
     const applySync = (data: SyncResponse) => {
@@ -365,6 +827,8 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       reorderList();
       renumber();
       applyFilter(activeFilter); // 保持当前过滤并刷新计数
+      updateStats(); // 索引栏条数与 COLLECTION 总数随展示集合重算
+      renderCalendar?.(); // 新记录可能落在当前月，补上日期圆点
       if (data.snapshot && typeof data.snapshot === 'object') snapshot = data.snapshot;
       if (data.latestDate && syncedEl) {
         syncedEl.textContent = data.latestDate;
@@ -375,7 +839,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       if (syncing) return;
       syncing = true;
       syncBtn.disabled = true;
-      syncBtn.textContent = refreshingLabel;
+      showStatus(refreshingLabel, false);
       try {
         const res = await fetch('/api/memos/sync', {
           method: 'POST',
@@ -388,13 +852,13 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
         const changed =
           (data.added?.length || 0) + (data.updated?.length || 0) + (data.removed?.length || 0);
         applySync(data);
-        if (changed === 0) showStatus(noUpdatesLabel);
+        // 有变化时不需要额外提示（列表自己说话了）；无变化才报一句「已是最新」
+        showStatus(changed === 0 ? noUpdatesLabel : '');
       } catch {
         showStatus(syncFailedLabel); // 失败保留旧数据
       } finally {
         syncing = false;
         syncBtn.disabled = false;
-        syncBtn.textContent = refreshLabel;
       }
     });
   }

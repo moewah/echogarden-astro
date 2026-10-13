@@ -28,7 +28,6 @@ export const zh = {
   hero: {
     tab: '个人档案 · PERSONAL ARCHIVE · MW-2018',
     fileNo: '档案编号 NO.',
-    online: '在 线',
     file: 'FILE — 个人主页 / PERSONAL HOMEPAGE',
     abstract: '摘 要',
     spec: 'SPEC / 档案摘要',
@@ -62,11 +61,8 @@ export const zh = {
     weeklyPage: { title: '周刊', en: 'Weekly — Dispatches' },
     projects: { title: '项目展示', en: 'Ledger — GitHub' },
     elsewhere: { title: '我在别处', en: 'Directory — Elsewhere' },
-    moments: {
-      title: '动态',
-      en: 'Field Notes — Memos',
-    },
-    guestbook: { no: 'CORR', title: '留言', en: 'Filing Slip' },
+    moments: { title: '动态' },
+    guestbook: { no: 'CORR', title: '留言' },
     albums: { title: '影辑', en: 'Catalog — Albums' },
     sponsor: { title: '赞助支持', en: 'Support — Patronage' },
   },
@@ -166,20 +162,43 @@ export const zh = {
 
   // 动态
   moments: {
-    expand: '继续阅读',
     records: 'RECORDS',
     lastSynced: 'LAST SYNCED',
-    synced: 'SYNCED',
     all: '全部',
     refresh: '刷新',
     refreshing: '同步中…',
     noUpdates: '已是最新',
     syncFailed: '同步失败，请稍后再试。',
+    // 索引栏（左侧）：三段标题——英文部分是档案器件词，翻译时保留；
+    // 标题取「英文 / 中文」同构（对齐 CALENDAR / 日期索引），不写成 INDEX / TAGS
+    railTags: 'INDEX / 标签索引',
+    railCalendar: 'CALENDAR / 日期索引',
+    railCollection: 'COLLECTION',
+    tagsLabel: '按标签筛选',
+    publicRecords: '公开记录',
+    // 索引栏 COLLECTION 段的说明句：只能写「规则」，不能写「状态」——
+    // 不出现条数、日期、外链，那些一变就得回来改；
+    // 「近期」是对窗口的唯一交代（该页只拉最近 30 条，实例实际 163 条），
+    // 单独成句说清范围，不能埋在排序句里。作者定稿，不再加减字。
+    collectionNote: '仅收录近期记录，按日期从新到旧排列。图片、链接与 Markdown 内容均原样保留。',
+    // 展示方式切换（字形图标，文案只作法开关名称）
+    viewLabel: '动态展示方式',
+    viewStream: '动态卡片栏',
+    viewMasonry: '瀑布流',
+    // 日期索引：标题由脚本按当前月份生成，此处只管控件
+    calendarLabel: '动态日历',
+    calendarPrev: '上个月',
+    calendarNext: '下个月',
+    calendarWeekdays: ['一', '二', '三', '四', '五', '六', '日'],
+    calendarNone: '无动态',
+    calendarRecords: '{n} 条动态',
     disabled: '动态服务暂未配置，欢迎通过其他方式关注我。',
     disabledVer: '接口版本要求 MEMOS = {n}',
     versionMismatch: '动态服务版本不匹配，暂不加载内容。',
     versionCheckFailed: '动态服务版本无法确认，暂不加载内容。',
     loadFailed: '内容暂时无法加载，请稍后再试。',
+    // 拉取成功但白名单下一条都没有：这是空集合，不是故障，不能借用 loadFailed 的措辞
+    empty: '暂无动态记录。',
   },
 
   // 灯箱（通用：动态 / 影辑 / 周刊正文）
