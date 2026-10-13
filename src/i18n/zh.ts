@@ -104,6 +104,16 @@ export const zh = {
   comments: {
     loading: '评论加载中…',
     loadFailed: '评论加载失败，请刷新后再试。',
+    // 编辑器字段行：英文标签进标签列，中文提示进 placeholder（Artalk 原生只有 placeholder，聚焦即消失）。
+    // 邮箱在 Artalk 里是 required，所以只有网址标「选填」。
+    labelName: 'NAME',
+    labelEmail: 'EMAIL',
+    labelLink: 'LINK',
+    labelMessage: 'MESSAGE',
+    hintName: '称呼',
+    hintEmail: '邮箱',
+    hintLink: '网址（选填）',
+    hintMessage: '留言内容…',
   },
 
   // 周刊(技术 / 工具 / 学习 / 阅读)

@@ -16,6 +16,14 @@ import { i18n } from '@i18n';
   data-site={artalkConfig.site}
   data-loading-text={i18n.comments.loading}
   data-failed-text={i18n.comments.loadFailed}
+  data-label-name={i18n.comments.labelName}
+  data-label-email={i18n.comments.labelEmail}
+  data-label-link={i18n.comments.labelLink}
+  data-label-message={i18n.comments.labelMessage}
+  data-hint-name={i18n.comments.hintName}
+  data-hint-email={i18n.comments.hintEmail}
+  data-hint-link={i18n.comments.hintLink}
+  data-hint-message={i18n.comments.hintMessage}
 >
   <p class="comments-placeholder grid min-h-[160px] place-items-center border border-dashed border-[var(--hair)] px-5 text-center font-mono text-[13px] text-[var(--faint)]" role="status">
     {i18n.comments.loading}
@@ -35,6 +43,84 @@ import { i18n } from '@i18n';
     var site = container.dataset.site;
     var loadingText = container.dataset.loadingText || '';
     var failedText = container.dataset.failedText || '';
+    // 编辑器字段行：序号 / 英文标签 / 中文提示。Artalk 原生只有 placeholder（聚焦即消失），
+    // 且三个输入框并排塞一行（邮箱放不下），故这里把它重排成档案的字段行。
+    // 中文提示写进 placeholder（英文字段名已在标签列，两处不重复）；
+    // 邮箱在 Artalk 里是 required（bundle 里 `input.atk-email[required]`），所以只给网址标「选填」。
+    var fieldRows = [
+      { no: '01', label: container.dataset.labelName || '', hint: container.dataset.hintName || '' },
+      { no: '02', label: container.dataset.labelEmail || '', hint: container.dataset.hintEmail || '' },
+      { no: '03', label: container.dataset.labelLink || '', hint: container.dataset.hintLink || '' },
+    ];
+    var messageRow = {
+      no: '04',
+      label: container.dataset.labelMessage || '',
+      hint: container.dataset.hintMessage || '',
+    };
+
+    // 注入字段行（幂等）。头部三个输入框的 DOM 顺序就是 nick / email / link
+    // —— 与 Artalk 的 getHeaderInputEls() 键序一致，所以按位置配对即可。
+    // 虚线分隔做成「独占一行的网格项」：既不搬动 Artalk 的节点（它持有引用），
+    // 也不靠每个元素各画一段边框去拼线。
+    function ensureFieldRows() {
+      var editor = mount.querySelector('.atk-main-editor');
+      if (!editor) return;
+      var make = function (className, text) {
+        var el = document.createElement('span');
+        el.className = className;
+        el.textContent = text;
+        if (className.indexOf('atk-field-rule') === 0) el.setAttribute('aria-hidden', 'true');
+        return el;
+      };
+      // 两个插入动作各自判重（而不是「发现序号就整体 return」）：
+      // Artalk 在配置 / 用户信息就绪后会重写 placeholder 与 value，整体 return 会让
+      // 它复写过的提示语再也补不回来；每次只补缺失的那部分，代价仍然是几次 classList 判断。
+      var ensureTexts = function (el, hint) {
+        if (!hint) return;
+        if (el.placeholder !== hint) el.placeholder = hint;
+        if (el.getAttribute('aria-label') !== hint) el.setAttribute('aria-label', hint);
+      };
+
+      editor.querySelectorAll('.atk-header input').forEach(function (input, i) {
+        var row = fieldRows[i];
+        if (!row || !row.label) return;
+        ensureTexts(input, row.hint);
+        var before = input.previousElementSibling;
+        if (!(before && before.classList.contains('atk-field-label'))) {
+          input.parentNode.insertBefore(make('atk-field-no', row.no), input);
+          input.parentNode.insertBefore(make('atk-field-label', row.label), input);
+        }
+        var after = input.nextElementSibling;
+        if (!(after && after.classList.contains('atk-field-rule'))) {
+          input.parentNode.insertBefore(make('atk-field-rule', ''), input.nextSibling);
+        }
+      });
+
+      // 正文行：最后一个字段，不再往下画虚线
+      var textarea = editor.querySelector('.atk-textarea-wrap .atk-textarea');
+      if (textarea && messageRow.label) {
+        ensureTexts(textarea, messageRow.hint);
+        var beforeTa = textarea.previousElementSibling;
+        if (!(beforeTa && beforeTa.classList.contains('atk-field-label'))) {
+          textarea.parentNode.insertBefore(make('atk-field-no', messageRow.no), textarea);
+          textarea.parentNode.insertBefore(make('atk-field-label', messageRow.label), textarea);
+        }
+      }
+
+      labelEmoticonItems(editor);
+    }
+
+    // 颜文字项目带上中文名（数据里现成的 key → title）——面板是个拾取器，无名只能一个个扫。
+    // 只有 type=emoticon 那组有名字；emoji 字符组与图片组不处理。面板可能被懒创建，故每次重查。
+    function labelEmoticonItems(scope) {
+      scope.querySelectorAll('.atk-grp[data-type="emoticon"] > .atk-item[title]').forEach(function (item) {
+        if (item.querySelector('.atk-emoji-name')) return;
+        var name = document.createElement('span');
+        name.className = 'atk-emoji-name';
+        name.textContent = item.getAttribute('title') || '';
+        item.appendChild(name);
+      });
+    }
 
     function renderStatus(text) {
       placeholder.hidden = false;
@@ -107,6 +193,11 @@ import { i18n } from '@i18n';
           mountObserver.disconnect();
         }
 
+        // 字段行注入：不能在 Observer 里一次注入后就断开——Artalk 在提交 / 重置后会重渲染编辑器，
+        // 断早了，注入的序号、标签、虚线与颜文字名会永久消失。回调只做几次 querySelector，代价很低，故常驻。
+        ensureFieldRows();
+        new MutationObserver(ensureFieldRows).observe(mount, { childList: true, subtree: true });
+
         function syncArtalkTheme() {
           var dark = document.documentElement.getAttribute('data-theme') === 'dark';
           if (artalk && typeof artalk.setDarkMode === 'function') {
@@ -164,7 +255,6 @@ import { i18n } from '@i18n';
     --at-color-bg-transl: var(--panel) !important;
     --at-color-bg-grey: var(--bg) !important;
     --at-color-bg-grey-transl: var(--bg) !important;
-    --at-color-bg-light: var(--bg) !important;
     --at-color-font: var(--soft) !important;
     --at-color-grey: var(--soft) !important;
     --at-color-meta: var(--faint) !important;
@@ -172,7 +262,6 @@ import { i18n } from '@i18n';
     --at-color-main: var(--accent) !important;
     --at-color-deep: var(--ink) !important;
     --at-color-sub: var(--soft) !important;
-    --at-color-light: var(--hair) !important;
     --at-color-red: var(--accent) !important;
     --at-color-pink: var(--accent) !important;
     --at-color-yellow: var(--accent) !important;
@@ -194,14 +283,18 @@ import { i18n } from '@i18n';
   .artalk .atk-nick a {
     font-size: 13.5px !important;
   }
-  .artalk .atk-main-editor .atk-textarea {
-    font-size: 13.5px !important;
-  }
   .artalk .atk-comment-count {
     font-size: 13.5px !important;
   }
   .artalk .atk-comment-count-num {
     font-size: 14px !important;
+  }
+  /* 空态（无评论）：并入站内空态语言——EmptyState 的 mono 13px / faint。
+     Artalk 原生是 19px 的 sans 大字，像个小标题，与档案版面不合。 */
+  .artalk .atk-list-no-comment {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+    color: var(--faint) !important;
   }
   .artalk .atk-send-btn,
   .artalk .atk-common-action-btn {
@@ -241,37 +334,285 @@ import { i18n } from '@i18n';
   .artalk .atk-main-editor {
     border: none !important;
   }
-  /* 评论输入框边线 + 内边距 */
-  .artalk .atk-main-editor .atk-header input {
-    border: 1px solid var(--hair) !important;
-    padding: 8px 12px !important;
-  }
-  .artalk .atk-main-editor .atk-header input:not(:last-child) {
-    margin-right: 8px !important;
-  }
+  /* ── 字段行：序号 + 英文标签 + 无框值 + 虚线分隔 ──
+     编辑器原本把昵称 / 邮箱 / 网址三个输入框并排塞在一行（实测各 179px），邮箱根本放不下
+     （密码管理器图标会压在文字上）；而卡头内边距 14px、正文框与工具条 12px，内部竖线差 2px。
+     改成档案的字段行：序号（accent）+ 英文标签（mono faint）+ 值（无框，直接写在纸面上）
+     + 字段之间一条虚线。序号 / 标签 / 虚线由脚本注入（见文件顶部 ensureFieldRows）；
+     中文提示走 placeholder——英文字段名已在标签列，两处不重复。 */
+  .artalk .atk-main-editor .atk-header,
   .artalk .atk-main-editor .atk-textarea-wrap {
-    padding: 8px 12px 0 !important;
+    display: grid !important;
+    grid-template-columns: 26px 1fr !important; /* 窄屏：序号 | 标签，值落到下一行同一列 */
+    gap: 2px 10px !important;
+    padding: 14px 12px 0 !important;
+    align-items: center;
   }
-  .artalk .atk-main-editor .atk-bottom {
-    padding: 5px 12px !important;
+  .artalk .atk-main-editor .atk-field-no {
+    grid-column: 1 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.14em !important;
+    line-height: 1.6;
+    color: var(--accent) !important;
+  }
+  .artalk .atk-main-editor .atk-field-label {
+    grid-column: 2 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.6;
+    color: var(--faint) !important;
+  }
+  /* 值：无框、无底色、无圆角——就是纸面上的字 */
+  .artalk .atk-main-editor .atk-header input,
+  .artalk .atk-main-editor .atk-textarea {
+    grid-column: 2 !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 6px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 13.5px !important;
+    color: var(--ink) !important;
+    caret-color: var(--accent);
   }
   .artalk .atk-main-editor .atk-textarea {
-    border: 1px solid var(--hair) !important;
-    border-radius: 3px !important;
-    padding: 14px 14px !important;
-    margin-top: 0 !important;
+    min-height: 108px;
+    resize: vertical;
+    padding: 6px 0 2px !important;
   }
+  .artalk .atk-main-editor .atk-header input::placeholder,
+  .artalk .atk-main-editor .atk-textarea::placeholder {
+    color: var(--faint) !important;
+    opacity: 1;
+  }
+  /* 焦点：无框之后必须有可见的焦点指示，给这条字段补一根 accent 下划线 */
+  .artalk .atk-main-editor .atk-header input:focus,
+  .artalk .atk-main-editor .atk-textarea:focus {
+    border-bottom: 1px solid var(--accent) !important;
+  }
+  /* 字段之间的虚线：独占一行的网格项、横跨所有列——所以它从序号列一直画到右边 */
+  .artalk .atk-main-editor .atk-field-rule {
+    grid-column: 1 / -1 !important;
+    height: 0 !important;
+    margin: 10px 0 12px !important;
+    border-bottom: 1px dashed var(--hair) !important;
+  }
+  /* md 起：序号｜英文标签｜值 同一行，实现上仍是「一字段一行」，
+     与站内列表的「编号 + 名称 + 值」同构。序号列 28px、标签列 76px 是
+     「MESSAGE 不折行」的下限附近，收窄它们把宽度让给值列（值列 454px）。 */
+  @media (min-width: 768px) {
+    .artalk .atk-main-editor .atk-header,
+    .artalk .atk-main-editor .atk-textarea-wrap {
+      grid-template-columns: 28px 76px minmax(0, 1fr) !important;
+      align-items: baseline;
+      column-gap: 10px !important;
+    }
+    /* 正文行也用 baseline：input 行的对齐靠的就是它（表单控件按首行基线参与对齐）。
+       原先写成 start，标签与序号就停在 textarea 的盒顶，首行文字掉下去几像素；
+       而 textarea 的 line-height 随站点继承（实测 computed 是 normal），
+       用固定 padding 去凑必然错，交给 baseline。 */
+    .artalk .atk-main-editor .atk-textarea-wrap {
+      align-items: baseline;
+    }
+    .artalk .atk-main-editor .atk-field-no {
+      grid-column: 1 !important;
+    }
+    .artalk .atk-main-editor .atk-field-label {
+      grid-column: 2 !important;
+    }
+    .artalk .atk-main-editor .atk-header input,
+    .artalk .atk-main-editor .atk-textarea {
+      grid-column: 3 !important;
+    }
+  }
+  /* ── 输入区与工具条之间的一条边线 ──
+     作者要求「工具栏和输入框各自有个清晰的边界」。这个线画在 .atk-textarea-wrap 的下边
+     或者 .atk-bottom 的上边都能看到，但必须画后者：表情面板（.atk-plug-panel-wrap）是插在
+     正文框与工具条之间的，画在正文框下边的那条线在面板展开时会变成「正文框 ↔ 面板」的分界，
+     把面板和工具条算成一块；画在工具条上边，面板开合都一样贴着工具条。
+     间距用 margin-top 而不是给正文框补下内边距：margin 在面板开 / 关两种状态下都是「线
+     距上方 12px」，正文框下内边距在面板展开时会与面板自身的 margin-top 叠成 24px。
+     线走发丝线（--hair = 行分隔），不用 --line（卡片外框 / 板块头 / 表头）。 */
+  .artalk .atk-main-editor .atk-bottom {
+    margin-top: 12px !important;
+    border-top: 1px solid var(--hair) !important;
+    padding: 12px 12px 5px !important;
+  }
+  /* ── 表情面板：并入档案语言 ──
+     面板自身 padding 为 0，里面的元素各带 10px 小内距 → 整条背景带比正文框边线外扩 12px；
+     分组筛选行原本挂在面板底部（绝对定位 + 盒高锁死 30px + 子项 float:left），组一多就换行越线。
+     现在：筛选行移到面板顶部、与正文框共用 12px 内边线、横向滚动；项目去圆角去灰底。 */
   .artalk .atk-plug-panel-wrap {
     margin-top: 12px !important;
     border-top: none !important;
+    box-sizing: border-box !important;
+    padding: 0 12px !important;
   }
+  /* 筛选行：移到面板顶部，并保持 Artalk 原本的「绝对定位覆盖条」形态——但底色必须不透明
+     （var(--panel)）：它与 .atk-grp-wrap 的滚动内容重叠，透明底会让滚过去的表情看起来"压在"字上。
+     绝对定位而非 flex 重排，是为了不动 .atk-editor-plug-emoticons 的 display：
+     面板显示 / 隐藏由 Artalk 用 inline display 控制，样式表里给它加 display !important
+     会把所有插件面板一起强行显示（点「预览」时表情面板也冒出来）。 */
   .artalk .atk-editor-plug-emoticons .atk-grp-switcher {
+    top: 0 !important;
+    bottom: auto !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    height: 30px !important;
+    margin: 0 !important;
+    /* 不透明：这条覆盖条与滚动内容重叠，透明底会让滚过去的表情看起来压在字上。
+       注意别在同一个规则里再写一次 background（同属性后者胜），上一版就是这么把底色吃掉的。 */
+    background: var(--panel) !important;
     border-top: none !important;
-    border-bottom: none !important;
+    border-bottom: 1px solid var(--hair) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
   }
-  .artalk .atk-main-editor .atk-header input:focus,
-  .artalk .atk-main-editor .atk-textarea:focus {
+  .artalk .atk-editor-plug-emoticons .atk-grp-switcher > span {
+    float: none !important;
+    display: inline-block !important;
+    padding: 0 !important;
+    margin-right: 18px !important;
+    background: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.14em !important;
+    line-height: 29px !important;
+    color: var(--faint) !important;
+  }
+  /* 当前分组：accent + 下划线，不用灰底块 */
+  .artalk .atk-editor-plug-emoticons .atk-grp-switcher > span.active {
+    color: var(--accent) !important;
+    box-shadow: inset 0 -1px 0 var(--accent) !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp-switcher > span:hover {
+    color: var(--ink) !important;
+  }
+  /* 表情区为顶部那条筛选行让出 30px（padding 属滚动内容，滚过去会被上面的不透明条挡住） */
+  .artalk .atk-editor-plug-emoticons .atk-grp-wrap {
+    box-sizing: border-box !important;
+    padding-top: 30px !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-item {
+    border-radius: 0 !important;
+    color: var(--soft) !important;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-item:hover {
+    background: transparent !important;
+    color: var(--accent) !important;
+  }
+  /* 表情分组按数据里的 type 分两类（实测：颜表情 = emoticon、Emoji = emoji 原生字符、
+     滑稽 = 远程 huaji.json 图片）：
+       · type=emoticon：颜文字串，项自带 key（中文名）→ 发丝线卡片 + 名字，可扫字找；
+       · 其余两类：没有名字可显示 → 只做等距与悬停语言，不套卡片。
+     卡片化用「宽度 + gap」而不是 display:grid：Artalk 用 inline display:none 收起非当前分组，
+     样式表里的 display 声明带上 !important 会把所有分组强制显示出来。 */
+  .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoticon'] {
+    gap: 6px !important;
+    padding: 10px 0 12px !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoticon'] > .atk-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    width: calc((100% - 12px) / 3) !important;
+    flex: 0 0 auto !important;
+    /* Artalk 原生给 .atk-item 加了 margin:2px，卡片靠 gap 排布，去掉它才能对齐 12px 内边线 */
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    min-width: 0 !important;
+    border: 1px solid var(--hair) !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoticon'] > .atk-item:hover {
     border-color: var(--accent) !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-emoji-name {
+    font-family: var(--font-mono) !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.08em !important;
+    color: var(--faint) !important;
+  }
+  /* emoji 字符 / 图片组：等距排列，不套卡片 */
+  .artalk .atk-editor-plug-emoticons .atk-grp:not([data-type='emoticon']) {
+    gap: 4px 8px !important;
+    padding: 10px 0 12px !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp:not([data-type='emoticon']) > .atk-item {
+    margin: 0 !important;
+    border: 1px solid transparent !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp:not([data-type='emoticon']) > .atk-item:hover {
+    border-color: var(--accent) !important;
+  }
+  /* emoji 字符按 Artalk 原生的 15px 偏小，抬到 17px（图片组不受影响） */
+  .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoji'] > .atk-item {
+    font-size: 17px !important;
+  }
+  /* ── 评论分页：并入站内的分页语言 ──
+     站内自己的分页（Pagination.astro）是「mono 11.5px + 0.12em 的纯文字行」：左「← 上一页」、
+     中页码（accent）、右「下一页 →」，上下各一条发丝线，没有盒子。Artalk 这里是两个图标按钮
+     + 一个页码输入框，于是按同一套语言对齐：方形（去 3px 圆角）、发丝线、mono、悬停升 accent，
+     排列也借站内那条行结构（prev 左 / 页码中 / next 右）而不是居中的控件组。
+     Artalk 的 .atk-disabled 只有点击拦截、没有视觉，禁用态由这里补上。 */
+  .artalk .atk-pagination {
+    justify-content: space-between !important;
+    gap: 6px !important;
+    margin-top: 18px !important;
+    /* 左右 12px：与字段行、面板、工具条共用同一条内边线（分页是 Artalk 根的兄弟节点，
+       自身没有内缩） */
+    padding: 12px 12px 0 !important;
+    border-top: 1px solid var(--hair) !important;
+  }
+  .artalk .atk-pagination > .atk-btn,
+  .artalk .atk-pagination > .atk-input {
+    height: 30px !important;
+    border: 1px solid var(--hair) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.08em !important;
+    color: var(--soft) !important;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .artalk .atk-pagination > .atk-btn {
+    width: 30px !important;
+    padding: 0 !important;
+  }
+  .artalk .atk-pagination > .atk-input {
+    width: 46px !important;
+    padding: 0 4px !important;
+    text-align: center !important;
+    color: var(--accent) !important;
+  }
+  .artalk .atk-pagination > .atk-btn:hover,
+  .artalk .atk-pagination > .atk-input:focus {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+  }
+  .artalk .atk-pagination > .atk-btn.atk-disabled {
+    color: var(--faint) !important;
+    cursor: not-allowed !important;
+  }
+  .artalk .atk-pagination > .atk-btn.atk-disabled:hover {
+    border-color: var(--hair) !important;
+    color: var(--faint) !important;
+  }
+  /* 面板滚动条发丝化（Artalk 自带是 4px 硬编码灰） */
+  .artalk .atk-editor-plug-emoticons .atk-grp-wrap::-webkit-scrollbar {
+    width: 3px !important;
+  }
+  .artalk .atk-editor-plug-emoticons .atk-grp-wrap::-webkit-scrollbar-thumb {
+    background: var(--hair) !important;
   }
   .atk-copyright {
     display: none !important;

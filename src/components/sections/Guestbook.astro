@@ -109,8 +109,16 @@ const artalkVersionStatus = await getArtalkVersionStatus();
         reset();
       }
     }
+    // 视口变化：必须先 reset() 回到自然布局再 update()。已 fixed 的元素脱离了栅格，
+    // 量它只能得到旧的固定位置——原实现因此在收窄窗口后保留旧列宽与左沿，
+    // 压到右侧归档单上（实测 1440 → 1100 时重叠 132px），刷新才恢复。
+    // 只在 resize 里重排：放到 scroll 上会反复触发布局。
+    function reflow() {
+      reset();
+      update();
+    }
     window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
+    window.addEventListener('resize', reflow);
     update();
   })();
 </script>
