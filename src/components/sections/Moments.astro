@@ -147,10 +147,13 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
           </aside>
 
           <div class="memo-records">
-            {/* 记录栏头行只放控件：左侧刷新（图标按钮 + 状态文本），右侧展示方式切换。
-                计数与同步日期已并到列表尾注（同一条信息不拆两处）。 */}
+            {/* 记录栏头行：左「计数 + 刷新 + 状态文本」，右「展示方式切换」。
+                计数与刷新同一组是因为讲的是同一件事——这条流有几条、点一下重取；
+                状态文本紧跟在刷新按钮右侧，是那个按钮的回声（同组左对齐，文字长出去只占空位）。
+                展示方式讲的是「怎么排」，与记录集本身无关，独立在右端。 */}
             <div class="memo-feed-head">
               <div class="memo-feed-tools">
+                <p class="memo-feed-count"><strong id="memo-count">{totalCount}</strong> {i18n.moments.records}</p>
                 {
                   refreshOn && (
                     <button
@@ -165,6 +168,10 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
                 }
                 <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
               </div>
+              {/* 两枚字形是同一族（U+25A4 / U+25A5，方形 + 填充），墨迹逐像素相同，
+                  填充方向正好对上语义：按行堆叠（单栏）/ 按列分栏（瀑布流）。
+                  原先的 ◫（U+25AB）是这一族的「小号」变体，任何字体里都只有 ▤ 的七成墨迹，
+                  且几乎不随字号变（实测 17px / 18px 均 11×11、20px 才 12）——30 盒下只占 37%。 */}
               <div class="memo-view-switch" role="group" aria-label={i18n.moments.viewLabel}>
                 <button
                   type="button"
@@ -179,7 +186,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
                   data-layout="masonry"
                   aria-pressed="false"
                   aria-label={i18n.moments.viewMasonry}
-                  title={i18n.moments.viewMasonry}>◫</button>
+                  title={i18n.moments.viewMasonry}>▥</button>
               </div>
             </div>
 
@@ -208,10 +215,9 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
               }
             </div>
 
-            {/* 列表尾注：左端计数、右端同步日期——与头行同一套两端对齐（头行左刷新右展示方式）。
-                计数原先在头行，移到底部后同一件事不再读两遍。 */}
+            {/* 列表尾注：计数上移头行后只剩同步日期，靠右——与头行同一套两端结构
+                （头行：记录集在左、展示方式在右；尾注只有这一条元数据，不给它凑一个同位素）。 */}
             <div class="memo-feed-foot">
-              <p><strong id="memo-count">{totalCount}</strong> {i18n.moments.records}</p>
               {/* 这行必须同源码行：JSX 会剥掉跨行的纯空白，写成多行会变成 LASTSYNCED */}
               <p>{i18n.moments.lastSynced} <span id="memo-synced">{syncedDate}</span></p>
             </div>
@@ -378,40 +384,58 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     align-items: center;
     gap: 10px;
   }
-  /* 列表尾注（计数 + LAST SYNCED）：两端对齐，与记录栏头行同构——
-     头行用下边线开列表，尾注用上边线收列表，两端对称，线同为发丝线。 */
+  /* 列表尾注：计数上移头行后只剩同步日期，靠右收口。
+     头行用下边线开列表、尾注用上边线收列表，两根线上的字同档（见下一条）。 */
   .memo-feed-foot {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: flex-end;
     margin-top: 20px;
     padding-top: 12px;
     border-top: 1px solid var(--hair);
+  }
+  /* 头行计数与尾注同步日期：同一套元数据字——两条平行线上的字必须同档，
+     否则头行的 30 RECORDS 会比末尾的 LAST SYNCED 重，读成两种层级。 */
+  .memo-feed-count,
+  .memo-feed-foot {
     color: var(--faint);
     font: 10.5px var(--font-mono);
     letter-spacing: 0.14em;
   }
+  /* 计数只占一行（nowrap）：窄屏挤压时若允许它折行，「30」与「RECORDS」会断成两行，
+     读起来像排版坏了。就是把「不许缩」的额度给了它——被挤的那一方是右侧的状态文本
+     （11 字的同步失败文案在 320px 下会折成两行，而不是把它顶到第二行）。 */
+  .memo-feed-count {
+    white-space: nowrap;
+  }
+  .memo-feed-count,
   .memo-feed-foot p {
     margin: 0;
   }
-  .memo-feed-foot strong {
+  .memo-feed-count strong {
     color: var(--ink);
     font-weight: 500;
   }
-  /* 字形图标（▤ / ◫）与线描图标（刷新 ↻）同排：两者都按图标取值，不受 mono 字号四档约束。
-     刷新与两枚展示方式按钮共用同一份几何（34×34 + hairline 描边）——
-     它们同属一排控件，尺寸不一致会读成两种控件。刷新是图标按钮，状态文本在它右侧。 */
+  /* 字形图标（▤ / ▥，同一族的方形填充）与线描图标（刷新 ↻）同排：两者都按图标取值，
+     不受 mono 字号四档约束。
+     刷新与两枚展示方式按钮共用同一份几何（30×30 + hairline 描边）——
+     它们同属一排控件，尺寸不一致会读成两种控件。刷新是图标按钮，状态文本在它右侧。
+     30 而不是 34：站内控件分两族——34 是「页框级 chrome」（顶栏主题切换 / 汉堡 /
+     品牌与导航行高、灯箱按钮、代码块标签栏），30 是「内容级控件」（Artalk 分页与
+     表情插件按钮）。这三枚在内容列里，与后者同族；34 会让一根只带 10.5px 元数据的
+     头行撑到 48px，控制条比它所辖的卡片头（55px）矮不了多少。
+     图标随之从 17px 收到 15px（墨迹 15 → 13，占盒 43%）：盒子收小而图标不收，
+     比例会从 44% 跳到 50%，等于把「感觉大」里的图标那一半原样留着。 */
   .memo-view-btn,
   .memo-refresh-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
     padding: 0;
     border: 1px solid var(--hair);
     background: transparent;
     color: var(--faint);
-    font: 17px/1 var(--font-mono);
+    font: 15px/1 var(--font-mono);
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.12s;
   }
@@ -446,12 +470,13 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     border-color: var(--hair);
     color: var(--faint);
   }
+  /* 状态文本进工具组后不再钉 nowrap：窄屏必须允许它折行——它的 min-content（一个汉字）
+     就是工具组可被压缩到的下限，写下 nowrap 会把整个组顶成不可缩，反过来去挤计数。 */
   .memo-sync-status {
     font-family: var(--font-mono);
     font-size: 10.5px;
     letter-spacing: 0.12em;
     color: var(--faint);
-    white-space: nowrap;
   }
   .memo-sync-status:not([hidden]) {
     display: inline-block;
@@ -478,7 +503,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     .memo-rail {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    /* COLLECTION 收起：记录数已在记录流尾注（#memo-count）出现，窄屏不必重复一块 */
+    /* COLLECTION 收起：记录数已在记录栏头行（#memo-count）出现，窄屏不必重复一块 */
     .memo-rail-section:last-child {
       display: none;
     }

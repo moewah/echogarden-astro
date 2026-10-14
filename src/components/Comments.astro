@@ -285,13 +285,19 @@ import { i18n } from '@i18n';
     --at-color-green: var(--accent) !important;
     --at-color-gradient: transparent !important;
   }
-  /* 评论头像：档案照片样式（方形 + hair 边框 + 相框留白） */
+  /* 评论头像：30×30，与留言卡头像同档；Artalk 默认 50px 会压过昵称与留言正文。
+     主内容栏随之从左移 20px（63 → 43px），保留头像后的 13px 间隙，起点靠近表单字段标签列。 */
   .artalk .atk-comment .atk-avatar img {
+    width: 30px !important;
+    height: 30px !important;
     border-radius: 0 !important;
     border: 1px solid var(--hair) !important;
     background: var(--panel) !important;
     padding: 2px !important;
     box-sizing: border-box !important;
+  }
+  .artalk .atk-comment > .atk-main {
+    margin-left: 43px !important;
   }
   .artalk .atk-comment .atk-header {
     font-size: 12px !important;
@@ -463,8 +469,8 @@ import { i18n } from '@i18n';
   /* ── 工具条左侧：图标按钮与状态件并入档案语言 ──
      Artalk 原生的插件按钮与「回复 / 取消编辑」状态件都是灰底圆角盒：.atk-plug-btn:hover 填
      --at-color-bg-grey、.atk-state-btn 常显 --at-color-bg-grey-transl，两者都带 3px 圆角与
-     14px 字号。站内工具控件是另一套语言——方形 + 发丝线 + 无填充（动态页记录栏的 34×34
-     控件、下面的 30×30 分页按钮），所以这里只留几何与线：填充去掉，颜色在 faint → accent
+     14px 字号。站内工具控件是另一套语言——方形 + 发丝线 + 无填充（动态页记录栏的三枚
+     控件、下面的分页按钮，同为 30×30），所以这里只留几何与线：填充去掉，颜色在 faint → accent
      之间走，按钮压成 30×30 方形。
      唯一换不掉的图形是 Markdown 预览按钮里的实心 M↓（Artalk 自带 SVG，路径改不了，换它得
      注入 DOM），只让它的颜色随 currentColor 走。 */
@@ -561,7 +567,9 @@ import { i18n } from '@i18n';
      （var(--panel)）：它与 .atk-grp-wrap 的滚动内容重叠，透明底会让滚过去的表情看起来"压在"字上。
      绝对定位而非 flex 重排，是为了不动 .atk-editor-plug-emoticons 的 display：
      面板显示 / 隐藏由 Artalk 用 inline display 控制，样式表里给它加 display !important
-     会把所有插件面板一起强行显示（点「预览」时表情面板也冒出来）。 */
+     会把所有插件面板一起强行显示（点「预览」时表情面板也冒出来）。
+     四边都不描线：这条只是覆盖条，不是独立区间；与表情区之间的分界由 active 那枚 accent
+     下划线独自承担。 */
   .artalk .atk-editor-plug-emoticons .atk-grp-switcher {
     top: 0 !important;
     bottom: auto !important;
@@ -573,8 +581,7 @@ import { i18n } from '@i18n';
     /* 不透明：这条覆盖条与滚动内容重叠，透明底会让滚过去的表情看起来压在字上。
        注意别在同一个规则里再写一次 background（同属性后者胜），上一版就是这么把底色吃掉的。 */
     background: var(--panel) !important;
-    border-top: none !important;
-    border-bottom: 1px solid var(--hair) !important;
+    border: none !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     white-space: nowrap !important;
@@ -588,7 +595,9 @@ import { i18n } from '@i18n';
     font-family: var(--font-mono) !important;
     font-size: 11.5px !important;
     letter-spacing: 0.14em !important;
-    line-height: 29px !important;
+    /* 30px = 条高：active 的下划线走 inset 阴影，贴到条底边缘收口。
+       原为 29px —— 那时条底有 1px 发丝线占位，现在线去掉了，29 会在下划线下漏出 1px 底色。 */
+    line-height: 30px !important;
     color: var(--faint) !important;
   }
   /* 当前分组：accent + 下划线，不用灰底块 */
@@ -632,7 +641,10 @@ import { i18n } from '@i18n';
     flex: 0 0 auto !important;
     /* Artalk 原生给 .atk-item 加了 margin:2px，卡片靠 gap 排布，去掉它才能对齐 12px 内边线 */
     margin: 0 !important;
-    padding: 6px 8px !important;
+    /* 卡片常态有 1px 透明描边（悬停升 accent），与 emoji / 图片组同一套悬停语言。
+       内衬相应各减 1px（6/8 → 5/7）：border-box 下外框尺寸与文字起读线都和加边前一致。 */
+    padding: 5px 7px !important;
+    border: 1px solid transparent !important;
     min-width: 0 !important;
     /* 颜文字字号：原生 15px 时，长串（如掀桌）在窄窗口的 3 列卡片里会折行被挤变形。
        降到 11.5px——比下面的中文名（10.5px）高半档，保持卡片主次；
@@ -641,6 +653,7 @@ import { i18n } from '@i18n';
   }
   .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoticon'] > .atk-item:hover {
     color: var(--accent) !important;
+    border-color: var(--accent) !important;
   }
   .artalk .atk-editor-plug-emoticons .atk-emoji-name {
     font-family: var(--font-mono) !important;

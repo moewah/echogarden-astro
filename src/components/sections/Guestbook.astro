@@ -36,12 +36,12 @@ const artalkVersionStatus = await getArtalkVersionStatus();
       </div>
 
       <div class="md:col-start-2 border border-[var(--line)] outline outline-1 outline-[var(--hair)] outline-offset-[5px] bg-[var(--panel)]">
-        <div class="flex justify-between items-center px-6 py-3.5 border-b border-[var(--line)]">
+        <div class="flex justify-between items-center px-5 py-3.5 border-b border-[var(--line)]">
           <span class="font-mono text-[10.5px] tracking-[0.3em] text-[var(--faint)] uppercase">{i18n.guestbook.filing}</span>
           <span class="font-mono text-[10.5px] text-[var(--accent)]">{i18n.guestbook.form}</span>
         </div>
 
-        <div class="p-6">
+        <div class="px-5 py-6">
           {
             artalkVersionStatus === 'ready' ? (
               <Comments />
@@ -58,7 +58,7 @@ const artalkVersionStatus = await getArtalkVersionStatus();
           }
         </div>
 
-        <div class="px-6 py-3 border-t border-[var(--line)] font-mono text-[10px] tracking-[0.16em] text-[var(--faint)]">
+        <div class="px-5 py-3 border-t border-[var(--line)] font-mono text-[10px] tracking-[0.16em] text-[var(--faint)]">
           {i18n.guestbook.artalk}
         </div>
       </div>
