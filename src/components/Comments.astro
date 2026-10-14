@@ -108,6 +108,23 @@ import { i18n } from '@i18n';
       }
 
       labelEmoticonItems(editor);
+      relocateStateWrap(editor);
+    }
+
+    // 状态件（回复 / 取消编辑）挪到编辑器顶部一条独立状态栏：原来它和插件按钮挤在
+    // 工具条里，既认不出是「取消编辑 / 取消回复」，又占工具条宽度（窄屏把发送挤到下一行）。
+    // 单独放一条后，文字 + ✕ 独占整行、accent 点亮作「触发状态」信号。
+    // 移动 DOM 节点不是克隆，Artalk 挂在它身上的点击监听跟着走；每次重查幂等。
+    function relocateStateWrap(editor) {
+      var wrap = editor.querySelector('.atk-bottom .atk-state-wrap');
+      if (!wrap) return;
+      var banner = editor.querySelector('.atk-state-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'atk-state-banner';
+        editor.insertBefore(banner, editor.firstChild);
+      }
+      if (wrap.parentNode !== banner) banner.appendChild(wrap);
     }
 
     // 颜文字项目带上中文名（数据里现成的 key → title）——面板是个拾取器，无名只能一个个扫。
@@ -443,6 +460,84 @@ import { i18n } from '@i18n';
     border-top: 1px solid var(--hair) !important;
     padding: 12px 12px 5px !important;
   }
+  /* ── 工具条左侧：图标按钮与状态件并入档案语言 ──
+     Artalk 原生的插件按钮与「回复 / 取消编辑」状态件都是灰底圆角盒：.atk-plug-btn:hover 填
+     --at-color-bg-grey、.atk-state-btn 常显 --at-color-bg-grey-transl，两者都带 3px 圆角与
+     14px 字号。站内工具控件是另一套语言——方形 + 发丝线 + 无填充（动态页记录栏的 34×34
+     控件、下面的 30×30 分页按钮），所以这里只留几何与线：填充去掉，颜色在 faint → accent
+     之间走，按钮压成 30×30 方形。
+     唯一换不掉的图形是 Markdown 预览按钮里的实心 M↓（Artalk 自带 SVG，路径改不了，换它得
+     注入 DOM），只让它的颜色随 currentColor 走。 */
+  .artalk .atk-main-editor .atk-bottom .atk-plug-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+    border: 1px solid var(--hair) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--faint) !important;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  /* 图标走 currentColor：Artalk 原生把 <i> 钉成 --at-color-grey，比按钮自身的颜色重一档 */
+  .artalk .atk-main-editor .atk-bottom .atk-plug-btn i,
+  .artalk .atk-main-editor .atk-bottom .atk-plug-btn svg {
+    color: inherit !important;
+  }
+  .artalk .atk-main-editor .atk-bottom .atk-plug-btn:hover,
+  .artalk .atk-main-editor .atk-bottom .atk-plug-btn.active {
+    background: transparent !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+  }
+  /* ── 状态件（回复 / 取消编辑）单独一条状态栏 ──
+     由脚本 relocateStateWrap 把它从工具条挪到编辑器顶部（见文件头脚本）。原来它和插件
+     按钮挤在工具条里，既认不出是「取消编辑 / 取消回复」，又占宽度把窄屏的发送挤到下一行。
+     单独放一条后文字 + ✕ 独占整行，accent 点亮就是「触发状态」信号；无状态时整条隐藏。 */
+  .artalk .atk-main-editor .atk-state-banner {
+    border-bottom: 1px solid var(--hair) !important;
+  }
+  .artalk .atk-main-editor .atk-state-banner:not(:has(.atk-state-btn)) {
+    display: none !important;
+  }
+  .artalk .atk-main-editor .atk-state-banner .atk-state-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100% !important;
+    height: 34px;
+    padding: 0 12px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--accent) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.08em !important;
+  }
+  .artalk .atk-main-editor .atk-state-banner .atk-state-btn .atk-text-wrap {
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .artalk .atk-main-editor .atk-state-banner .atk-state-btn .atk-cancel {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 4px !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--accent) !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+  }
+  .artalk .atk-main-editor .atk-state-banner .atk-state-btn .atk-cancel::after {
+    background-color: var(--accent) !important;
+    transition: background-color 0.2s ease;
+  }
+  .artalk .atk-main-editor .atk-state-banner .atk-state-btn:hover .atk-cancel::after {
+    background-color: var(--ink) !important;
+  }
   /* ── 表情面板：并入档案语言 ──
      面板自身 padding 为 0，里面的元素各带 10px 小内距 → 整条背景带比正文框边线外扩 12px；
      分组筛选行原本挂在面板底部（绝对定位 + 盒高锁死 30px + 子项 float:left），组一多就换行越线。
@@ -452,6 +547,15 @@ import { i18n } from '@i18n';
     border-top: none !important;
     box-sizing: border-box !important;
     padding: 0 12px !important;
+  }
+  /* ── Markdown 预览：给它一条边线 ──
+     Artalk 原生的预览面板是纯滚动区（无边框无底色），空的时候就是一块空白，
+     用户分不清这是预览框还是没渲染出来。加发丝线边框 + 去圆角，与档案卡片语言一致；
+     底色保持透明（预览内容就是评论正文，套底色反而像卡片里又嵌一张卡片）。 */
+  .artalk .atk-editor-plug-preview {
+    box-sizing: border-box !important;
+    border: 1px solid var(--hair) !important;
+    border-radius: 0 !important;
   }
   /* 筛选行：移到面板顶部，并保持 Artalk 原本的「绝对定位覆盖条」形态——但底色必须不透明
      （var(--panel)）：它与 .atk-grp-wrap 的滚动内容重叠，透明底会让滚过去的表情看起来"压在"字上。
@@ -530,10 +634,13 @@ import { i18n } from '@i18n';
     margin: 0 !important;
     padding: 6px 8px !important;
     min-width: 0 !important;
-    border: 1px solid var(--hair) !important;
+    /* 颜文字字号：原生 15px 时，长串（如掀桌）在窄窗口的 3 列卡片里会折行被挤变形。
+       降到 11.5px——比下面的中文名（10.5px）高半档，保持卡片主次；
+       实测最长串在 930px 窗口（卡片文本区 123px）下 118px 能放下，不再折行。 */
+    font-size: 11.5px !important;
   }
   .artalk .atk-editor-plug-emoticons .atk-grp[data-type='emoticon'] > .atk-item:hover {
-    border-color: var(--accent) !important;
+    color: var(--accent) !important;
   }
   .artalk .atk-editor-plug-emoticons .atk-emoji-name {
     font-family: var(--font-mono) !important;
@@ -606,6 +713,18 @@ import { i18n } from '@i18n';
   .artalk .atk-pagination > .atk-btn.atk-disabled:hover {
     border-color: var(--hair) !important;
     color: var(--faint) !important;
+  }
+  /* 分页箭头：Artalk 自带两个 14px 实心三角 SVG（512×512 实心图形），与站内分页那对
+     「← / →」不是一套（Pagination.astro 是 mono 文字箭头）。CSS 改不了 SVG 的路径，所以把
+     图形隐掉、用同字号同字距的文字箭头补上——按钮几何仍是上面那 30×30 的方形，只换图形。 */
+  .artalk .atk-pagination > .atk-btn svg {
+    display: none !important;
+  }
+  .artalk .atk-pagination > .atk-btn-prev::before {
+    content: '←';
+  }
+  .artalk .atk-pagination > .atk-btn-next::before {
+    content: '→';
   }
   /* 面板滚动条发丝化（Artalk 自带是 4px 硬编码灰） */
   .artalk .atk-editor-plug-emoticons .atk-grp-wrap::-webkit-scrollbar {
