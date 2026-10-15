@@ -22,8 +22,13 @@ const updatedAt = (() => {
 })();
 ---
 
-<section id="top" class="min-h-svh flex flex-col pt-[70px]">
-  <div class="flex-1 w-full wrap grid grid-cols-[auto_1fr] max-sm:grid-cols-1">
+{/* 高度由内容决定，不撑满一屏。曾用 min-height:100svh 让 hero 占满首屏（并与内列的
+    justify-between 配合把索引压到底部），但高视口下这只会留下一大片空白：余量被
+    justify-between 分到「标题区 ↔ 目录 ↔ 列表」中间。内容驱动后任何视口都没有空白，
+    代价是超高视口（≥1100px）首屏底部会露出下一板块（作者定，2026-10-16）。
+    （注释里不写那个 svh 工具类名：Tailwind 的扫描器连注释里的候选串也认，会凭空生成一条死 CSS。） */}
+<section id="top" class="pt-[70px]">
+  <div class="w-full wrap grid grid-cols-[auto_1fr] max-sm:grid-cols-1">
     <div class="flex max-sm:hidden items-center justify-center writing-vertical border-l border-r border-[var(--hair)] text-[var(--faint)] font-mono text-[11px] tracking-[0.42em] py-5 min-w-[52px]">
       {i18n.hero.tab}
     </div>
@@ -96,23 +101,29 @@ const updatedAt = (() => {
         </div>
       </div>
 
-      <div class="flex items-baseline gap-5 border-b border-[var(--line)] pb-4 mb-[clamp(20px,4vh,36px)]">
-        <h2 class="text-[clamp(26px,3.8vw,42px)] font-light tracking-[0.04em] text-[var(--ink)]">{i18n.hero.indexTitle}</h2>
+      {/* 「目录」标题与索引列表必须是**同一个** flex 子块：父列是 justify-between，只要该列得到
+          额外高度（历史上是 min-height:100svh，现在是竖排标目比正文列更高时的 grid stretch），余量就按
+          子块个数均分——「目录」标题从 <nav> 内搬出来后这一列变成 3 个子块，空白于是落到标题
+          两侧，目录与它自己的列表被分开。包一层确保余量只会出现在列表之前。 */}
+      <div>
+        <div class="flex items-baseline gap-5 border-b border-[var(--line)] pb-4 mb-[clamp(20px,4vh,36px)]">
+          <h2 class="text-[clamp(26px,3.8vw,42px)] font-light tracking-[0.04em] text-[var(--ink)]">{i18n.hero.indexTitle}</h2>
+        </div>
+        <nav>
+          {
+            nav.map((item) => (
+              <a
+                href={item.href}
+                class="group grid grid-cols-[64px_1fr_auto] max-sm:grid-cols-[48px_1fr_auto] gap-4 items-baseline py-[12.5px] border-b border-[var(--hair)] font-mono text-xs tracking-[0.08em] text-[var(--soft)] transition-all hover:pl-2.5"
+              >
+                <span class="text-[var(--accent)] font-semibold transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">{item.no}</span>
+                <span class="text-[var(--ink)] font-medium">{item.title}</span>
+                <span>{item.en}</span>
+              </a>
+            ))
+          }
+        </nav>
       </div>
-      <nav>
-        {
-          nav.map((item) => (
-            <a
-              href={item.href}
-              class="group grid grid-cols-[64px_1fr_auto] max-sm:grid-cols-[48px_1fr_auto] gap-4 items-baseline py-[12.5px] border-b border-[var(--hair)] font-mono text-xs tracking-[0.08em] text-[var(--soft)] transition-all hover:pl-2.5"
-            >
-              <span class="text-[var(--accent)] font-semibold transition-colors group-hover:bg-[var(--accent)] group-hover:text-white">{item.no}</span>
-              <span class="text-[var(--ink)] font-medium">{item.title}</span>
-              <span>{item.en}</span>
-            </a>
-          ))
-        }
-      </nav>
     </div>
   </div>
 </section>
