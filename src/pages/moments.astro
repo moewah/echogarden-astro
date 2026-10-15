@@ -8,6 +8,7 @@ import PageHeader from '@components/PageHeader.astro';
 import Moments from '@components/sections/Moments.astro';
 import Notice from '@components/sections/Notice.astro';
 import Footer from '@components/Footer.astro';
+import ReadingMode from '@components/ReadingMode.astro';
 import { siteConfig, memosConfig } from '@config/index';
 import { i18n } from '@i18n';
 import { archiveCode } from '@/utils/archive';
@@ -26,8 +27,19 @@ const pageCode = archiveCode('MW-MMT', memosConfig.archiveNo);
   description={siteConfig.site.seo.pages.moments.description}
   keywords={siteConfig.site.seo.pages.moments.keywords}
 >
-  {/* 本页不挂阅读增强：卡片本身已足够聚焦，保留全局背景层（背景轮播/呼吸）反而为本页增色。
-      阅读模式作用页 = 周刊详情 + 影辑详情（见 readingConfig）。 */}
+  {/* 阅读增强：动态页作用区（原始态背景，开关见 readingConfig）。
+      2026-10-15 纳入：这一页以连续记录为主，与周刊/影辑详情同样只需要纸面，不要背景层。 */}
+  <ReadingMode />
+  {/* 长文折叠的「露几行」变量：单一事实源是 memosConfig.display.fold.maxLines，
+      CSS 在 MomentCard 里消费（max-height: calc(var(--memo-fold-lines) * 1lh)）。
+      is:inline：它必须随首屏 CSS 一起生效，不能进打包队列。
+      关闭时不注入——MomentCard 没有兜底默认值，缺变量就等于不折叠，正是开关关闭该有的样子。
+      联动面：新增 MomentCard 的消费页（如二期把动态模块搬回首页）必须一起注入这个变量。 */}
+  {
+    memosConfig.display.fold.enabled && (
+      <style is:inline set:html={`:root{--memo-fold-lines:${memosConfig.display.fold.maxLines}}`}></style>
+    )
+  }
   <PageHeader title={pageTitle} tagline={i18n.page.momentsTagline} no={pageCode}>
     <div class="shrink-0 w-[clamp(32px,5vw,52px)] h-[clamp(32px,5vw,52px)] border border-[var(--hair)] rounded-full grid place-items-center text-[var(--faint)]" aria-hidden="true">
       <svg class="w-[clamp(17px,2.7vw,28px)] h-[clamp(17px,2.7vw,28px)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

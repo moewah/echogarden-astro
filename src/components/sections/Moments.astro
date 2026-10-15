@@ -6,7 +6,6 @@
 import EmptyState from '@components/EmptyState.astro';
 import MomentCard from '@components/MomentCard.astro';
 import Lightbox from '@components/Lightbox.astro';
-import Icon from '@components/Icon.astro';
 import { getMemos, getMemosVersionStatus, memoStructuredText, formatMemoDate } from '@/utils/memos';
 import { memosConfig, siteConfig } from '@config/index';
 import { i18n } from '@i18n';
@@ -35,6 +34,9 @@ const stateText =
 // 版本提示行只在「服务未配 / 版本不符 / 版本无法确认」三种状态下出现
 const showVersionHint = memosVersionStatus !== 'ready';
 const totalCount = list.length;
+// 记录栏头行同报标签数：取展示集合里出现过的标签去重计数（一条记录可带多标签）。
+// 与记录数同口径——两个数字描述同一批记录，筛选时一起变，不会一个描述整体、一个描述子集。
+const tagCount = new Set(list.flatMap((m) => m.tags ?? [])).size;
 // 空集合：拉取成功、版本就绪，但白名单下一条都没有。与拉取失败分开处理——
 // 前者不是故障（文案不借用 loadFailed），但索引栏会退化成空壳（无可筛标签、空日历、
 // 失效的 ‹ ›），所以同样走空态面板，不渲染索引栏与记录栏。
@@ -147,66 +149,22 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
           </aside>
 
           <div class="memo-records">
-            {/* 记录栏头行：左「计数 + 刷新 + 状态文本」，右「展示方式切换」。
-                计数与刷新同一组是因为讲的是同一件事——这条流有几条、点一下重取；
-                状态文本紧跟在刷新按钮右侧，是那个按钮的回声（同组左对齐，文字长出去只占空位）。
-                展示方式讲的是「怎么排」，与记录集本身无关，独立在右端。 */}
+            {/* 记录栏头行：计数靠左、刷新靠右，两端各钉一个落点。状态文本是按钮的回声，
+                紧贴按钮左侧——按钮恒占右端，状态出现/收起时不移位。 */}
             <div class="memo-feed-head">
+              <p class="memo-feed-count"><strong id="memo-count">{totalCount}</strong> {i18n.moments.records} · <strong id="memo-tag-count">{tagCount}</strong> {i18n.moments.tags}</p>
               <div class="memo-feed-tools">
-                <p class="memo-feed-count"><strong id="memo-count">{totalCount}</strong> {i18n.moments.records}</p>
+                <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
                 {
+                  // 文字按钮：可见的「刷新」两字即是可访问名（i18n key），不再写 aria-label / title 第二份
                   refreshOn && (
-                    <button
-                      type="button"
-                      id="memo-sync-btn"
-                      class="memo-refresh-btn"
-                      aria-label={i18n.moments.refresh}
-                      title={i18n.moments.refresh}>
-                      <Icon name="refresh" class="w-[16px] h-[16px]" />
-                    </button>
+                    <button type="button" id="memo-sync-btn" class="memo-refresh-btn">{i18n.moments.refresh}</button>
                   )
                 }
-                <span id="memo-sync-status" role="status" class="memo-sync-status" hidden></span>
-              </div>
-              {/* 两枚字形是同一族（U+25A4 / U+25A5，方形 + 填充），墨迹逐像素相同，
-                  填充方向正好对上语义：按行堆叠（单栏）/ 按列分栏（瀑布流）。
-                  原先的 ◫（U+25AB）是这一族的「小号」变体，任何字体里都只有 ▤ 的七成墨迹，
-                  且几乎不随字号变（实测 17px / 18px 均 11×11、20px 才 12）——30 盒下只占 37%。 */}
-              <div class="memo-view-switch" role="group" aria-label={i18n.moments.viewLabel}>
-                <button
-                  type="button"
-                  class="memo-view-btn"
-                  data-layout="stream"
-                  aria-pressed="true"
-                  aria-label={i18n.moments.viewStream}
-                  title={i18n.moments.viewStream}>▤</button>
-                <button
-                  type="button"
-                  class="memo-view-btn"
-                  data-layout="masonry"
-                  aria-pressed="false"
-                  aria-label={i18n.moments.viewMasonry}
-                  title={i18n.moments.viewMasonry}>▥</button>
               </div>
             </div>
 
-            <div class="memo-feed" id="memo-list" data-layout="stream">
-              {/* 展示方式的记忆：必须在这一屏内容绘制前落地，否则记的是瀑布流也要先闪一帧卡片栏
-                  （同 Layout 里主题预置的做法：读 localStorage 的行内脚本不进打包流程）。
-                  位置是这条保证的一半：脚本排在卡片之前解析，属性在首张卡片进 DOM 前就落地；
-                  排在卡片之后（哪怕还在同一个容器里）要等整批卡片全解析完才生效。
-                  它只管卡片排布——右侧两枚视图按钮的 aria-pressed 由打包脚本在 DOM 就绪后对齐，
-                  仍可能晚一帧；要一并提前须把这段上提到 head。 */}
-              <script is:inline>
-                (function () {
-                  try {
-                    var layout = localStorage.getItem('mh-moments-layout');
-                    if (layout === 'stream' || layout === 'masonry') {
-                      document.getElementById('memo-list').setAttribute('data-layout', layout);
-                    }
-                  } catch (e) {}
-                })();
-              </script>
+            <div class="memo-feed" id="memo-list">
               {
                 // 卡片结构单一事实源：MomentCard 组件（静态渲染与增量端点经 Container API 共用）
                 list.map((m, idx) => (
@@ -215,8 +173,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
               }
             </div>
 
-            {/* 列表尾注：计数上移头行后只剩同步日期，靠右——与头行同一套两端结构
-                （头行：记录集在左、展示方式在右；尾注只有这一条元数据，不给它凑一个同位素）。 */}
+            {/* 列表尾注：计数上移头行后只剩同步日期，靠右收口；不为单条元数据凑第二个元素。 */}
             <div class="memo-feed-foot">
               {/* 这行必须同源码行：JSX 会剥掉跨行的纯空白，写成多行会变成 LASTSYNCED */}
               <p>{i18n.moments.lastSynced} <span id="memo-synced">{syncedDate}</span></p>
@@ -249,11 +206,15 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
 
 <style>
   /* ===== 动态页版面：左索引栏 / 右记录栏 =====
-     索引栏 174px 是「索引卡片」的宽度，不是第二条容器宽度——容器仍是唯一的 wrap。 */
+     桌面索引栏 240px、卡片列最多 680px；侧栏与卡片列整体居中，剩余空间左右平分。 */
   .memo-archive {
     display: grid;
-    grid-template-columns: 174px minmax(0, 1fr);
-    align-items: start;
+    grid-template-columns: 240px minmax(0, 680px);
+    justify-content: center;
+    /* 基线对齐而非顶端对齐：两栏首个文字元素是「INDEX / 标签索引」与「30 RECORDS」，
+       它们是同一列表头的两半，必须坐在同一根基线上。顶端对齐时 6px 的差全落在字上
+       ——记录栏头是个 28px 控件行，计数在其中垂直居中，于是往下沉了 6px。 */
+    align-items: baseline;
     gap: clamp(28px, 4vw, 56px);
   }
   /* 顶栏实测底边 78px（12px 顶距 + 66px 高），落在 96px 留 18px 呼吸位 */
@@ -365,20 +326,23 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     text-align: center;
     font: 10.5px var(--font-mono);
   }
-  /* ===== 记录栏头行：统计 + 刷新 + 展示方式 ===== */
-  /* 记录栏头行：只划一根发丝线。这里用 --line（实线档）会把「控件区的下边界」
-     画成整幅图里最重的一根线——它分隔的卡片本身只是 --hair 外框，分隔线比
-     被分隔的东西重 5.7 倍，而且离卡片顶边只有 16px，一粗一细两条平行线贴在一起
-     像错位。--line 是板块边界与表头的档位（PageHeader / SecHead），
-     记录流自己开合的两根线属于「行分隔」，归 --hair。 */
+  /* ===== 记录栏头行：统计 + 刷新 ===== */
+  /* 头行＝记录流的封面行：左端计数、右端刷新，两端各钉一个落点才立得住；
+     控件若跟着文字尾部只隔 10px，读成「文字后面挂了个按钮」。右端的刷新与
+     尾注（靠右的 LAST SYNCED）同一条竖轴，上下收口对齐卡片右边界。
+     只划一根发丝线：这里用 --line（实线档）会把「控件区的下边界」画成整幅图里
+     最重的一根线——它分隔的卡片本身只是 --hair 外框，分隔线比被分隔的东西重 5.7 倍，
+     而且离卡片顶边只有 16px，一粗一细两条平行线贴在一起像错位。--line 是板块边界
+     与表头的档位（PageHeader / SecHead），记录流自己开合的两根线属于「行分隔」，归 --hair。 */
   .memo-feed-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     padding-bottom: 13px;
     border-bottom: 1px solid var(--hair);
   }
+  /* 右侧控件组：状态文本在刷新按钮左侧（按钮恒占右端，状态出现/收起不移位） */
   .memo-feed-tools {
     display: flex;
     align-items: center;
@@ -415,54 +379,43 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     color: var(--ink);
     font-weight: 500;
   }
-  /* 字形图标（▤ / ▥，同一族的方形填充）与线描图标（刷新 ↻）同排：两者都按图标取值，
-     不受 mono 字号四档约束。
-     刷新与两枚展示方式按钮共用同一份几何（30×30 + hairline 描边）——
-     它们同属一排控件，尺寸不一致会读成两种控件。刷新是图标按钮，状态文本在它右侧。
-     30 而不是 34：站内控件分两族——34 是「页框级 chrome」（顶栏主题切换 / 汉堡 /
-     品牌与导航行高、灯箱按钮、代码块标签栏），30 是「内容级控件」（Artalk 分页与
-     表情插件按钮）。这三枚在内容列里，与后者同族；34 会让一根只带 10.5px 元数据的
-     头行撑到 48px，控制条比它所辖的卡片头（55px）矮不了多少。
-     图标随之从 17px 收到 15px（墨迹 15 → 13，占盒 43%）：盒子收小而图标不收，
-     比例会从 44% 跳到 50%，等于把「感觉大」里的图标那一半原样留着。 */
-  .memo-view-btn,
+  /* 尾注前置标记：5px accent 方块，中心落在「LAST SYNCED」的 cap 中心上。
+     它是尾行的状态记号——与索引栏日历里「有记录的那天」同一枚 accent 记号；
+     这一行没有别的 accent，不构成第二种语义。
+     用 ::before 而非单独节点：它是纯装饰，不进 DOM、也不进无障碍树（伪元素天然不被读屏播报）。
+     方块在 10.5px mono 的一行里靠 vertical-align 定位：0.12em 让方块中心与 cap 中心重合。 */
+  .memo-feed-foot p::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-right: 10px;
+    background: var(--accent);
+    vertical-align: 0.12em;
+  }
+  /* 刷新是内容级文字控件（28px 高 + hairline 描边），与卡片头元数据同处内容列；
+     不用页框级 34px 尺寸，避免头行被控件撑高、把列表往下推。
+     文字自带宽度，故只定高度不定宽：英文版 REFRESH 比「刷新」宽，定宽会挤字或留空。 */
   .memo-refresh-btn {
-    width: 30px;
-    height: 30px;
-    display: grid;
+    height: 28px;
+    display: inline-grid;
     place-items: center;
-    padding: 0;
+    padding: 0 10px;
     border: 1px solid var(--hair);
     background: transparent;
-    color: var(--faint);
-    font: 15px/1 var(--font-mono);
+    color: var(--soft);
+    font: 11.5px/1 var(--font-mono);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
     cursor: pointer;
-    transition: color 0.2s, border-color 0.2s, background-color 0.2s, transform 0.12s;
+    transition: color 0.2s, border-color 0.2s, transform 0.12s;
   }
-  .memo-view-btn:hover,
   .memo-refresh-btn:hover {
     color: var(--accent);
     border-color: var(--accent);
   }
-  .memo-view-btn:active,
   .memo-refresh-btn:active {
     transform: translateY(1px);
-  }
-  /* 展示方式是二选一开关，两枚各带自己的描边、中间留 6px 间隙——
-     它们不是一个连体控件的两半，贴在一起会读错。 */
-  .memo-view-switch {
-    display: inline-flex;
-    flex: none;
-    gap: 6px;
-  }
-  .memo-view-btn[aria-pressed='true'] {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: var(--bg);
-  }
-  /* 已选中那枚是实心反白：按压落回基线，不再下沉 */
-  .memo-view-btn[aria-pressed='true']:active {
-    transform: none;
   }
   .memo-refresh-btn:disabled {
     opacity: 0.45;
@@ -471,12 +424,14 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     color: var(--faint);
   }
   /* 状态文本进工具组后不再钉 nowrap：窄屏必须允许它折行——它的 min-content（一个汉字）
-     就是工具组可被压缩到的下限，写下 nowrap 会把整个组顶成不可缩，反过来去挤计数。 */
+     就是工具组可被压缩到的下限，写下 nowrap 会把整个组顶成不可缩，反过来去挤计数。
+     靠右对齐：折行时贴着按钮左缘收，仍读得成按钮的回声。 */
   .memo-sync-status {
     font-family: var(--font-mono);
     font-size: 10.5px;
     letter-spacing: 0.12em;
     color: var(--faint);
+    text-align: right;
   }
   .memo-sync-status:not([hidden]) {
     display: inline-block;
@@ -523,8 +478,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
 <style is:global>
   /* 日期格必须写在全局块：格子是脚本用 createElement 造的，没有 Astro 的作用域属性，
      作用域选择器一个也命中不了（踩过一次：格子全部退回 UA 按钮样式，日期圆点不显示）。 */
-  /* 日期格用固定行高而不是 aspect-ratio: 1：正方格在 174px 索引栏里会撑到 25px 一行，
-     日历比上方密集的标签列表松一圈；压到 21px 后两块重量相当。 */
+  /* 日期格固定 21px 行高而非正方格：240px 索引栏下格宽随栏伸展，日期仍保持紧凑节奏。 */
   .memo-cal-day {
     width: 100%;
     height: 21px;
@@ -553,33 +507,12 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     outline-offset: -3px;
   }
 
-  /* 记录流的两种排布：卡片栏（默认，单列）/ 瀑布流（两列）。两者只改排布，卡片本身完全一样——
-     切一下展示方式就换一副卡片长相，等于把「排布」偷偷变成了第二种设计语言。
-     必须 is:global：.moment 属于 MomentCard 的作用域，且增量同步插入的卡片要立刻吃到同一排布。 */
-  .memo-feed[data-layout='stream'] {
+  /* 必须 is:global：.moment 属于 MomentCard 的作用域，且增量同步插入的卡片也要进入同一单列流。 */
+  .memo-feed {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     margin-top: 16px;
-  }
-  .memo-feed[data-layout='masonry'] {
-    display: block;
-    columns: 2;
-    column-gap: 16px;
-    margin-top: 16px;
-  }
-  .memo-feed[data-layout='masonry'] .moment {
-    /* 必须 block，不能 inline-block（实测）：内联块是原子内联级、挂在行盒上，
-       多列平衡器算不准——只剩两张卡片时会把两张都塞进左列，右列空着。
-       block + break-inside: avoid 才是多列布局下块级内容不拆的正确写法。 */
-    display: block;
-    margin: 0 0 16px;
-    break-inside: avoid;
-  }
-  @media (max-width: 639px) {
-    .memo-feed[data-layout='masonry'] {
-      columns: 1;
-    }
   }
 </style>
 
@@ -591,9 +524,10 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
   const noUpdatesLabel = memoI18n?.dataset.noupdates ?? '';
   const syncFailedLabel = memoI18n?.dataset.syncfailed ?? '';
 
-  // 记录流容器（同时是列表容器与排布容器：瀑布流用 CSS columns，容器必须就是它本身）
+  // 记录流容器：筛选、日期跳转与增量同步共用同一个列表节点
   const listEl = document.getElementById('memo-list');
   const countEl = document.getElementById('memo-count');
+  const tagCountEl = document.getElementById('memo-tag-count');
   const syncedEl = document.getElementById('memo-synced');
 
   // ===== 工具 =====
@@ -637,12 +571,19 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       b.setAttribute('aria-pressed', String(b.dataset.tag === tag));
     });
     let visible = 0;
+    // 标签数与记录数同口径：都只数当前可见的那批卡片
+    const shownTags = new Set<string>();
     moments().forEach((m) => {
-      const show = tag === '' || cardTags(m).includes(tag);
+      const tags = cardTags(m);
+      const show = tag === '' || tags.includes(tag);
       m.style.display = show ? '' : 'none';
-      if (show) visible++;
+      if (show) {
+        visible++;
+        tags.forEach((t) => shownTags.add(t));
+      }
     });
     if (countEl) countEl.textContent = String(visible);
+    if (tagCountEl) tagCountEl.textContent = String(shownTags.size);
   }
   // 编号重排：增量变化后统一重算（编号 = 列表索引，随新增/删除顺延）
   function renumber() {
@@ -660,23 +601,6 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       .sort((a, b) => (b.dataset.time || '').localeCompare(a.dataset.time || ''))
       .forEach((el) => listEl.appendChild(el));
   }
-
-  // ===== 展示方式切换（卡片栏 / 瀑布流）：选择写 localStorage，下次访问沿用 =====
-  const layoutBtns = [...document.querySelectorAll<HTMLElement>('.memo-view-btn')];
-  const syncLayoutButtons = () => {
-    const current = listEl?.dataset.layout || 'stream';
-    layoutBtns.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.layout === current)));
-  };
-  layoutBtns.forEach((btn) => btn.addEventListener('click', () => {
-    if (!listEl) return;
-    const next = btn.dataset.layout === 'masonry' ? 'masonry' : 'stream';
-    listEl.dataset.layout = next;
-    syncLayoutButtons();
-    // 无痕模式等场景 localStorage 不可用：记忆失效不该让切换本身也失效
-    try { localStorage.setItem('mh-moments-layout', next); } catch (e) {}
-  }));
-  // 首屏排布已由行内脚本按记忆落地，这里只把按钮状态对齐到实际排布
-  syncLayoutButtons();
 
   // ===== 日期索引（日历）：起始月 = 最新一条记录所在的月，可前后跨年翻 =====
   let renderCalendar: (() => void) | null = null;
@@ -784,7 +708,10 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
       const carousel = nav.closest<HTMLElement>('[data-carousel]');
       const track = carousel?.querySelector<HTMLElement>('[data-track]');
       if (carousel && track) {
-        track.scrollBy({ left: Number(nav.dataset.dir || 0) * carousel.clientWidth, behavior: scrollBehavior() });
+        const firstImage = track.querySelector<HTMLElement>('figure');
+        const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
+        const step = firstImage ? firstImage.getBoundingClientRect().width + gap : track.clientWidth;
+        track.scrollBy({ left: Number(nav.dataset.dir || 0) * step, behavior: scrollBehavior() });
       }
       return;
     }
@@ -824,7 +751,7 @@ const momentsJsonLdText = momentsJsonLd ? JSON.stringify(momentsJsonLd).replace(
     let syncing = false;
     let statusTimer = 0;
 
-    // 状态文本显示在刷新按钮右侧（按钮本身只有图标，不换文字）；
+    // 状态文本在刷新按钮左侧（按钮本身是文字按钮「刷新」，状态是它的回声）；
     // 同步中常显（可能要等十几秒），结果状态 2.5s 后收起。
     const showStatus = (text: string, autoHide = true) => {
       clearTimeout(statusTimer);

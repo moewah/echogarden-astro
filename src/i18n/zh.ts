@@ -173,6 +173,9 @@ export const zh = {
   // 动态
   moments: {
     records: 'RECORDS',
+    // 记录栏头行的第二个数字后的单位（头行是「30 RECORDS · 4 TAGS」）；
+    // 与 railTags（索引栏标题「INDEX / 标签索引」）不是同一个东西，别合并
+    tags: 'TAGS',
     lastSynced: 'LAST SYNCED',
     all: '全部',
     refresh: '刷新',
@@ -191,10 +194,6 @@ export const zh = {
     // 「近期」是对窗口的唯一交代（该页只拉最近 30 条，实例实际 163 条），
     // 单独成句说清范围，不能埋在排序句里。作者定稿，不再加减字。
     collectionNote: '仅收录近期记录，按日期从新到旧排列。图片、链接与 Markdown 内容均原样保留。',
-    // 展示方式切换（字形图标，文案只作法开关名称）
-    viewLabel: '动态展示方式',
-    viewStream: '动态卡片栏',
-    viewMasonry: '瀑布流',
     // 日期索引：标题由脚本按当前月份生成，此处只管控件
     calendarLabel: '动态日历',
     calendarPrev: '上个月',
@@ -202,6 +201,10 @@ export const zh = {
     calendarWeekdays: ['一', '二', '三', '四', '五', '六', '日'],
     calendarNone: '无动态',
     calendarRecords: '{n} 条动态',
+    // 长文折叠：同一个按钮的两副文案，随勾选状态互换（CSS 换字，无 JS）。
+    // 两副都是 4 字：宽度相等，切换时标签不跳。方向符号在模板里（↓ / ↑），不属于文案。
+    foldMore: '展开更多',
+    foldLess: '收起内容',
     disabled: '动态服务暂未配置，欢迎通过其他方式关注我。',
     disabledVer: '接口版本要求 MEMOS = {n}',
     versionMismatch: '动态服务版本不匹配，暂不加载内容。',

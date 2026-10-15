@@ -7,7 +7,7 @@
 // 行为契约：API 参数（CEL filter）、响应字段映射、附件 URL 拼法、markdown 渲染。
 // 用户级配置（地址 / tag 白名单 / 凭据读取）见 @config/memos。
 
-import { Marked } from 'marked';
+import { Marked, lexer, type Tokens } from 'marked';
 import { toHtml } from 'hast-util-to-html';
 import { createCssVariablesTheme, createHighlighter, type BundledLanguage, type Highlighter } from 'shiki';
 import { externalLinksConfig, siteConfig } from '@config/index';
@@ -151,22 +151,12 @@ function createMarkdown(ctx: MemoRenderContext): Marked {
   });
 }
 
-/**
- * 作者信息（Memos 用户表）。查不到时不带本字段——展示层回退站主身份，卡片头不留空位。
- * 头像 URL 与附件同契约（/file/ 前缀补实例域名），本地不缓存、由浏览器直接加载。
- */
-export interface MemoAuthor {
-  /** displayName，为空回退 username */
-  name: string;
-  /** 头像绝对 URL；用户未设置头像时为空串（展示层回退站主头像） */
-  avatar: string;
-}
-
 export interface Memo {
   /** 唯一标识（同步 diff / 卡片 data-uid 用，不渲染） */
   uid: string;
-  /** 作者（卡片头展示；缺省时展示层回退站主身份） */
-  author?: MemoAuthor;
+  /** 长文折叠：预估行数超过阈值（`memosConfig.display.fold`）时为 true，卡片据此渲染
+   *  折叠开关与裁剪层。只是视觉裁剪——content 始终是完整正文。不渲染、不进结构化数据。 */
+  collapsible?: boolean;
   /** 更新时间 RFC3339（同步 diff 用，不渲染） */
   updateTime: string;
   /** 展示日期 YYYY.MM.DD（createTime 的本地时区派生值） */
@@ -200,75 +190,12 @@ export interface RawMemo {
   updateTime: string;
   visibility?: string;
   tags?: string[];
-  /** 作者引用，形如 "users/{username}"（v0.31；作者详情需另查 /api/v1/{creator}） */
-  creator?: string;
   content: string;
   attachments?: Array<{ name: string; filename: string; type?: string }>;
 }
 
 // 拉取窗口：先拉足够多条公开 memo，再按白名单 tag 过滤（tag 过滤后数量大幅减少，不能先截断）
 const FETCH_PAGE_SIZE = 200;
-
-/** GetUser 响应中本项目用到的字段 */
-interface RawUser {
-  username?: string;
-  displayName?: string;
-  avatarUrl?: string;
-}
-
-// 作者缓存：creator（"users/{username}"）→ 作者。
-// 模块级 Map：serve 进程里同一份实例服务 /api/memos/sync 的多次请求，条目（含查不到时
-// 缓存的 null）随进程存活到重启；构建期页面渲染是另一个进程、另一份实例（本次构建内只查一次）。
-// 查不到也缓存 null：不让失败的请求在每页重复发起。
-const authorCache = new Map<string, MemoAuthor | null>();
-
-/**
- * 按 creator 查作者（Memos v0.31 的 memo 只带引用，显示名与头像在用户表）。
- * 用户未设置头像时 avatarUrl 为空 → avatar 为空串，展示层回退站主头像。
- * 失败不抛：作者信息是展示增强，缺了不该拖垮整页动态。
- */
-async function fetchMemoAuthor(
-  creator: string,
-  siteUrl: string,
-  token: string
-): Promise<MemoAuthor | null> {
-  const cached = authorCache.get(creator);
-  if (cached !== undefined) return cached;
-  try {
-    const res = await fetch(new URL(`/api/v1/${creator}`, siteUrl).toString(), {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      // dev 模式加超时避免本地开发长时间白屏（与 fetchMemoPage 同口径）
-      ...(import.meta.env.DEV ? { signal: AbortSignal.timeout(3000) } : {}),
-    });
-    if (!res.ok) throw new Error(`Memos API ${res.status}`);
-    const user = (await res.json()) as RawUser;
-    const author: MemoAuthor = {
-      name: (user.displayName || user.username || '').trim(),
-      avatar: user.avatarUrl ? absolutizeMemosFileUrl(user.avatarUrl) : '',
-    };
-    authorCache.set(creator, author);
-    return author;
-  } catch (err) {
-    console.warn('[memos] author lookup failed:', creator, err);
-    authorCache.set(creator, null);
-    return null;
-  }
-}
-
-/** 批量查作者：按 creator 去重后并发，返回 creator → 作者（查不到为 null） */
-async function fetchMemoAuthors(
-  creators: readonly string[],
-  siteUrl: string,
-  token: string
-): Promise<Map<string, MemoAuthor | null>> {
-  const authors = new Map<string, MemoAuthor | null>();
-  await Promise.all(
-    [...new Set(creators)].map(async (creator) => {
-      authors.set(creator, await fetchMemoAuthor(creator, siteUrl, token));
-    })
-  );
-  return authors;
-}
 
 /** createTime/updateTime（RFC3339）→ 卡片日期 YYYY.MM.DD（本地时区）。卡片与 LAST SYNCED 共用。 */
 export function formatMemoDate(iso: string): string {
@@ -401,6 +328,56 @@ const imageAttachments = (m: RawMemo, siteUrl: string) =>
     .map((a) => ({ uid: attachmentUid(a), url: attachmentUrl(a, siteUrl) }));
 
 /**
+ * 折叠判据的行数缓冲：估算有误差，留 4 行避免「折起来只藏一行」的尴尬。
+ * 与 config 的 maxLines 相加得阈值；不设第二个配置项——两个数字会配出「阈值 < 显示行数」。
+ */
+const FOLD_MARGIN_LINES = 4;
+
+/** 每行容量（字符）：13.5px 正文、卡宽 650px 下中英混排的实测档位。 */
+const CHARS_PER_LINE = 40;
+
+/** 一张正文内联图折算的行数（图宽≈卡宽，纵向多在 6–10 行之间，取中）。 */
+const IMAGE_LINES = 8;
+
+/**
+ * 目测行数：把渲染前的内容折算成「13.5px 正文行」，只用于决定这一条要不要折叠。
+ * 用与渲染同一个 lexer 的顶层 token：代码块取真实换行数，段落/标题/列表按字符数折算，
+ * 正文内联图按 IMAGE_LINES 记——不追像素级拟合，误差由 FOLD_MARGIN_LINES 的缓冲吸收。
+ * 附件图墙不在统计范围（渲染在正文之外，不参与折叠）。
+ * 不用运行期高度：那需要 JS + 布局抖动，图墙懒加载还会让高度不稳。
+ */
+function estimateMemoLines(md: string): number {
+  let lines = 0;
+  for (const token of lexer(md)) {
+    switch (token.type) {
+      case 'code':
+        lines += token.text.split('\n').length;
+        break;
+      case 'heading':
+        lines += 1.6;
+        break;
+      // marked 的 Token 联合里带 Tokens.Generic，判别联合收不紧，这里显式取一次
+      case 'list': {
+        const items = (token as Tokens.List).items;
+        lines += items.reduce(
+          (sum, item) => sum + Math.ceil(item.text.length / CHARS_PER_LINE) + 0.3,
+          0
+        );
+        break;
+      }
+      case 'space':
+        lines += 0.5;
+        break;
+      default:
+        lines += Math.ceil(token.raw.length / CHARS_PER_LINE);
+    }
+    // 正文内联图（![](...)）在段落里是行内 token，按 raw 数最省事
+    lines += (token.raw.match(/!\[/g)?.length ?? 0) * IMAGE_LINES;
+  }
+  return lines;
+}
+
+/**
  * 原始 memo → 展示条目：白名单 tag 过滤、渲染、附件 URL 拼装。
  * 附件 URL 契约：GET /file/attachments/{uid}/{filename}（uid 取自 attachment.name）。
  */
@@ -410,13 +387,14 @@ export async function renderMemoItems(
     tags: readonly string[];
     limit: number;
     siteUrl: string;
-    /** 访问凭据：查作者档案用（Memos 开匿名读时为空串） */
-    token: string;
     /** 列表首图优先加载（静态页 LCP）：只给首个含图的 memo；增量同步追加的卡片保持 lazy，不传 */
     prioritize?: boolean;
   }
 ): Promise<Memo[]> {
-  const { tags, limit, siteUrl, token, prioritize = false } = opts;
+  const { tags, limit, siteUrl, prioritize = false } = opts;
+  // 折叠：开关与阈值整批算一次；关闭时下面的估算被 && 短路，一行不跑
+  const fold = memosConfig.display.fold;
+  const foldThreshold = fold.maxLines + FOLD_MARGIN_LINES;
 
   // tag 清理规则只依赖白名单，整批共用一条正则
   const tagPattern = memoTagPattern(tags);
@@ -425,18 +403,13 @@ export async function renderMemoItems(
     .slice(0, limit);
   // 图片附件全集（含正文内联引用的）：结构化数据与首图判定口径
   const imagesByMemo = selected.map((m) => imageAttachments(m, siteUrl));
-  // 作者档案：只为本次展示集合里的作者查询（去重 + 缓存），失败静默降级
-  const authors = await fetchMemoAuthors(
-    selected.map((m) => m.creator).filter((creator): creator is string => Boolean(creator)),
-    siteUrl,
-    token
-  );
   // 首图优先加载：列表里第一个含图的 memo（与 Moments.astro 取 priorityMemoUid 同一口径）
   const priorityIndex = prioritize ? imagesByMemo.findIndex((imgs) => imgs.length > 0) : -1;
 
   const items = selected.map(async (m, i) => {
     const images = imagesByMemo[i];
-    const content = await renderMarkdown(stripMemoTags(m.content, tagPattern), {
+    const body = stripMemoTags(m.content, tagPattern);
+    const content = await renderMarkdown(body, {
       uid: m.uid,
       priority: i === priorityIndex,
     });
@@ -463,7 +436,7 @@ export async function renderMemoItems(
       }));
     return {
       uid: m.uid,
-      author: (m.creator ? authors.get(m.creator) : null) ?? undefined,
+      collapsible: fold.enabled && estimateMemoLines(body) > foldThreshold,
       updateTime: m.updateTime,
       createTime: m.createTime,
       date: formatMemoDate(m.createTime),
@@ -509,7 +482,6 @@ export async function getMemos(
       tags: memosConfig.tags,
       limit,
       siteUrl: memosConfig.auth.siteUrl,
-      token: memosConfig.auth.token,
       // 静态渲染：列表首图（含正文内联图）优先加载，与 MomentCard 的 priority 口径一致
       prioritize: true,
     });
@@ -599,7 +571,6 @@ export async function syncMemos(
       tags: memosConfig.tags,
       limit: added.length + updated.length,
       siteUrl: memosConfig.auth.siteUrl,
-      token: memosConfig.auth.token,
     });
 
     const snapshot: Record<string, string> = {};

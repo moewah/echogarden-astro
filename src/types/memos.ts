@@ -17,6 +17,12 @@ export interface MemosConfig {
   display: {
     /** 展示条数上限：动态页取最近 N 条，同一值同时决定增量同步端点的比对集合大小。 */
     limit: number;
+    fold: {
+      /** 长文折叠开关：false 时卡片不渲染开关、不裁剪、估算器整个跳过。 */
+      enabled: boolean;
+      /** 折叠时露出的正文行数：CSS 经 --memo-fold-lines 消费（见 MomentCard / pages/moments.astro）。 */
+      maxLines: number;
+    };
   };
   version: string;
 }

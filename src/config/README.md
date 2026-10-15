@@ -21,7 +21,7 @@
 | | `externalLinksConfig.ts` | 外链 rel / target 统一处理 + 赞助链接清单 + 站内域名判定 |
 | ⑤ 扩展 | `analyticsConfig.ts` | Umami / GA / Clarity provider 开关与配置 |
 | | `llmsConfig.ts` | `/llms.txt` 生成配置：总开关、近期周刊/影辑数量 + 可选语义扩展（身份路由 / 精选区块 / 读取规则 / 实体信息） |
-| | `readingConfig.ts` | 周刊/影辑详情页沉浸阅读：背景原始态开关 |
+| | `readingConfig.ts` | 周刊/影辑详情页与动态页沉浸阅读：背景原始态开关 |
 
 ## 三条铁律
 

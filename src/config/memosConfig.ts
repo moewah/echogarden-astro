@@ -44,6 +44,17 @@ export const memosConfig: MemosConfig = {
     // 调大 = 单页更长、构建与首屏更重；调小 = 更早的记录不可见（页面本身不分页）。
     // 降级：不合法值（0/负数）会让列表为空，没有兼容处理，请写正整数。
     limit: 30,
+    // 长文折叠：预估行数超过 maxLines + 4（缓冲常量在 utils/memos.ts）的卡片收起——
+    //   正文裁剪到 maxLines 行、底部三行淡出、「展开更多」出现在封底条时间右侧。
+    // 纯 CSS 实现（MomentCard 的 sr-only checkbox + 兄弟选择器），**不截断正文**：
+    //   全文始终在 DOM 里，折叠只是视觉裁剪，爬虫 / 页内查找 / JSON-LD 都拿到完整文本。
+    // 联动面：① maxLines 由 /moments/ 页注入 --memo-fold-lines（CSS 单一事实源，组件不写兜底值）；
+    //   ② 判据与估算器在 utils/memos.ts；③ enabled 为 false 时开关、裁剪类、估算器全部不出现。
+    // 降级：maxLines 写小于 1 的正整数会导致「露不出一行」；这是配置错误，不另加兼容。
+    fold: {
+      enabled: true,
+      maxLines: 12,
+    },
   },
   // 接口版本锚点：构建期通过 /api/v1/instance/profile 校验；主次版本不符时动态页显示空态。
   // 只锚定主次版本（`0.31` 放行 0.31.x，拦 0.32+），补丁号不进锚点；升级后端到新的主次版本才改这里。

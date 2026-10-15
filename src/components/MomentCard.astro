@@ -4,7 +4,6 @@
 // Copyright (c) EchoGarden (https://github.com/moewah/echogarden-astro)
 // Licensed under MIT
 import { i18n } from '@i18n';
-import { siteConfig } from '@config/index';
 import type { Memo } from '@/utils/memos';
 
 // 动态卡片组件 —— 卡片结构与样式的单一事实源。
@@ -23,9 +22,9 @@ const { memo: m, idx, priority = false } = Astro.props;
 // 图墙只渲染正文没有内联引用的图片附件（正文里已展示的不重复，见 utils/memos 的 gallery）
 const images = m.gallery ?? [];
 const no = idx !== undefined ? String(idx + 1).padStart(3, '0') : '';
-// 作者：Memos 用户表查不到时（未配置 / 查用户失败 / 作者未设头像）回退站主身份，卡片头不留空位。
-const authorName = m.author?.name || siteConfig.profile.name;
-const authorAvatar = m.author?.avatar || siteConfig.profile.avatar;
+// 长文折叠：由 utils/memos 按 memosConfig.display.fold 在构建期判定（预估行数超阈值）。
+// 这里只管渲染——折叠逻辑全部是 CSS（见下方 <style> 与封底条 label）。
+const foldable = m.collapsible === true;
 // 卡片日期就是日历索引的键：取展示日期本身（本地时区），不直接用 createTime——
 // createTime 是 UTC，跨零点时切出来的日子会比卡片上印的日期差一天。
 const dateIso = m.date.replace(/\./g, '-');
@@ -37,20 +36,14 @@ const dateIso = m.date.replace(/\./g, '-');
   data-tags={JSON.stringify(m.tags ?? [])}
   data-time={m.createTime}
 >
-  {/* 卡片三带：头（身份 + 分类）/ 正文 / 底（档案元数据）。
-      分类胶囊跟身份同层靠右（参照 动态卡片-C-索引网格 的 head），编号与日期下沉到封底条——
-      窄屏时头行要么装得下、要么只给胶囊换行，不再把元数据那行拆开。 */}
+  {
+    // 折叠开关：状态源。必须是卡片的**首个子节点**——正文裁剪层与封底条按钮都用兄弟选择器（~）
+    // 读它，多包一层就失效。sr-only 只做视觉隐藏，仍可 Tab 聚焦（焦点环画到可见的 label 上）。
+    foldable && <input type="checkbox" id={`memo-fold-${m.uid}`} class="memo-fold-toggle sr-only" />
+  }
+  {/* 卡片三带：头（编号 + 分类）/ 正文 / 底（日期）。编号替代原来的头像与昵称，分类胶囊靠右。 */}
   <header class="flex flex-wrap items-center gap-x-2.5 gap-y-2 px-[15px] py-3 border-b border-[var(--hair)] font-mono text-[10.5px] tracking-[0.07em] text-[var(--faint)]">
-    <img
-      class="w-[30px] h-[30px] shrink-0 border border-[var(--hair)] object-cover"
-      src={authorAvatar}
-      alt=""
-      width="30"
-      height="30"
-      loading="lazy"
-      decoding="async"
-    />
-    <span class="font-sans text-[13px] font-medium tracking-[0.01em] text-[var(--ink)]">{authorName}</span>
+    <span class="moment-no font-semibold tracking-[0.13em] text-[var(--accent)]">{no}</span>
     {
       (m.tags ?? []).length > 0 && (
         // 胶囊 11.5px mono（AGENTS 1.2 的字段行与交互档），与影辑详情页 `dl` 里那枚同一款
@@ -67,40 +60,36 @@ const dateIso = m.date.replace(/\./g, '-');
   {/* 正文区整块负责内衬：正文 / 图墙 / 附件同在一个内容块里，
       不再各自算一份 margin-inline——它们同属一个区，内衬是该区的事。 */}
   <div class="memo-body">
+    {/* 长文折叠只裁正文（内联图算正文的一行，跟着一起裁）；图墙缩略图与音视频 / 文件附件
+        不参与折叠，折起来也原样留在卡片底部——它们是记录的另一半内容，裁一半比不折更糟。
+        全文始终在 DOM 里，折叠只是视觉裁剪（-collapsible 标记直接加在正文元素上，
+        不另包一层：裁剪层就是正文本身，下面的 `1lh` 才取得到正文的行高）。 */}
     <div
-      class="markdown-body memo-content text-[var(--soft)]"
+      class={`markdown-body memo-content text-[var(--soft)]${foldable ? ' memo-content--collapsible' : ''}`}
       set:html={m.content}
     ></div>
 
     {
       images.length > 0 && (
-        images.length > 3 ? (
+        images.length > 2 ? (
           <div class="memo-images mt-3 relative" data-carousel>
             <button type="button" class="memo-nav memo-prev" data-dir="-1" aria-label={i18n.lightbox.prev}>‹</button>
-            <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
-            <div class="memo-track flex gap-3 overflow-x-hidden" data-track>
+            <div class="memo-track flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-hidden" data-track>
               {images.map((src, i) => (
-                <figure class="shrink-0 w-[calc((100%-24px)/3)]">
+                <figure class="shrink-0 w-[calc((100%-12px)/2)] snap-start">
                   <div class="aspect-square overflow-hidden img-ph img-ph--memo">
                     <img src={src} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchpriority={priority && i === 0 ? 'high' : undefined} decoding="async" alt={src.split('/').pop()} data-lightbox-trigger data-lightbox-group={m.uid} class="w-full h-full object-cover" />
                   </div>
                 </figure>
               ))}
             </div>
+            <button type="button" class="memo-nav memo-next" data-dir="1" aria-label={i18n.lightbox.next}>›</button>
           </div>
         ) : (
-          <div
-            class={`memo-images mt-3 grid gap-3 ${
-              images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
-            }`}
-          >
+          <div class="memo-images mt-3 grid grid-cols-2 gap-3">
             {images.map((src, i) => (
-              <figure>
-                <div
-                  class={`overflow-hidden img-ph img-ph--memo ${
-                    images.length === 1 ? '' : 'aspect-square'
-                  }`}
-                >
+              <figure class="min-w-0">
+                <div class="aspect-square overflow-hidden img-ph img-ph--memo">
                   <img
                     src={src}
                     loading={priority && i === 0 ? 'eager' : 'lazy'}
@@ -109,7 +98,7 @@ const dateIso = m.date.replace(/\./g, '-');
                     alt={src.split('/').pop()}
                     data-lightbox-trigger
                     data-lightbox-group={m.uid}
-                    class={`w-full ${images.length === 1 ? 'h-auto block' : 'h-full object-cover'}`}
+                    class="w-full h-full object-cover"
                   />
                 </div>
               </figure>
@@ -143,11 +132,22 @@ const dateIso = m.date.replace(/\./g, '-');
 
   </div>
 
-  {/* 封底条：档案编号 + 日期（元数据就这两位，术语不重复占位）。
-      内衬与卡片头同档（上边线 + py-3），颜色更弱一档（faint）——头肩尾三个带，头重、尾轻。 */}
+  {/* 封底条只留日期（折叠按钮在它的右端）；内衬与卡片头同档，颜色使用 faint，保持头重尾轻。 */}
   <div class="memo-foot flex items-center gap-x-2.5 px-[15px] py-3 border-t border-[var(--hair)] font-mono text-[10.5px] tracking-[0.07em] text-[var(--faint)]">
-    <span class="moment-no font-semibold tracking-[0.13em] text-[var(--accent)]">{no}</span>
     <time datetime={dateIso}>{m.date}</time>
+    {
+      foldable && (
+        // 「展开更多 / 收起内容」是同一个 label 的两副文案，随勾选状态互换（CSS 换字，无 JS）。
+        // ms-auto：与头行的「计数 ↔ 刷新」同构，把控件钉在封底条右端。
+        // 方向符号用 ↓ / ↑（U+2193 / U+2191）：IBM Plex Mono 自带字形、0.600em，与 mono 文字同源同宽。
+        // 别换成 ▾ ▸（两套 webfont 都无字形，会落到系统字体，macOS / Windows / Linux 三种墨迹）
+        // 或 ▼ ▲（只有 Noto Sans SC 有，1.000em 全宽）。实测见 ROADMAP 长文折叠条目。
+        <label for={`memo-fold-${m.uid}`} class="memo-fold-btn ms-auto">
+          <span class="memo-fold-more">↓ {i18n.moments.foldMore}</span>
+          <span class="memo-fold-less">↑ {i18n.moments.foldLess}</span>
+        </label>
+      )
+    }
   </div>
 </div>
 
@@ -158,6 +158,55 @@ const dateIso = m.date.replace(/\./g, '-');
   .memo-body {
     padding: 15px 15px 20px;
   }
+  /* ===== 长文折叠（纯 CSS，零浏览器 JS）=====
+     开关是卡片首子节点的 sr-only checkbox，正文与封底条按钮都用兄弟选择器读它的状态。
+     只有「预估够长」的卡片带 --collapsible：短卡不渲染开关、不裁剪、不出按钮。
+     裁剪范围只有正文——图墙与附件不在其中，折叠时仍留在卡片底部。 */
+  /* 裁剪层就是正文本身（13.5px / line-height 1.9）：`1lh` 于是直接等于正文的一行高，
+     --memo-fold-lines 就是「露几行」。变量由消费页注入（pages/moments.astro ←
+     memosConfig.display.fold.maxLines）：组件故意不写兜底默认值——多一个默认值就是第二份事实，
+     缺变量会直接表现为不折叠。
+     不另包一层裁剪 div：`1lh` 取元素自身的行高，包在正文外面会改取父级行高，「12 行」就不再是正文的 12 行。
+     overflow: hidden 顺带建了 BFC，正文首末外边距不会窜出去（首子元素上边距另有 is:global 块的
+     `.memo-content > :first-child { margin-top: 0 }` 钉住）。 */
+  .memo-content--collapsible {
+    max-height: calc(var(--memo-fold-lines) * 1lh);
+    overflow: hidden;
+    /* 底部三行淡出：纯 alpha 的功能层遮罩，不是装饰渐变（AGENTS §2.4 例外条）。
+       currentColor 是正文色、alpha 恒 1，顺带避开颜色字面量。 */
+    mask-image: linear-gradient(to bottom, currentColor calc(100% - 3lh), transparent);
+  }
+  /* 展开态：撤裁剪、撤遮罩，overflow 一并放开（否则展开后仍会被横向裁掉） */
+  .memo-fold-toggle:checked ~ .memo-body .memo-content--collapsible {
+    max-height: none;
+    overflow: visible;
+    mask-image: none;
+  }
+  /* 封底条文字控件：与头行「刷新」同款（soft → hover accent，无描边无底色） */
+  .memo-fold-btn {
+    color: var(--soft);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .memo-fold-btn:hover {
+    color: var(--accent);
+  }
+  /* 焦点在 sr-only 的 checkbox 上，焦点环画到可见的 label 上 */
+  .memo-fold-toggle:focus-visible ~ .memo-foot .memo-fold-btn {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 同一按钮的两副文案：勾选态互换 */
+  .memo-fold-toggle:checked ~ .memo-foot .memo-fold-more {
+    display: none;
+  }
+  .memo-fold-toggle:not(:checked) ~ .memo-foot .memo-fold-less {
+    display: none;
+  }
+  /* 缩略图恒为方形（aspect-square）。远程附件拿不到宽高——Memos 附件 API 不给尺寸，
+     运行时增量插入的卡片更无从预知——按整组方向贴比例只能等图片加载后改，代价是
+     整卡高度跳变（CLS）。2026-10-15 删掉「加载后按方向改比例」的整套机制（JS +
+     data-thumb-ratio + 类名），换零后置位移；不要再从「更贴比例」的角度加回来。 */
   /* 图片可点开灯箱的光标提示 */
   .memo-images img {
     cursor: pointer;
@@ -178,7 +227,8 @@ const dateIso = m.date.replace(/\./g, '-');
     font-size: 15px;
     line-height: 1;
     z-index: 1;
-    transition: color 0.2s, border-color 0.2s;
+    opacity: 0.82;
+    transition: opacity 0.2s, color 0.2s, border-color 0.2s;
   }
   .memo-nav:hover {
     border-color: var(--accent);
@@ -208,13 +258,5 @@ const dateIso = m.date.replace(/\./g, '-');
   }
   .memo-content > :last-child {
     margin-bottom: 0;
-  }
-  /* 单图档：图片载入前无固有尺寸，容器会塌成 0 高（占位图标无处可见）。
-     载入后由 img.is-loaded 撤销。多图档有 aspect-square，不需要。 */
-  .memo-images.grid-cols-1 .img-ph {
-    min-height: 10rem;
-  }
-  .memo-images.grid-cols-1 .img-ph:has(> img.is-loaded) {
-    min-height: 0;
   }
 </style>
