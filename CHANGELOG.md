@@ -2,7 +2,7 @@
 
 EchoGarden（echogarden-astro）的版本变更记录。版本号遵循语义化版本，git tag 与本文档段落一一对应。
 
-## 0.4.0 - 未发布
+## 0.4.0 - 2026-10-15
 
 动态页第二次改版：版面收成单列卡片流、卡片头与记录栏换元数据、长文折叠落地。**含 i18n key 与配置字段变更**，升级前先看文末「升级提示」。
 
@@ -25,6 +25,7 @@ EchoGarden（echogarden-astro）的版本变更记录。版本号遵循语义化
 
 - **周刊详情页封面 `preset="card"` 死属性**：`PhotoImg` / `OptImage` 从来没有这个 prop，它经 `...rest` 直落到 Astro `<Image>`，产物里每个周刊详情页都有一枚 `<img preset="card">` 非法属性，且无任何消费方
 - **正文链接下划线线色回到 0.2.2 的观感**：去掉 `text-decoration-color: var(--hair)` 与悬停升 accent 的规则，线色跟随文字（`currentColor`），两态同色。推翻 0.3.0「静止态发丝线、悬停升级」的判断——线色与文字同色读起来才是「链接」，而不是压在字下的一条分隔线；`text-decoration-thickness: 1px` 与 `text-underline-offset: 0.3em` 保留未动
+- **首页 hero 高度改为内容驱动，目录与索引列表归位**：`#top` 去掉 `min-height:100svh`，以及只为撑高服务的 `flex flex-col` 与内层 `flex-1`（无最小高度时整条撑高链失效，留着是死代码）——一屏 hero 在高视口下唯一的可观察效果就是一片空白（1440px 高的竖屏实测 ≈400px）；代价是超高视口（≥1100px）首屏底部会露出下一板块，hero 不再独占一屏。「目录」标题与索引列表收进同一个 flex 子块：父列是 `justify-between`、余量按子块个数均分，标题独立在外时该列变成 3 个子块，空白于是落到标题两侧，把目录与它自己的列表分开
 
 ### 升级提示
 
